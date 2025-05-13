@@ -43,13 +43,11 @@ namespace dx3d
 	class GraphicsResource : public Base
 	{
 	public:
-		explicit GraphicsResource(const GraphicsResourceDesc& desc):
+		explicit GraphicsResource(const GraphicsResourceDesc& desc) :
 			Base(desc.base),
 			m_renderSystem(desc.renderSystem),
 			m_device(desc.device),
-			m_factory(desc.factory)
-		{
-		}
+			m_factory(desc.factory) {}
 
 	protected:
 		std::shared_ptr<const RenderSystem> m_renderSystem;

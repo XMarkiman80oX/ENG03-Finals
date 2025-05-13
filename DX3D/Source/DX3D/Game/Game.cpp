@@ -1,48 +1,72 @@
-/*MIT License
-
-C++ 3D Game Tutorial Series (https://github.com/PardCode/CPP-3D-Game-Tutorial-Series)
-
-Copyright (c) 2019-2025, PardCode
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.*/
-
 #include <DX3D/Game/Game.h>
 #include <DX3D/Window/Window.h>
 #include <DX3D/Graphics/GraphicsEngine.h>
 #include <DX3D/Core/Logger.h>
 #include <DX3D/Game/Display.h>
+#include <DX3D/Graphics/RenderSystem.h>
+#include <DX3D/Graphics/SwapChain.h>
+#include <DX3D/Graphics/DeviceContext.h>
+#include <DX3D/Graphics/Primitives/Triangle.h>
+#include <DX3D/Graphics/Shaders/ColorShader.h>
 
 dx3d::Game::Game(const GameDesc& desc) :
-	Base({*std::make_unique<Logger>(desc.logLevel).release()}),
-	m_loggerPtr(&m_logger)
+    Base({ *std::make_unique<Logger>(desc.logLevel).release() }),
+    m_loggerPtr(&m_logger)
 {
-	m_graphicsEngine = std::make_unique<GraphicsEngine>(GraphicsEngineDesc{m_logger});
-	m_display = std::make_unique<Display>(DisplayDesc{ {m_logger,desc.windowSize},m_graphicsEngine->getRenderSystem()});
+    m_graphicsEngine = std::make_unique<GraphicsEngine>(GraphicsEngineDesc{ m_logger });
+    m_display = std::make_unique<Display>(DisplayDesc{ {m_logger,desc.windowSize},m_graphicsEngine->getRenderSystem() });
 
-	DX3DLogInfo("Game initialized.");
-	DX3DLogInfo("Testing.");
-	
+    createTriangleResources();
+
+    DX3DLogInfo("Game initialized.");
 }
 
 dx3d::Game::~Game()
 {
-	DX3DLogInfo("Game deallocation started.");
+    DX3DLogInfo("Game deallocation started.");
 }
 
+void dx3d::Game::createTriangleResources()
+{
+    auto& renderSystem = m_graphicsEngine->getRenderSystem();
+    auto resourceDesc = renderSystem.getGraphicsResourceDesc();
 
+    // Create triangle vertices
+    m_triangleVertexBuffer = Triangle::Create(resourceDesc);
+
+    // Create shaders
+    m_vertexShader = std::make_shared<VertexShader>(resourceDesc, ColorShader::GetVertexShaderCode());
+    m_pixelShader = std::make_shared<PixelShader>(resourceDesc, ColorShader::GetPixelShaderCode());
+
+    DX3DLogInfo("Triangle resources created successfully.");
+}
+
+void dx3d::Game::render()
+{
+    auto& renderSystem = m_graphicsEngine->getRenderSystem();
+    auto& deviceContext = renderSystem.getDeviceContext();
+    auto& swapChain = m_display->getSwapChain();
+
+    // Clear the render target
+    deviceContext.clearRenderTargetColor(swapChain, 0.0f, 0.2f, 0.4f, 1.0f);
+
+    // Set the render target view
+    deviceContext.setRenderTargets(swapChain);
+
+    // Set up the viewport
+    deviceContext.setViewportSize(m_display->getSize().width, m_display->getSize().height);
+
+    // Set the vertex buffer
+    deviceContext.setVertexBuffer(*m_triangleVertexBuffer);
+
+    // Set the shaders and input layout
+    deviceContext.setVertexShader(m_vertexShader->getShader());
+    deviceContext.setPixelShader(m_pixelShader->getShader());
+    deviceContext.setInputLayout(m_vertexShader->getInputLayout());
+
+    // Draw the triangle
+    deviceContext.drawTriangleList(m_triangleVertexBuffer->getVertexCount(), 0);
+
+    // Present the frame
+    deviceContext.present(swapChain);
+}

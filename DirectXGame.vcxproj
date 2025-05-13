@@ -135,6 +135,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DX3D\Source\DX3D\Graphics\DeviceContext.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Game\Display.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Core\Base.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Game\Game.cpp" />
@@ -145,13 +146,19 @@
     <ClCompile Include="DX3D\Source\DX3D\Graphics\RenderSystem.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Core\Logger.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\SwapChain.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Graphics\VertexBuffer.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\Triangle.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Graphics\Shaders\Shaders.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\ColorShader.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\DeviceContext.h" />
     <ClInclude Include="DX3D\Include\DX3D\Game\Display.h" />
     <ClInclude Include="DX3D\Include\DX3D\All.h" />
     <ClInclude Include="DX3D\Include\DX3D\Core\Base.h" />
     <ClInclude Include="DX3D\Include\DX3D\Core\Common.h" />
     <ClInclude Include="DX3D\Include\DX3D\Core\Core.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Vertex.h" />
     <ClInclude Include="DX3D\Include\DX3D\Math\Rect.h" />
     <ClInclude Include="DX3D\Include\DX3D\Window\Window.h" />
     <ClInclude Include="DX3D\Include\DX3D\Game\Game.h" />
@@ -161,6 +168,9 @@
     <ClInclude Include="DX3D\Source\DX3D\Graphics\RenderSystem.h" />
     <ClInclude Include="DX3D\Include\DX3D\Core\Logger.h" />
     <ClInclude Include="DX3D\Source\DX3D\Graphics\SwapChain.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\VertexBuffer.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\Triangle.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\Shaders.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
