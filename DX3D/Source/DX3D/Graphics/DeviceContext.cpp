@@ -5,13 +5,12 @@
 dx3d::DeviceContext::DeviceContext(const GraphicsResourceDesc& desc, ID3D11DeviceContext* deviceContext)
     : GraphicsResource(desc)
 {
-    // Store the device context pointer in our ComPtr
     m_deviceContext = deviceContext;
 }
 
 dx3d::DeviceContext::~DeviceContext()
 {
-    // ComPtr handles cleanup automatically
+
 }
 
 void dx3d::DeviceContext::clearRenderTargetColor(SwapChain& swapChain, float red, float green, float blue, float alpha)
@@ -41,7 +40,6 @@ void dx3d::DeviceContext::setViewportSize(ui32 width, ui32 height)
 
 void dx3d::DeviceContext::setRenderTargets(SwapChain& swapChain)
 {
-    // Get the RTV from the swap chain and set it
     m_deviceContext->OMSetRenderTargets(1, swapChain.getRenderTargetViewAddress(), nullptr);
 }
 

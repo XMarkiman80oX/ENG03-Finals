@@ -21,7 +21,7 @@ namespace dx3d
         virtual void run() final;
     private:
         void render();
-        void createTriangleResources();
+        void createRenderingResources();
 
     private:
         std::unique_ptr<Logger> m_loggerPtr{};
@@ -29,9 +29,18 @@ namespace dx3d
         std::unique_ptr<Display> m_display{};
         bool m_isRunning{ true };
 
-        // Triangle rendering resources
+        // Triangle with rainbow shader
         std::shared_ptr<VertexBuffer> m_triangleVertexBuffer{};
-        std::shared_ptr<VertexShader> m_vertexShader{};
-        std::shared_ptr<PixelShader> m_pixelShader{};
+        std::shared_ptr<VertexShader> m_rainbowVertexShader{};
+        std::shared_ptr<PixelShader> m_rainbowPixelShader{};
+
+        // Rectangle with rainbow shader  
+        std::shared_ptr<VertexBuffer> m_rectangleVertexBuffer{};
+        // Uses same rainbow shaders as triangle
+
+        // Rectangle with green shader
+        std::shared_ptr<VertexBuffer> m_greenRectangleVertexBuffer{};
+        std::shared_ptr<VertexShader> m_greenVertexShader{};
+        std::shared_ptr<PixelShader> m_greenPixelShader{};
     };
-}
+} 

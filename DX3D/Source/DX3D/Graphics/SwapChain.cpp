@@ -28,19 +28,16 @@ dx3d::SwapChain::~SwapChain()
 
 void dx3d::SwapChain::createRenderTargetView()
 {
-    // Get the back buffer
     Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
     DX3DGraphicsLogErrorAndThrow(m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), &backBuffer),
         "GetBuffer failed for back buffer.");
 
-    // Create a render target view
     DX3DGraphicsLogErrorAndThrow(m_device.CreateRenderTargetView(backBuffer.Get(), nullptr, &m_renderTargetView),
         "CreateRenderTargetView failed.");
 }
 
 void dx3d::SwapChain::present()
 {
-    // Present with vsync
     m_swapChain->Present(1, 0);
 }
 

@@ -149,6 +149,7 @@
     <ClCompile Include="DX3D\Source\DX3D\Graphics\VertexBuffer.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\Triangle.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\Shaders\Shaders.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\Rectangle.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\ColorShader.h" />
@@ -158,6 +159,8 @@
     <ClInclude Include="DX3D\Include\DX3D\Core\Base.h" />
     <ClInclude Include="DX3D\Include\DX3D\Core\Common.h" />
     <ClInclude Include="DX3D\Include\DX3D\Core\Core.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\GreenShader.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\RainbowShader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Vertex.h" />
     <ClInclude Include="DX3D\Include\DX3D\Math\Rect.h" />
     <ClInclude Include="DX3D\Include\DX3D\Window\Window.h" />
@@ -171,6 +174,7 @@
     <ClInclude Include="DX3D\Include\DX3D\Graphics\VertexBuffer.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\Triangle.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\Shaders.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\Rectangle.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

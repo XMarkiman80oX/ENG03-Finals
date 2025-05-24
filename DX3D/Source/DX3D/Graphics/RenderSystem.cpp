@@ -30,7 +30,6 @@ dx3d::RenderSystem::RenderSystem(const RenderSystemDesc& desc) : Base(desc.base)
     DX3DGraphicsLogErrorAndThrow(m_dxgiAdapter->GetParent(IID_PPV_ARGS(&m_dxgiFactory)),
         "GetParent failed to retrieve IDXGIFactory.");
 
-    // Create device context using the non-shared_from_this version
     initializeDeviceContext();
 }
 
@@ -40,7 +39,6 @@ dx3d::RenderSystem::~RenderSystem()
 
 void dx3d::RenderSystem::initializeDeviceContext()
 {
-    // Use the version that doesn't use shared_from_this()
     m_deviceContextPtr = std::make_shared<DeviceContext>(
         getGraphicsResourceDescForInit(),
         m_d3dContext.Get()
@@ -49,18 +47,14 @@ void dx3d::RenderSystem::initializeDeviceContext()
 
 SwapChainPtr dx3d::RenderSystem::createSwapChain(const SwapChainDesc& desc) const
 {
-    // Now that we're outside the constructor, we can safely use shared_from_this
     return std::make_shared<SwapChain>(desc, getGraphicsResourceDesc());
 }
 
-// Version without shared_from_this for use in constructor
 GraphicsResourceDesc dx3d::RenderSystem::getGraphicsResourceDescForInit() const noexcept
 {
-    // Note the nullptr for the RenderSystem instead of shared_from_this()
     return { {m_logger}, nullptr, *m_d3dDevice.Get(), *m_dxgiFactory.Get() };
 }
 
-// Original version with shared_from_this for use after construction
 GraphicsResourceDesc dx3d::RenderSystem::getGraphicsResourceDesc() const noexcept
 {
     return { {m_logger}, shared_from_this(), *m_d3dDevice.Get(), *m_dxgiFactory.Get() };

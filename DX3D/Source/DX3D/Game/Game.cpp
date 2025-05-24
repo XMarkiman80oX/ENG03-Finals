@@ -7,7 +7,9 @@
 #include <DX3D/Graphics/SwapChain.h>
 #include <DX3D/Graphics/DeviceContext.h>
 #include <DX3D/Graphics/Primitives/Triangle.h>
-#include <DX3D/Graphics/Shaders/ColorShader.h>
+#include <DX3D/Graphics/Primitives/Rectangle.h>
+#include <DX3D/Graphics/Shaders/RainbowShader.h>
+#include <DX3D/Graphics/Shaders/GreenShader.h>
 
 dx3d::Game::Game(const GameDesc& desc) :
     Base({ *std::make_unique<Logger>(desc.logLevel).release() }),
@@ -16,9 +18,9 @@ dx3d::Game::Game(const GameDesc& desc) :
     m_graphicsEngine = std::make_unique<GraphicsEngine>(GraphicsEngineDesc{ m_logger });
     m_display = std::make_unique<Display>(DisplayDesc{ {m_logger,desc.windowSize},m_graphicsEngine->getRenderSystem() });
 
-    createTriangleResources();
+    createRenderingResources();
 
-    DX3DLogInfo("Game initialized.");
+    DX3DLogInfo("Game initialized with multiple render objects.");
 }
 
 dx3d::Game::~Game()
@@ -26,19 +28,51 @@ dx3d::Game::~Game()
     DX3DLogInfo("Game deallocation started.");
 }
 
-void dx3d::Game::createTriangleResources()
+void dx3d::Game::createRenderingResources()
 {
     auto& renderSystem = m_graphicsEngine->getRenderSystem();
     auto resourceDesc = renderSystem.getGraphicsResourceDesc();
 
-    // Create triangle vertices
-    m_triangleVertexBuffer = Triangle::Create(resourceDesc);
+    Vertex triangleVertices[] = {
+        { {-0.55f, 0.3f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f} },  
+        { {-0.35f, -0.3f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f} }, 
+        { {-0.75f, -0.3f, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f} }  
+    };
+    m_triangleVertexBuffer = std::make_shared<VertexBuffer>(triangleVertices, sizeof(Vertex), 3, resourceDesc);
 
-    // Create shaders
-    m_vertexShader = std::make_shared<VertexShader>(resourceDesc, ColorShader::GetVertexShaderCode());
-    m_pixelShader = std::make_shared<PixelShader>(resourceDesc, ColorShader::GetPixelShaderCode());
+    Vertex rectangleVertices[] = {
+        // First triangle
+        { {-0.2f, 0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} },   
+        { {0.2f, 0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} },    
+        { {-0.2f, -0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} },  
 
-    DX3DLogInfo("Triangle resources created successfully.");
+        // Second triangle
+        { {0.2f, 0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} },    
+        { {0.2f, -0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} },  
+        { {-0.2f, -0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} }   
+    };
+    m_rectangleVertexBuffer = std::make_shared<VertexBuffer>(rectangleVertices, sizeof(Vertex), 6, resourceDesc);
+
+    Vertex greenRectVertices[] = {
+        // First triangle
+        { {0.35f, 0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} },   
+        { {0.75f, 0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} },  
+        { {0.35f, -0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} },  
+
+        // Second triangle
+        { {0.75f, 0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} },  
+        { {0.75f, -0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} },  
+        { {0.35f, -0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} }   
+    };
+    m_greenRectangleVertexBuffer = std::make_shared<VertexBuffer>(greenRectVertices, sizeof(Vertex), 6, resourceDesc);
+
+    m_rainbowVertexShader = std::make_shared<VertexShader>(resourceDesc, RainbowShader::GetVertexShaderCode());
+    m_rainbowPixelShader = std::make_shared<PixelShader>(resourceDesc, RainbowShader::GetPixelShaderCode());
+
+    m_greenVertexShader = std::make_shared<VertexShader>(resourceDesc, GreenShader::GetVertexShaderCode());
+    m_greenPixelShader = std::make_shared<PixelShader>(resourceDesc, GreenShader::GetPixelShaderCode());
+
+    DX3DLogInfo("All rendering resources created successfully.");
 }
 
 void dx3d::Game::render()
@@ -47,26 +81,35 @@ void dx3d::Game::render()
     auto& deviceContext = renderSystem.getDeviceContext();
     auto& swapChain = m_display->getSwapChain();
 
-    // Clear the render target
-    deviceContext.clearRenderTargetColor(swapChain, 0.0f, 0.2f, 0.4f, 1.0f);
+    deviceContext.clearRenderTargetColor(swapChain, 0.0f, 0.0f, 0.0f, 1.0f);
 
-    // Set the render target view
     deviceContext.setRenderTargets(swapChain);
 
-    // Set up the viewport
     deviceContext.setViewportSize(m_display->getSize().width, m_display->getSize().height);
 
-    // Set the vertex buffer
-    deviceContext.setVertexBuffer(*m_triangleVertexBuffer);
+    {
+        deviceContext.setVertexBuffer(*m_triangleVertexBuffer);
+        deviceContext.setVertexShader(m_rainbowVertexShader->getShader());
+        deviceContext.setPixelShader(m_rainbowPixelShader->getShader());
+        deviceContext.setInputLayout(m_rainbowVertexShader->getInputLayout());
+        deviceContext.drawTriangleList(m_triangleVertexBuffer->getVertexCount(), 0);
+    }
 
-    // Set the shaders and input layout
-    deviceContext.setVertexShader(m_vertexShader->getShader());
-    deviceContext.setPixelShader(m_pixelShader->getShader());
-    deviceContext.setInputLayout(m_vertexShader->getInputLayout());
+    {
+        deviceContext.setVertexBuffer(*m_rectangleVertexBuffer);
+        deviceContext.setVertexShader(m_rainbowVertexShader->getShader());
+        deviceContext.setPixelShader(m_rainbowPixelShader->getShader());
+        deviceContext.setInputLayout(m_rainbowVertexShader->getInputLayout());
+        deviceContext.drawTriangleList(m_rectangleVertexBuffer->getVertexCount(), 0);
+    }
 
-    // Draw the triangle
-    deviceContext.drawTriangleList(m_triangleVertexBuffer->getVertexCount(), 0);
+    {
+        deviceContext.setVertexBuffer(*m_greenRectangleVertexBuffer);
+        deviceContext.setVertexShader(m_greenVertexShader->getShader());
+        deviceContext.setPixelShader(m_greenPixelShader->getShader());
+        deviceContext.setInputLayout(m_greenVertexShader->getInputLayout());
+        deviceContext.drawTriangleList(m_greenRectangleVertexBuffer->getVertexCount(), 0);
+    }
 
-    // Present the frame
     deviceContext.present(swapChain);
 }
