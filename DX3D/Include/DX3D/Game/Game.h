@@ -1,6 +1,7 @@
 #pragma once
 #include <DX3D/Core/Base.h>
 #include <DX3D/Core/Core.h>
+#include <vector>
 
 // Forward declarations
 namespace dx3d
@@ -29,18 +30,13 @@ namespace dx3d
         std::unique_ptr<Display> m_display{};
         bool m_isRunning{ true };
 
-        // Triangle with rainbow shader
-        std::shared_ptr<VertexBuffer> m_triangleVertexBuffer{};
+        // Only three rectangles: Left, Center, Right
+        std::vector<std::shared_ptr<VertexBuffer>> m_rectangles{};
+
+        // Shaders
         std::shared_ptr<VertexShader> m_rainbowVertexShader{};
         std::shared_ptr<PixelShader> m_rainbowPixelShader{};
-
-        // Rectangle with rainbow shader  
-        std::shared_ptr<VertexBuffer> m_rectangleVertexBuffer{};
-        // Uses same rainbow shaders as triangle
-
-        // Rectangle with green shader
-        std::shared_ptr<VertexBuffer> m_greenRectangleVertexBuffer{};
         std::shared_ptr<VertexShader> m_greenVertexShader{};
         std::shared_ptr<PixelShader> m_greenPixelShader{};
     };
-} 
+}

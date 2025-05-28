@@ -25,7 +25,7 @@ void dx3d::DeviceContext::setVertexBuffer(const VertexBuffer& vertexBuffer)
     UINT offset = 0;
     ID3D11Buffer* buffer = vertexBuffer.getBuffer();
     m_deviceContext->IASetVertexBuffers(0, 1, &buffer, &stride, &offset);
-    m_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    // Note: Topology is now set per draw call instead of here
 }
 
 void dx3d::DeviceContext::setViewportSize(ui32 width, ui32 height)
@@ -66,6 +66,13 @@ void dx3d::DeviceContext::setInputLayout(ID3D11InputLayout* inputLayout)
 
 void dx3d::DeviceContext::drawTriangleList(ui32 vertexCount, ui32 startVertexIndex)
 {
+    m_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    m_deviceContext->Draw(vertexCount, startVertexIndex);
+}
+
+void dx3d::DeviceContext::drawTriangleStrip(ui32 vertexCount, ui32 startVertexIndex)
+{
+    m_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
     m_deviceContext->Draw(vertexCount, startVertexIndex);
 }
 
@@ -76,5 +83,5 @@ void dx3d::DeviceContext::present(SwapChain& swapChain)
 
 ID3D11DeviceContext* dx3d::DeviceContext::getDeviceContext()
 {
-    return m_deviceContext.Get(); 
+    return m_deviceContext.Get();
 }

@@ -6,7 +6,6 @@
 #include <DX3D/Graphics/RenderSystem.h>
 #include <DX3D/Graphics/SwapChain.h>
 #include <DX3D/Graphics/DeviceContext.h>
-#include <DX3D/Graphics/Primitives/Triangle.h>
 #include <DX3D/Graphics/Primitives/Rectangle.h>
 #include <DX3D/Graphics/Shaders/RainbowShader.h>
 #include <DX3D/Graphics/Shaders/GreenShader.h>
@@ -20,7 +19,7 @@ dx3d::Game::Game(const GameDesc& desc) :
 
     createRenderingResources();
 
-    DX3DLogInfo("Game initialized with multiple render objects.");
+    DX3DLogInfo("Game initialized with three rectangles (Left, Center, Right) using triangle strips.");
 }
 
 dx3d::Game::~Game()
@@ -33,38 +32,22 @@ void dx3d::Game::createRenderingResources()
     auto& renderSystem = m_graphicsEngine->getRenderSystem();
     auto resourceDesc = renderSystem.getGraphicsResourceDesc();
 
-    Vertex triangleVertices[] = {
-        { {-0.55f, 0.3f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f} },  
-        { {-0.35f, -0.3f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f} }, 
-        { {-0.75f, -0.3f, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f} }  
-    };
-    m_triangleVertexBuffer = std::make_shared<VertexBuffer>(triangleVertices, sizeof(Vertex), 3, resourceDesc);
+    m_rectangles.clear();
 
-    Vertex rectangleVertices[] = {
-        // First triangle
-        { {-0.2f, 0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} },   
-        { {0.2f, 0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} },    
-        { {-0.2f, -0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} },  
+    m_rectangles.push_back(
+        Rectangle::CreateAt(resourceDesc, -0.6f, 0.0f, 0.4f, 0.8f)
+        
+    );
 
-        // Second triangle
-        { {0.2f, 0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} },    
-        { {0.2f, -0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} },  
-        { {-0.2f, -0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} }   
-    };
-    m_rectangleVertexBuffer = std::make_shared<VertexBuffer>(rectangleVertices, sizeof(Vertex), 6, resourceDesc);
+    m_rectangles.push_back(
+        Rectangle::CreateAt(resourceDesc, 0.0f, 0.0f, 0.4f, 0.8f)
+        
+    );
 
-    Vertex greenRectVertices[] = {
-        // First triangle
-        { {0.35f, 0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} },   
-        { {0.75f, 0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} },  
-        { {0.35f, -0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} },  
-
-        // Second triangle
-        { {0.75f, 0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} },  
-        { {0.75f, -0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} },  
-        { {0.35f, -0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} }   
-    };
-    m_greenRectangleVertexBuffer = std::make_shared<VertexBuffer>(greenRectVertices, sizeof(Vertex), 6, resourceDesc);
+    m_rectangles.push_back(
+        Rectangle::CreateAt(resourceDesc, 0.6f, 0.0f, 0.4f, 0.8f)
+        
+    );
 
     m_rainbowVertexShader = std::make_shared<VertexShader>(resourceDesc, RainbowShader::GetVertexShaderCode());
     m_rainbowPixelShader = std::make_shared<PixelShader>(resourceDesc, RainbowShader::GetPixelShaderCode());
@@ -72,7 +55,7 @@ void dx3d::Game::createRenderingResources()
     m_greenVertexShader = std::make_shared<VertexShader>(resourceDesc, GreenShader::GetVertexShaderCode());
     m_greenPixelShader = std::make_shared<PixelShader>(resourceDesc, GreenShader::GetPixelShaderCode());
 
-    DX3DLogInfo("All rendering resources created successfully.");
+    DX3DLogInfo("Three rectangles created successfully: Left, Center, Right.");
 }
 
 void dx3d::Game::render()
@@ -82,33 +65,27 @@ void dx3d::Game::render()
     auto& swapChain = m_display->getSwapChain();
 
     deviceContext.clearRenderTargetColor(swapChain, 0.0f, 0.0f, 0.0f, 1.0f);
-
     deviceContext.setRenderTargets(swapChain);
-
     deviceContext.setViewportSize(m_display->getSize().width, m_display->getSize().height);
 
+    for (size_t i = 0; i < m_rectangles.size(); ++i)
     {
-        deviceContext.setVertexBuffer(*m_triangleVertexBuffer);
-        deviceContext.setVertexShader(m_rainbowVertexShader->getShader());
-        deviceContext.setPixelShader(m_rainbowPixelShader->getShader());
-        deviceContext.setInputLayout(m_rainbowVertexShader->getInputLayout());
-        deviceContext.drawTriangleList(m_triangleVertexBuffer->getVertexCount(), 0);
-    }
+        deviceContext.setVertexBuffer(*m_rectangles[i]);
 
-    {
-        deviceContext.setVertexBuffer(*m_rectangleVertexBuffer);
-        deviceContext.setVertexShader(m_rainbowVertexShader->getShader());
-        deviceContext.setPixelShader(m_rainbowPixelShader->getShader());
-        deviceContext.setInputLayout(m_rainbowVertexShader->getInputLayout());
-        deviceContext.drawTriangleList(m_rectangleVertexBuffer->getVertexCount(), 0);
-    }
-
-    {
-        deviceContext.setVertexBuffer(*m_greenRectangleVertexBuffer);
-        deviceContext.setVertexShader(m_greenVertexShader->getShader());
-        deviceContext.setPixelShader(m_greenPixelShader->getShader());
-        deviceContext.setInputLayout(m_greenVertexShader->getInputLayout());
-        deviceContext.drawTriangleList(m_greenRectangleVertexBuffer->getVertexCount(), 0);
+        
+        if (i == 1) 
+        {
+            deviceContext.setVertexShader(m_greenVertexShader->getShader());
+            deviceContext.setPixelShader(m_greenPixelShader->getShader());
+            deviceContext.setInputLayout(m_greenVertexShader->getInputLayout());
+        }
+        else
+        {
+            deviceContext.setVertexShader(m_rainbowVertexShader->getShader());
+            deviceContext.setPixelShader(m_rainbowPixelShader->getShader());
+            deviceContext.setInputLayout(m_rainbowVertexShader->getInputLayout());
+        }
+        deviceContext.drawTriangleStrip(m_rectangles[i]->getVertexCount(), 0);
     }
 
     deviceContext.present(swapChain);
