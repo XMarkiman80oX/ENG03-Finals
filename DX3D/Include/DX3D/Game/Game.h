@@ -2,6 +2,7 @@
 #include <DX3D/Core/Base.h>
 #include <DX3D/Core/Core.h>
 #include <vector>
+#include <chrono>
 
 // Forward declarations
 namespace dx3d
@@ -23,6 +24,9 @@ namespace dx3d
     private:
         void render();
         void createRenderingResources();
+        void updateAnimation();
+        void updateRectangleVertices();
+        float lerp(float a, float b, float t);
 
     private:
         std::unique_ptr<Logger> m_loggerPtr{};
@@ -30,13 +34,21 @@ namespace dx3d
         std::unique_ptr<Display> m_display{};
         bool m_isRunning{ true };
 
-        // Only three rectangles: Left, Center, Right
+        // Single animated rectangle
         std::vector<std::shared_ptr<VertexBuffer>> m_rectangles{};
 
         // Shaders
         std::shared_ptr<VertexShader> m_rainbowVertexShader{};
         std::shared_ptr<PixelShader> m_rainbowPixelShader{};
-        std::shared_ptr<VertexShader> m_greenVertexShader{};
-        std::shared_ptr<PixelShader> m_greenPixelShader{};
+
+        // Animation variables
+        std::chrono::steady_clock::time_point m_startTime;
+        float m_animationTime{ 0.0f };
+
+        // Rectangle shape parameters for animation
+        float m_currentWidth{ 0.4f };
+        float m_currentHeight{ 0.8f };
+        float m_currentX{ 0.0f };
+        float m_currentY{ 0.0f };
     };
 }
