@@ -26,7 +26,9 @@ namespace dx3d
         void createRenderingResources();
         void updateAnimation();
         void updateRectangleVertices();
+        void updateRectangleVertices(float skewAmount); // New overload for skewing
         float lerp(float a, float b, float t);
+        float smoothstep(float t); // For smooth transitions
 
     private:
         std::unique_ptr<Logger> m_loggerPtr{};
@@ -38,15 +40,15 @@ namespace dx3d
         std::vector<std::shared_ptr<VertexBuffer>> m_rectangles{};
 
         // Shaders
-        std::shared_ptr<VertexShader> m_rainbowVertexShader{};
-        std::shared_ptr<PixelShader> m_rainbowPixelShader{};
+        std::shared_ptr<VertexShader> m_transitionVertexShader{};
+        std::shared_ptr<PixelShader> m_transitionPixelShader{};
 
         // Animation variables
         std::chrono::steady_clock::time_point m_startTime;
         float m_animationTime{ 0.0f };
 
         // Rectangle shape parameters for animation
-        float m_currentWidth{ 0.4f };
+        float m_currentWidth{ 0.6f };
         float m_currentHeight{ 0.8f };
         float m_currentX{ 0.0f };
         float m_currentY{ 0.0f };

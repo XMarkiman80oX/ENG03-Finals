@@ -161,6 +161,8 @@
     <ClInclude Include="DX3D\Include\DX3D\Core\Core.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\GreenShader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\RainbowShader.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\SimpleBlendedShader.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\TransitionShader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Vertex.h" />
     <ClInclude Include="DX3D\Include\DX3D\Math\Rect.h" />
     <ClInclude Include="DX3D\Include\DX3D\Window\Window.h" />
