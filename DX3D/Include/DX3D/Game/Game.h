@@ -29,6 +29,8 @@ namespace dx3d
         void updateRectangleVertices(float skewAmount); // New overload for skewing
         float lerp(float a, float b, float t);
         float smoothstep(float t); // For smooth transitions
+        float simplifiedEasing(float t);
+        float customEasing(float t);
 
     private:
         std::unique_ptr<Logger> m_loggerPtr{};

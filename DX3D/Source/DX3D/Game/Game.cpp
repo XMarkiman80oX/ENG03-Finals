@@ -7,7 +7,7 @@
 #include <DX3D/Graphics/SwapChain.h>
 #include <DX3D/Graphics/DeviceContext.h>
 #include <DX3D/Graphics/Primitives/Rectangle.h>
-#include <DX3D/Graphics/Shaders/TransitionShader.h>
+#include <DX3D/Graphics/Shaders/RainbowShader.h>
 #include <cmath>
 
 dx3d::Game::Game(const GameDesc& desc) :
@@ -22,7 +22,7 @@ dx3d::Game::Game(const GameDesc& desc) :
 
     createRenderingResources();
 
-    DX3DLogInfo("Game initialized with rectangle to parallelogram morphing animation.");
+    DX3DLogInfo("Game initialized with triangle to parallelogram morphing animation.");
 }
 
 dx3d::Game::~Game()
@@ -37,14 +37,14 @@ void dx3d::Game::createRenderingResources()
 
     m_rectangles.clear();
 
-    // Create initial rectangle
-    m_rectangles.push_back(Rectangle::CreateAt(resourceDesc, 0.0f, 0.0f, 0.6f, 0.8f));
+    // Create initial triangle shape (will be updated by animation)
+    updateRectangleVertices(0.0f); // Start with triangle shape
 
-    // Create transition shader that handles the color blending internally
-    m_transitionVertexShader = std::make_shared<VertexShader>(resourceDesc, TransitionShader::GetVertexShaderCode());
-    m_transitionPixelShader = std::make_shared<PixelShader>(resourceDesc, TransitionShader::GetPixelShaderCode());
+    // Create rainbow shader for reliable color display
+    m_transitionVertexShader = std::make_shared<VertexShader>(resourceDesc, RainbowShader::GetVertexShaderCode());
+    m_transitionPixelShader = std::make_shared<PixelShader>(resourceDesc, RainbowShader::GetPixelShaderCode());
 
-    DX3DLogInfo("Rectangle morphing animation resources created successfully.");
+    DX3DLogInfo("Triangle to parallelogram morphing animation resources created successfully.");
 }
 
 float dx3d::Game::lerp(float a, float b, float t)
@@ -52,9 +52,9 @@ float dx3d::Game::lerp(float a, float b, float t)
     return a + t * (b - a);
 }
 
-float dx3d::Game::smoothstep(float t)
+float dx3d::Game::simplifiedEasing(float t)
 {
-    // Smooth cubic interpolation for natural easing
+    // Simple smoothstep for consistent smooth animation without weird slowdowns
     return t * t * (3.0f - 2.0f * t);
 }
 
@@ -64,34 +64,52 @@ void dx3d::Game::updateAnimation()
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - m_startTime);
     m_animationTime = elapsed.count() / 1000.0f;
 
-    // 8-second cycle: 4 seconds to transform, 4 seconds to transform back (slower)
-    float cycleDuration = 8.0f;
-    float cycleTime = fmod(m_animationTime, cycleDuration) / cycleDuration;
+    // 30-second total animation with 6 cycles (5 seconds each)
+    float totalDuration = 30.0f;
+    float cycleDuration = 5.0f;
 
-    // Create smooth back-and-forth motion
-    float animPhase;
-    if (cycleTime < 0.5f) {
-        // First half: rectangle to parallelogram
-        animPhase = cycleTime * 2.0f;
+    // Calculate which cycle we're in (0-5)
+    float totalTime = fmod(m_animationTime, totalDuration);
+    int currentCycle = static_cast<int>(totalTime / cycleDuration);
+    float cycleTime = fmod(totalTime, cycleDuration) / cycleDuration;
+
+    // Determine animation speed based on cycle
+    float animationSpeed;
+    if (currentCycle < 2) {
+        // Cycles 0-1: Fast (complete 2 animations per cycle)
+        animationSpeed = 2.0f;
+    }
+    else if (currentCycle < 4) {
+        // Cycles 2-3: Slow (complete 0.5 animations per cycle)
+        animationSpeed = 1.0f;
     }
     else {
-        // Second half: parallelogram back to rectangle
-        animPhase = 2.0f - (cycleTime * 2.0f);
+        // Cycles 4-5: Very Fast (complete 4 animations per cycle)
+        animationSpeed = 4.0f;
     }
 
-    // Apply smooth easing
-    float smoothPhase = smoothstep(animPhase);
+    // Calculate the animation phase based on speed
+    float animationTime = cycleTime * animationSpeed;
+    float adjustedCycleTime = fmod(animationTime, 1.0f);
 
-    // Calculate skew amount (0.0 = rectangle, 1.0 = parallelogram)
-    float skewAmount = smoothPhase;
+    // Create smooth back-and-forth motion within each cycle
+    float animPhase;
+    if (adjustedCycleTime < 0.5f) {
+        // First half: triangle to parallelogram
+        animPhase = adjustedCycleTime * 2.0f;
+    }
+    else {
+        // Second half: parallelogram back to triangle
+        animPhase = 2.0f - (adjustedCycleTime * 2.0f);
+    }
 
-    // Update shape parameters with rightward movement
-    m_currentX = lerp(-0.3f, 0.3f, smoothPhase); // Move from left to right
-    m_currentY = 0.0f;
-    m_currentWidth = 0.6f;
-    m_currentHeight = 0.8f;
+    // Apply simplified easing
+    float easedPhase = simplifiedEasing(animPhase);
 
-    updateRectangleVertices(skewAmount);
+    // Calculate morph amount (0.0 = triangle, 1.0 = parallelogram)
+    float morphAmount = easedPhase;
+
+    updateRectangleVertices(morphAmount);
 }
 
 void dx3d::Game::updateRectangleVertices()
@@ -100,29 +118,40 @@ void dx3d::Game::updateRectangleVertices()
     updateRectangleVertices(0.0f);
 }
 
-void dx3d::Game::updateRectangleVertices(float skewAmount)
+void dx3d::Game::updateRectangleVertices(float morphAmount)
 {
     auto& renderSystem = m_graphicsEngine->getRenderSystem();
     auto resourceDesc = renderSystem.getGraphicsResourceDesc();
 
-    // Calculate vertices manually with skew applied
-    float halfWidth = m_currentWidth * 0.5f;
-    float halfHeight = m_currentHeight * 0.5f;
-
-    // Skew offset - applied to top vertices to create parallelogram
-    float skewOffset = skewAmount * 0.3f; // Maximum skew
-
-    // Create vertices for triangle strip (same order as Rectangle class)
-    Vertex vertices[] = {
-        // Top-left (with skew)
-        { {m_currentX - halfWidth + skewOffset, m_currentY + halfHeight, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} },
-        // Top-right (with skew)
-        { {m_currentX + halfWidth + skewOffset, m_currentY + halfHeight, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} },
-        // Bottom-left (no skew)
-        { {m_currentX - halfWidth, m_currentY - halfHeight, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} },
-        // Bottom-right (no skew)
-        { {m_currentX + halfWidth, m_currentY - halfHeight, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} }
+    // Define the triangle shape (Image 1) - right-pointing triangle (larger for better gradient visibility)
+    float triangleVertices[4][3] = {
+        {-0.6f, 0.4f, 0.0f},   // Top-left
+        {0.8f, 0.0f, 0.0f},    // Right point
+        {-0.6f, -0.4f, 0.0f},  // Bottom-left
+        {0.8f, 0.0f, 0.0f}     // Duplicate right point for triangle strip
     };
+
+    // Define the parallelogram shape (Image 2) - rotated parallelogram (larger)
+    float parallelogramVertices[4][3] = {
+        {-0.2f, 0.5f, 0.0f},   // Top-left
+        {0.6f, 0.3f, 0.0f},    // Top-right
+        {-0.6f, -0.3f, 0.0f},  // Bottom-left
+        {0.2f, -0.5f, 0.0f}    // Bottom-right
+    };
+
+    // Interpolate between triangle and parallelogram based on morphAmount
+    Vertex vertices[4];
+    for (int i = 0; i < 4; i++) {
+        vertices[i].position[0] = lerp(triangleVertices[i][0], parallelogramVertices[i][0], morphAmount);
+        vertices[i].position[1] = lerp(triangleVertices[i][1], parallelogramVertices[i][1], morphAmount);
+        vertices[i].position[2] = 0.0f;
+
+        // White color for the transition shader to handle gradients
+        vertices[i].color[0] = 0.0f;
+        vertices[i].color[1] = 1.0f;
+        vertices[i].color[2] = 1.0f;
+        vertices[i].color[3] = 1.0f;
+    }
 
     // Recreate the vertex buffer with new vertices
     m_rectangles.clear();
@@ -145,12 +174,12 @@ void dx3d::Game::render()
     auto& deviceContext = renderSystem.getDeviceContext();
     auto& swapChain = m_display->getSwapChain();
 
-    // Clear screen to black
-    deviceContext.clearRenderTargetColor(swapChain, 0.0f, 0.0f, 0.0f, 1.0f);
+    // Clear screen to dark teal (like in your images) instead of black
+    deviceContext.clearRenderTargetColor(swapChain, 0.0f, 0.4f, 0.4f, 1.0f);
     deviceContext.setRenderTargets(swapChain);
     deviceContext.setViewportSize(m_display->getSize().width, m_display->getSize().height);
 
-    // Render the morphing rectangle with smooth color transition
+    // Render the morphing shape with smooth color transition
     if (!m_rectangles.empty())
     {
         deviceContext.setVertexBuffer(*m_rectangles[0]);

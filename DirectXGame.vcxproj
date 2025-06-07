@@ -159,6 +159,7 @@
     <ClInclude Include="DX3D\Include\DX3D\Core\Base.h" />
     <ClInclude Include="DX3D\Include\DX3D\Core\Common.h" />
     <ClInclude Include="DX3D\Include\DX3D\Core\Core.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\CustomTriangleShader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\GreenShader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\RainbowShader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\SimpleBlendedShader.h" />
