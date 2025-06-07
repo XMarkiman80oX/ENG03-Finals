@@ -12,6 +12,11 @@ namespace dx3d
 	class Logger;
 	class SwapChain;
 	class Display;
+	class VertexBuffer;
+	class IndexBuffer;
+	class ConstantBuffer;
+	class DepthBuffer;
+	class Cube;
 
 
 	using i32 = int;

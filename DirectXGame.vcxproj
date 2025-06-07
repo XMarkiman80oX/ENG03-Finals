@@ -135,11 +135,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DX3D\Source\DX3D\Graphics\ConstantBuffer.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Graphics\DepthBuffer.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\DeviceContext.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Game\Display.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Core\Base.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Game\Game.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Game\Win32\Win32Game.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Graphics\IndexBuffer.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\Cube.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Math\Math.cpp" />
     <ClCompile Include="Game\main.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Window\Win32\Win32Window.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\GraphicsEngine.cpp" />
@@ -152,6 +157,10 @@
     <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\Rectangle.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\ConstantBuffer.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\DepthBuffer.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\IndexBuffer.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\Cube.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\ColorShader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\DeviceContext.h" />
     <ClInclude Include="DX3D\Include\DX3D\Game\Display.h" />
@@ -163,8 +172,10 @@
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\GreenShader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\RainbowShader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\SimpleBlendedShader.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\Transform3DShader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\TransitionShader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Vertex.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Math\Math.h" />
     <ClInclude Include="DX3D\Include\DX3D\Math\Rect.h" />
     <ClInclude Include="DX3D\Include\DX3D\Window\Window.h" />
     <ClInclude Include="DX3D\Include\DX3D\Game\Game.h" />
