@@ -1,6 +1,7 @@
 #include <DX3D/Graphics/DeviceContext.h>
 #include <DX3D/Graphics/SwapChain.h>
 #include <DX3D/Graphics/VertexBuffer.h>
+#include <DX3D/Graphics/IndexBuffer.h>
 
 dx3d::DeviceContext::DeviceContext(const GraphicsResourceDesc& desc, ID3D11DeviceContext* deviceContext)
     : GraphicsResource(desc)
@@ -25,7 +26,11 @@ void dx3d::DeviceContext::setVertexBuffer(const VertexBuffer& vertexBuffer)
     UINT offset = 0;
     ID3D11Buffer* buffer = vertexBuffer.getBuffer();
     m_deviceContext->IASetVertexBuffers(0, 1, &buffer, &stride, &offset);
-    // Note: Topology is now set per draw call instead of here
+}
+
+void dx3d::DeviceContext::setIndexBuffer(const IndexBuffer& indexBuffer)
+{
+    m_deviceContext->IASetIndexBuffer(indexBuffer.getBuffer(), DXGI_FORMAT_R32_UINT, 0);
 }
 
 void dx3d::DeviceContext::setViewportSize(ui32 width, ui32 height)
@@ -74,6 +79,12 @@ void dx3d::DeviceContext::drawTriangleStrip(ui32 vertexCount, ui32 startVertexIn
 {
     m_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
     m_deviceContext->Draw(vertexCount, startVertexIndex);
+}
+
+void dx3d::DeviceContext::drawIndexed(ui32 indexCount, ui32 startIndexLocation, i32 baseVertexLocation)
+{
+    m_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    m_deviceContext->DrawIndexed(indexCount, startIndexLocation, baseVertexLocation);
 }
 
 void dx3d::DeviceContext::present(SwapChain& swapChain)

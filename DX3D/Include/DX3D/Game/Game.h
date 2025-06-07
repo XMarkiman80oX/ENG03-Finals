@@ -1,15 +1,20 @@
 #pragma once
 #include <DX3D/Core/Base.h>
 #include <DX3D/Core/Core.h>
-#include <vector>
+#include <DX3D/Math/Math.h>
 #include <chrono>
+#include <memory>
+#include <vector>
 
 // Forward declarations
 namespace dx3d
 {
     class VertexBuffer;
+    class IndexBuffer;
+    class ConstantBuffer;
     class VertexShader;
     class PixelShader;
+    class Cube;
 }
 
 namespace dx3d
@@ -24,13 +29,7 @@ namespace dx3d
     private:
         void render();
         void createRenderingResources();
-        void updateAnimation();
-        void updateRectangleVertices();
-        void updateRectangleVertices(float skewAmount); // New overload for skewing
-        float lerp(float a, float b, float t);
-        float smoothstep(float t); // For smooth transitions
-        float simplifiedEasing(float t);
-        float customEasing(float t);
+        void update();
 
     private:
         std::unique_ptr<Logger> m_loggerPtr{};
@@ -38,21 +37,26 @@ namespace dx3d
         std::unique_ptr<Display> m_display{};
         bool m_isRunning{ true };
 
-        // Single animated rectangle
-        std::vector<std::shared_ptr<VertexBuffer>> m_rectangles{};
+        // --- Cube Rendering Resources ---
+        std::vector<std::shared_ptr<Cube>> m_cubes;
+        std::vector<Vector3> m_cubeRotationDeltas; // Stores unique rotation vectors
+        std::shared_ptr<VertexBuffer> m_cubeVertexBuffer;
+        std::shared_ptr<IndexBuffer> m_cubeIndexBuffer;
 
-        // Shaders
-        std::shared_ptr<VertexShader> m_transitionVertexShader{};
-        std::shared_ptr<PixelShader> m_transitionPixelShader{};
+        // Shaders for 3D transformation
+        std::shared_ptr<VertexShader> m_transform3DVertexShader;
+        std::shared_ptr<PixelShader> m_transform3DPixelShader;
+
+        // Constant buffer for transformation matrices
+        std::shared_ptr<ConstantBuffer> m_transformConstantBuffer;
+
+        // View and Projection matrices
+        Matrix4x4 m_viewMatrix;
+        Matrix4x4 m_projectionMatrix;
+        // --- End Cube Rendering Resources ---
 
         // Animation variables
-        std::chrono::steady_clock::time_point m_startTime;
-        float m_animationTime{ 0.0f };
-
-        // Rectangle shape parameters for animation
-        float m_currentWidth{ 0.6f };
-        float m_currentHeight{ 0.8f };
-        float m_currentX{ 0.0f };
-        float m_currentY{ 0.0f };
+        std::chrono::steady_clock::time_point m_previousTime;
+        float m_deltaTime{ 0.0f };
     };
 }
