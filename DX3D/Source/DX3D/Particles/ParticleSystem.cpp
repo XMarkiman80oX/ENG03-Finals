@@ -104,8 +104,8 @@ void ParticleSystem::render(DeviceContext& deviceContext, const Camera& camera, 
 
     // Update constant buffer with camera data
     ParticleConstantBuffer cbData;
-    cbData.view = camera.getViewMatrix();
-    cbData.projection = projectionMatrix;
+    cbData.view = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(camera.getViewMatrix().toXMMatrix()));
+    cbData.projection = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(projectionMatrix.toXMMatrix()));
     cbData.cameraRight = camera.getRight();
     cbData.cameraUp = camera.getUp();
 
