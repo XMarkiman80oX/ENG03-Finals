@@ -18,6 +18,8 @@
 #include <DX3D/Graphics/Shaders/Rainbow3DShader.h>
 #include <DX3D/Graphics/Shaders/WhiteShader.h>
 #include <DX3D/Math/Math.h>
+#include <DX3D/Particles/ParticleSystem.h>
+#include <DX3D/Particles/ParticleEffects/SnowParticle.h>
 #include <cmath>
 #include <random>
 #include <string>
@@ -35,12 +37,15 @@ dx3d::Game::Game(const GameDesc& desc) :
 
     createRenderingResources();
 
-    DX3DLogInfo("Game initialized with Camera and Input system.");
+    DX3DLogInfo("Game initialized with Camera, Input system, and Particle system.");
 }
 
 dx3d::Game::~Game()
 {
     DX3DLogInfo("Game deallocation started.");
+
+    // Shutdown particle system
+    ParticleSystem::getInstance().shutdown();
 }
 
 void dx3d::Game::createRenderingResources()
@@ -73,11 +78,11 @@ void dx3d::Game::createRenderingResources()
     m_objectRotationDeltas.reserve(2);
 
     m_gameObjects.push_back(std::make_shared<Cube>(
-        Vector3(0.0f, 0.0f, 0.0f),      
-        Vector3(0.0f, 0.0f, 0.0f),      
-        Vector3(2.0f, 2.0f, 2.0f)      
+        Vector3(0.0f, 0.0f, 0.0f),
+        Vector3(0.0f, 0.0f, 0.0f),
+        Vector3(2.0f, 2.0f, 2.0f)
     ));
-    m_objectRotationDeltas.push_back(Vector3(0.0f, 0.8f, 0.0f)); 
+    m_objectRotationDeltas.push_back(Vector3(0.0f, 0.8f, 0.0f));
 
     // 2. Create white plane cutting through the cube
     m_gameObjects.push_back(std::make_shared<Plane>(
@@ -93,14 +98,6 @@ void dx3d::Game::createRenderingResources()
         Vector3(0.0f, 0.0f, 0.0f)       // Look at origin
     );
 
-    // Debug log camera info
-    const auto& camPos = m_camera->getPosition();
-    const auto& camForward = m_camera->getForward();
-    /*DX3DLogInfo("Camera created at position: (" + std::to_string(camPos.x) + ", " +
-        std::to_string(camPos.y) + ", " + std::to_string(camPos.z) + ")");
-    DX3DLogInfo("Camera forward vector: (" + std::to_string(camForward.x) + ", " +
-        std::to_string(camForward.y) + ", " + std::to_string(camForward.z) + ")");*/
-
     // Setup projection matrix
     float aspectRatio = static_cast<float>(windowSize.width) / static_cast<float>(windowSize.height);
     m_projectionMatrix = Matrix4x4::CreatePerspectiveFovLH(
@@ -110,6 +107,32 @@ void dx3d::Game::createRenderingResources()
         100.0f
     );
 
+    // Initialize particle system
+    ParticleSystem::getInstance().initialize(*m_graphicsEngine);
+
+    // Create a snow emitter
+    ParticleEmitter::EmitterConfig snowConfig;
+    snowConfig.position = Vector3(0.0f, 10.0f, 0.0f);  // Emit from above
+    snowConfig.positionVariance = Vector3(20.0f, 0.0f, 20.0f);  // Spread over a wide area
+    snowConfig.velocity = Vector3(0.0f, -2.0f, 0.0f);  // Fall downward
+    snowConfig.velocityVariance = Vector3(0.5f, 0.5f, 0.5f);
+    snowConfig.acceleration = Vector3(0.0f, -0.5f, 0.0f);  // Gentle gravity
+    snowConfig.startColor = Vector4(1.0f, 1.0f, 1.0f, 0.8f);  // White with slight transparency
+    snowConfig.endColor = Vector4(0.9f, 0.9f, 1.0f, 0.0f);   // Fade to transparent
+    snowConfig.startSize = 0.2f;
+    snowConfig.endSize = 0.1f;
+    snowConfig.lifetime = 8.0f;
+    snowConfig.lifetimeVariance = 2.0f;
+    snowConfig.emissionRate = 50.0f;  // 50 snowflakes per second
+    snowConfig.maxParticles = 2000;
+
+    auto snowEmitter = ParticleSystem::getInstance().createEmitter(
+        "snow",
+        snowConfig,
+        createSnowParticle  // Factory function from SnowParticle.h
+    );
+
+    DX3DLogInfo("Snow particle emitter created.");
     DX3DLogInfo("Camera created. Hold right mouse button + WASD to move camera.");
 }
 
@@ -212,6 +235,17 @@ void dx3d::Game::update()
         m_gameObjects[i]->rotate(m_objectRotationDeltas[i] * m_deltaTime);
         m_gameObjects[i]->update(m_deltaTime);
     }
+
+    // Update particle system
+    ParticleSystem::getInstance().update(m_deltaTime);
+
+    // Optional: Update emitter position to follow camera
+    if (auto snowEmitter = ParticleSystem::getInstance().getEmitter("snow"))
+    {
+        Vector3 emitterPos = m_camera->getPosition();
+        emitterPos.y += 10.0f;  // Place emitter above camera
+        snowEmitter->setPosition(emitterPos);
+    }
 }
 
 void dx3d::Game::render()
@@ -295,6 +329,41 @@ void dx3d::Game::render()
             deviceContext.drawIndexed(Plane::GetIndexCount(), 0, 0);
         }
     }
+
+    // Render particles (after solid objects, before UI)
+    // Enable alpha blending for particles
+    ID3D11BlendState* blendState = nullptr;
+    ID3D11BlendState* previousBlendState = nullptr;
+    float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    UINT sampleMask = 0;
+
+    // Create and set blend state for particles
+    D3D11_BLEND_DESC blendDesc = {};
+    blendDesc.RenderTarget[0].BlendEnable = TRUE;
+    blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+    blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+    blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+    blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+    blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+    blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+    blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+    auto device = d3dContext->GetDevice();
+    device->CreateBlendState(&blendDesc, &blendState);
+
+    // Save current blend state and set particle blend state
+    d3dContext->OMGetBlendState(&previousBlendState, blendFactor, &sampleMask);
+    d3dContext->OMSetBlendState(blendState, blendFactor, 0xffffffff);
+
+    // Render particles
+    ParticleSystem::getInstance().render(deviceContext, *m_camera, m_projectionMatrix);
+
+    // Restore previous blend state
+    d3dContext->OMSetBlendState(previousBlendState, blendFactor, sampleMask);
+
+    // Clean up
+    if (blendState) blendState->Release();
+    if (previousBlendState) previousBlendState->Release();
 
     deviceContext.present(swapChain);
 
