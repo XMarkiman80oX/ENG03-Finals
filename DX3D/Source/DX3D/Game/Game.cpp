@@ -46,12 +46,21 @@ dx3d::Game::~Game()
 
     // Shutdown particle system
     ParticleSystem::getInstance().shutdown();
+
+    // Release depth states
+    if (m_particleDepthState) m_particleDepthState->Release();
+    if (m_solidDepthState) m_solidDepthState->Release();
 }
 
 void dx3d::Game::createRenderingResources()
 {
     auto& renderSystem = m_graphicsEngine->getRenderSystem();
     auto resourceDesc = renderSystem.getGraphicsResourceDesc();
+    auto& deviceContext = renderSystem.getDeviceContext();
+    auto d3dContext = deviceContext.getDeviceContext();
+    ID3D11Device* device = nullptr;
+    d3dContext->GetDevice(&device);
+
 
     // Create vertex and index buffers
     m_cubeVertexBuffer = Cube::CreateVertexBuffer(resourceDesc);
@@ -66,6 +75,26 @@ void dx3d::Game::createRenderingResources()
         windowSize.height,
         resourceDesc
     );
+
+    // --- Create Depth Stencil States ---
+    // Default state for solid objects (depth test and write on)
+    D3D11_DEPTH_STENCIL_DESC solidDesc = {};
+    solidDesc.DepthEnable = TRUE;
+    solidDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+    solidDesc.DepthFunc = D3D11_COMPARISON_LESS;
+    solidDesc.StencilEnable = FALSE;
+    device->CreateDepthStencilState(&solidDesc, &m_solidDepthState);
+
+    // State for transparent particles (depth test on, depth write off)
+    D3D11_DEPTH_STENCIL_DESC particleDesc = {};
+    particleDesc.DepthEnable = TRUE;
+    particleDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO; // Main difference here!
+    particleDesc.DepthFunc = D3D11_COMPARISON_LESS;
+    particleDesc.StencilEnable = FALSE;
+    device->CreateDepthStencilState(&particleDesc, &m_particleDepthState);
+
+    device->Release();
+
 
     m_rainbowVertexShader = std::make_shared<VertexShader>(resourceDesc, Rainbow3DShader::GetVertexShaderCode());
     m_rainbowPixelShader = std::make_shared<PixelShader>(resourceDesc, Rainbow3DShader::GetPixelShaderCode());
@@ -84,7 +113,6 @@ void dx3d::Game::createRenderingResources()
     ));
     m_objectRotationDeltas.push_back(Vector3(0.0f, 0.8f, 0.0f));
 
-    // 2. Create white plane cutting through the cube
     m_gameObjects.push_back(std::make_shared<Plane>(
         Vector3(0.0f, 0.0f, 0.0f),      // Same position as cube
         Vector3(-1.5708f, 0.0f, 0.0f),  // Horizontal cut
@@ -112,24 +140,24 @@ void dx3d::Game::createRenderingResources()
 
     // Create a snow emitter
     ParticleEmitter::EmitterConfig snowConfig;
-    snowConfig.position = Vector3(0.0f, 10.0f, 0.0f);  // Emit from above
-    snowConfig.positionVariance = Vector3(20.0f, 0.0f, 20.0f);  // Spread over a wide area
-    snowConfig.velocity = Vector3(0.0f, -2.0f, 0.0f);  // Fall downward
+    snowConfig.position = Vector3(0.0f, 10.0f, 0.0f);
+    snowConfig.positionVariance = Vector3(20.0f, 0.0f, 20.0f);
+    snowConfig.velocity = Vector3(0.0f, -2.0f, 0.0f);
     snowConfig.velocityVariance = Vector3(0.5f, 0.5f, 0.5f);
-    snowConfig.acceleration = Vector3(0.0f, -0.5f, 0.0f);  // Gentle gravity
-    snowConfig.startColor = Vector4(1.0f, 1.0f, 1.0f, 0.8f);  // White with slight transparency
-    snowConfig.endColor = Vector4(0.9f, 0.9f, 1.0f, 0.0f);   // Fade to transparent
+    snowConfig.acceleration = Vector3(0.0f, -0.5f, 0.0f);
+    snowConfig.startColor = Vector4(1.0f, 1.0f, 1.0f, 0.8f);
+    snowConfig.endColor = Vector4(0.9f, 0.9f, 1.0f, 0.0f);
     snowConfig.startSize = 0.2f;
     snowConfig.endSize = 0.1f;
     snowConfig.lifetime = 8.0f;
     snowConfig.lifetimeVariance = 2.0f;
-    snowConfig.emissionRate = 50.0f;  // 50 snowflakes per second
+    snowConfig.emissionRate = 50.0f;
     snowConfig.maxParticles = 2000;
 
     auto snowEmitter = ParticleSystem::getInstance().createEmitter(
         "snow",
         snowConfig,
-        createSnowParticle  // Factory function from SnowParticle.h
+        createSnowParticle
     );
 
     DX3DLogInfo("Snow particle emitter created.");
@@ -140,54 +168,16 @@ void dx3d::Game::processInput(float deltaTime)
 {
     auto& input = Input::getInstance();
 
-    // Only process camera movement when right mouse button is held
     if (input.isMouseButtonPressed(MouseButton::Right))
     {
-        // Camera movement
         float moveSpeed = m_cameraSpeed * deltaTime;
-        bool moved = false;
+        if (input.isKeyPressed(KeyCode::W)) m_camera->moveForward(moveSpeed);
+        if (input.isKeyPressed(KeyCode::S)) m_camera->moveBackward(moveSpeed);
+        if (input.isKeyPressed(KeyCode::A)) m_camera->moveLeft(moveSpeed);
+        if (input.isKeyPressed(KeyCode::D)) m_camera->moveRight(moveSpeed);
+        if (input.isKeyPressed(KeyCode::Q)) m_camera->moveDown(moveSpeed);
+        if (input.isKeyPressed(KeyCode::E)) m_camera->moveUp(moveSpeed);
 
-        if (input.isKeyPressed(KeyCode::W))
-        {
-            m_camera->moveForward(moveSpeed);
-            moved = true;
-        }
-        if (input.isKeyPressed(KeyCode::S))
-        {
-            m_camera->moveBackward(moveSpeed);
-            moved = true;
-        }
-        if (input.isKeyPressed(KeyCode::A))
-        {
-            m_camera->moveLeft(moveSpeed);
-            moved = true;
-        }
-        if (input.isKeyPressed(KeyCode::D))
-        {
-            m_camera->moveRight(moveSpeed);
-            moved = true;
-        }
-
-        // Vertical movement
-        if (input.isKeyPressed(KeyCode::Q))
-        {
-            m_camera->moveDown(moveSpeed);
-            moved = true;
-        }
-        if (input.isKeyPressed(KeyCode::E))
-        {
-            m_camera->moveUp(moveSpeed);
-            moved = true;
-        }
-
-        // Log camera position if moved
-        if (moved)
-        {
-            const auto& pos = m_camera->getPosition();
-            printf("[Camera] Position: (%.2f, %.2f, %.2f)\n", pos.x, pos.y, pos.z);
-        }
-
-        // Mouse look (only when right button is held)
         float mouseDeltaX = static_cast<float>(input.getMouseDeltaX());
         float mouseDeltaY = static_cast<float>(input.getMouseDeltaY());
 
@@ -197,20 +187,13 @@ void dx3d::Game::processInput(float deltaTime)
         }
     }
 
-    // R key to reset camera position
     if (input.isKeyJustPressed(KeyCode::R))
     {
         m_camera->setPosition(Vector3(6.0f, 4.0f, -6.0f));
         m_camera->lookAt(Vector3(0.0f, 0.0f, 0.0f));
         DX3DLogInfo("Camera reset to initial position");
-
-        const auto& pos = m_camera->getPosition();
-        const auto& forward = m_camera->getForward();
-        printf("[Camera] Reset - Position: (%.2f, %.2f, %.2f), Forward: (%.2f, %.2f, %.2f)\n",
-            pos.x, pos.y, pos.z, forward.x, forward.y, forward.z);
     }
 
-    // ESC to exit
     if (input.isKeyPressed(KeyCode::Escape))
     {
         m_isRunning = false;
@@ -223,121 +206,74 @@ void dx3d::Game::update()
     m_deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - m_previousTime).count() / 1000000.0f;
     m_previousTime = currentTime;
 
-    // Process input
     processInput(m_deltaTime);
-
-    // Update camera
     m_camera->update();
 
-    // Update all game objects
     for (size_t i = 0; i < m_gameObjects.size(); ++i)
     {
         m_gameObjects[i]->rotate(m_objectRotationDeltas[i] * m_deltaTime);
         m_gameObjects[i]->update(m_deltaTime);
     }
 
-    // Update particle system
     ParticleSystem::getInstance().update(m_deltaTime);
 
-    // Optional: Update emitter position to follow camera
     if (auto snowEmitter = ParticleSystem::getInstance().getEmitter("snow"))
     {
         Vector3 emitterPos = m_camera->getPosition();
-        emitterPos.y += 10.0f;  // Place emitter above camera
+        emitterPos.y += 10.0f;
         snowEmitter->setPosition(emitterPos);
     }
 }
 
 void dx3d::Game::render()
 {
-    update();
-
     auto& renderSystem = m_graphicsEngine->getRenderSystem();
     auto& deviceContext = renderSystem.getDeviceContext();
     auto& swapChain = m_display->getSwapChain();
+    auto d3dContext = deviceContext.getDeviceContext();
 
-    // Clear both color and depth buffers
     deviceContext.clearRenderTargetColor(swapChain, 0.1f, 0.1f, 0.2f, 1.0f);
-
-    // Clear depth buffer
-    ID3D11DeviceContext* d3dContext = deviceContext.getDeviceContext();
-    d3dContext->ClearDepthStencilView(
-        m_depthBuffer->getDepthStencilView(),
-        D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
-        1.0f,
-        0
-    );
-
-    // Set render targets with depth buffer
-    ID3D11RenderTargetView* renderTargetView = swapChain.getRenderTargetView();
-    ID3D11DepthStencilView* depthStencilView = m_depthBuffer->getDepthStencilView();
-    d3dContext->OMSetRenderTargets(1, &renderTargetView, depthStencilView);
-
+    deviceContext.clearDepthBuffer(*m_depthBuffer);
+    deviceContext.setRenderTargetsWithDepth(swapChain, *m_depthBuffer);
     deviceContext.setViewportSize(m_display->getSize().width, m_display->getSize().height);
 
-    // Set constant buffer (same for all shaders)
     ID3D11Buffer* cb = m_transformConstantBuffer->getBuffer();
     d3dContext->VSSetConstantBuffers(0, 1, &cb);
 
-    // Render all objects with appropriate shaders
+    // --- RENDER SOLID OBJECTS ---
+    d3dContext->OMSetDepthStencilState(m_solidDepthState, 0);
     for (const auto& gameObject : m_gameObjects)
     {
-        // Set buffers and shaders based on object type
         if (auto cube = std::dynamic_pointer_cast<Cube>(gameObject))
         {
-            // 3D RAINBOW CUBE
             deviceContext.setVertexBuffer(*m_cubeVertexBuffer);
             deviceContext.setIndexBuffer(*m_cubeIndexBuffer);
-
-            // Use 3D rainbow shaders
             deviceContext.setVertexShader(m_rainbowVertexShader->getShader());
             deviceContext.setPixelShader(m_rainbowPixelShader->getShader());
             deviceContext.setInputLayout(m_rainbowVertexShader->getInputLayout());
         }
         else if (auto plane = std::dynamic_pointer_cast<Plane>(gameObject))
         {
-            // WHITE PLANE
             deviceContext.setVertexBuffer(*m_planeVertexBuffer);
             deviceContext.setIndexBuffer(*m_planeIndexBuffer);
-
-            // Use white shaders
             deviceContext.setVertexShader(m_whiteVertexShader->getShader());
             deviceContext.setPixelShader(m_whitePixelShader->getShader());
             deviceContext.setInputLayout(m_whiteVertexShader->getInputLayout());
         }
 
-        // Set up transformation matrices (same for all objects)
         TransformationMatrices transformMatrices;
-
-        DirectX::XMMATRIX world = gameObject->getWorldMatrix().toXMMatrix();
-        DirectX::XMMATRIX view = m_camera->getViewMatrix().toXMMatrix();  // Use camera's view matrix
-        DirectX::XMMATRIX projection = m_projectionMatrix.toXMMatrix();
-
-        transformMatrices.world = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(world));
-        transformMatrices.view = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(view));
-        transformMatrices.projection = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(projection));
-
+        transformMatrices.world = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(gameObject->getWorldMatrix().toXMMatrix()));
+        transformMatrices.view = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(m_camera->getViewMatrix().toXMMatrix()));
+        transformMatrices.projection = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(m_projectionMatrix.toXMMatrix()));
         m_transformConstantBuffer->update(deviceContext, &transformMatrices);
 
-        // Draw the object
-        if (auto cube = std::dynamic_pointer_cast<Cube>(gameObject))
-        {
-            deviceContext.drawIndexed(Cube::GetIndexCount(), 0, 0);
-        }
-        else if (auto plane = std::dynamic_pointer_cast<Plane>(gameObject))
-        {
-            deviceContext.drawIndexed(Plane::GetIndexCount(), 0, 0);
-        }
+        if (std::dynamic_pointer_cast<Cube>(gameObject)) deviceContext.drawIndexed(Cube::GetIndexCount(), 0, 0);
+        else if (std::dynamic_pointer_cast<Plane>(gameObject)) deviceContext.drawIndexed(Plane::GetIndexCount(), 0, 0);
     }
 
-    // Render particles (after solid objects, before UI)
-    // Enable alpha blending for particles
+    // --- RENDER TRANSPARENT PARTICLES ---
     ID3D11BlendState* blendState = nullptr;
-    ID3D11BlendState* previousBlendState = nullptr;
     float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-    UINT sampleMask = 0;
-
-    // Create and set blend state for particles
     D3D11_BLEND_DESC blendDesc = {};
     blendDesc.RenderTarget[0].BlendEnable = TRUE;
     blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
@@ -348,25 +284,50 @@ void dx3d::Game::render()
     blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
     blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
-    auto device = d3dContext->GetDevice();
-    device->CreateBlendState(&blendDesc, &blendState);
+    ID3D11Device* device = nullptr;
+    d3dContext->GetDevice(&device);
+    if (device)
+    {
+        device->CreateBlendState(&blendDesc, &blendState);
+        device->Release();
+    }
 
-    // Save current blend state and set particle blend state
-    d3dContext->OMGetBlendState(&previousBlendState, blendFactor, &sampleMask);
     d3dContext->OMSetBlendState(blendState, blendFactor, 0xffffffff);
+    d3dContext->OMSetDepthStencilState(m_particleDepthState, 0); // Use special depth state for particles
 
-    // Render particles
     ParticleSystem::getInstance().render(deviceContext, *m_camera, m_projectionMatrix);
 
-    // Restore previous blend state
-    d3dContext->OMSetBlendState(previousBlendState, blendFactor, sampleMask);
-
-    // Clean up
+    // --- RESTORE DEFAULT STATES ---
+    d3dContext->OMSetBlendState(nullptr, blendFactor, 0xffffffff); // Restore default blend state
+    d3dContext->OMSetDepthStencilState(m_solidDepthState, 0); // Restore default depth state
     if (blendState) blendState->Release();
-    if (previousBlendState) previousBlendState->Release();
 
     deviceContext.present(swapChain);
+}
 
-    // Update input system at the end of frame
-    Input::getInstance().update();
+
+// FIX: Encapsulate the main loop within the Game class
+void dx3d::Game::run()
+{
+    MSG msg{};
+    while (m_isRunning)
+    {
+        while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+        {
+            if (msg.message == WM_QUIT)
+            {
+                m_isRunning = false;
+                break;
+            }
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+
+        if (!m_isRunning) break;
+
+        // Moved the core loop logic here
+        update();
+        render();
+        Input::getInstance().update(); // Reset input state at the end of the frame
+    }
 }

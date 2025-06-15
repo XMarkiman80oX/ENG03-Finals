@@ -149,6 +149,10 @@
     <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\Cube.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\Plane.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Math\Math.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Particles\Particle.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Particles\ParticleEffects\SnowParticle.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Particles\ParticleEmitter.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Particles\ParticleSystem.cpp" />
     <ClCompile Include="Game\main.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Window\Win32\Win32Window.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\GraphicsEngine.cpp" />
@@ -162,6 +166,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DX3D\Include\DX3D\Game\Camera.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\ParticleShader.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\ParticleVertexShader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Input\Input.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\AGameObject.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\ConstantBuffer.h" />
@@ -188,6 +194,10 @@
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Vertex.h" />
     <ClInclude Include="DX3D\Include\DX3D\Math\Math.h" />
     <ClInclude Include="DX3D\Include\DX3D\Math\Rect.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Particles\Particle.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Particles\ParticleEffects\SnowParticle.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Particles\ParticleEmitter.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Particles\ParticleSystem.h" />
     <ClInclude Include="DX3D\Include\DX3D\Window\Window.h" />
     <ClInclude Include="DX3D\Include\DX3D\Game\Game.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\GraphicsEngine.h" />

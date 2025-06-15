@@ -5,6 +5,7 @@
 #include <chrono>
 #include <memory>
 #include <vector>
+#include <d3d11.h> // FIX: Include d3d11 for ID3D11DepthStencilState
 
 // Forward declarations
 namespace dx3d
@@ -70,6 +71,10 @@ namespace dx3d
 
         // Depth buffer for proper 3D depth testing
         std::shared_ptr<DepthBuffer> m_depthBuffer;
+
+        // FIX: Declare the depth stencil states as member variables
+        ID3D11DepthStencilState* m_solidDepthState = nullptr;
+        ID3D11DepthStencilState* m_particleDepthState = nullptr;
 
         // Projection matrix (view matrix now comes from Camera)
         Matrix4x4 m_projectionMatrix;

@@ -7,7 +7,8 @@
 
 using namespace dx3d;
 
-dx3d::RenderSystem::RenderSystem(const RenderSystemDesc& desc) : Base(desc.base)
+dx3d::RenderSystem::RenderSystem(const RenderSystemDesc& desc) :
+    Base({ desc.base }) 
 {
     D3D_FEATURE_LEVEL featureLevel{};
     UINT createDeviceFlags{};

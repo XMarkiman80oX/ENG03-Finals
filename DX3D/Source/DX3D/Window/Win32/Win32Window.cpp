@@ -39,7 +39,7 @@ dx3d::Window::Window(const WindowDesc& desc) : Base(desc.base), m_size(desc.size
 			return RegisterClassEx(&wc);
 		};
 
-	static const auto windowClassId = std::invoke(registerWindowClassFunction);
+	static const ATOM windowClassId = registerWindowClassFunction();
 
 	if (!windowClassId)
 		DX3DLogErrorAndThrow("RegisterClassEx failed.");

@@ -8,6 +8,9 @@
 
 namespace dx3d
 {
+    // Forward declaration to resolve compiler errors
+    class Camera;
+
     // Structure to hold per-instance data for rendering
     struct ParticleInstanceData
     {

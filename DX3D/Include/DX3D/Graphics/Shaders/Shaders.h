@@ -29,8 +29,8 @@ namespace dx3d
         VertexShader(const GraphicsResourceDesc& desc, const char* shaderCode);
         ~VertexShader();
 
-        ID3D11VertexShader* getShader() const;
-        ID3D11InputLayout* getInputLayout() const;
+        virtual ID3D11VertexShader* getShader() const;
+        virtual ID3D11InputLayout* getInputLayout() const;
 
     private:
         Microsoft::WRL::ComPtr<ID3D11VertexShader> m_shader{};
