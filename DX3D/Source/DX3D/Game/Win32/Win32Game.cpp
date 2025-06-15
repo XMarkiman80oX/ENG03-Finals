@@ -1,4 +1,5 @@
 #include <DX3D/Game/Game.h>
+#include <DX3D/Input/Input.h>
 #include <Windows.h>
 
 void dx3d::Game::run()
@@ -22,7 +23,6 @@ void dx3d::Game::run()
         // If game is still running, render a frame
         if (m_isRunning)
         {
-            // Render the triangle
             render();
         }
     }

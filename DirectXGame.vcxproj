@@ -135,6 +135,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DX3D\Source\DX3D\Game\Camera.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Input\Input.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\AGameObject.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\ConstantBuffer.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\DepthBuffer.cpp" />
@@ -159,6 +161,8 @@
     <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\Rectangle.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DX3D\Include\DX3D\Game\Camera.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Input\Input.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\AGameObject.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\ConstantBuffer.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\DepthBuffer.h" />

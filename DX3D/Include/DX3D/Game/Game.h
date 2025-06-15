@@ -18,6 +18,7 @@ namespace dx3d
     class Cube;
     class Plane;
     class DepthBuffer;
+    class Camera;
 }
 
 namespace dx3d
@@ -33,12 +34,18 @@ namespace dx3d
         void render();
         void createRenderingResources();
         void update();
+        void processInput(float deltaTime);
 
     private:
         std::unique_ptr<Logger> m_loggerPtr{};
         std::unique_ptr<GraphicsEngine> m_graphicsEngine{};
         std::unique_ptr<Display> m_display{};
         bool m_isRunning{ true };
+
+        // Camera
+        std::unique_ptr<Camera> m_camera{};
+        float m_cameraSpeed{ 5.0f };  // Units per second
+        float m_mouseSensitivity{ 0.3f };
 
         // --- 3D Object Rendering Resources ---
         std::vector<std::shared_ptr<AGameObject>> m_gameObjects;
@@ -64,8 +71,7 @@ namespace dx3d
         // Depth buffer for proper 3D depth testing
         std::shared_ptr<DepthBuffer> m_depthBuffer;
 
-        // View and Projection matrices
-        Matrix4x4 m_viewMatrix;
+        // Projection matrix (view matrix now comes from Camera)
         Matrix4x4 m_projectionMatrix;
 
         // Animation variables

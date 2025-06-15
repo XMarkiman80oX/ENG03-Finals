@@ -3,6 +3,8 @@
 #include <DX3D/Graphics/GraphicsEngine.h>
 #include <DX3D/Core/Logger.h>
 #include <DX3D/Game/Display.h>
+#include <DX3D/Game/Camera.h>
+#include <DX3D/Input/Input.h>
 #include <DX3D/Graphics/RenderSystem.h>
 #include <DX3D/Graphics/SwapChain.h>
 #include <DX3D/Graphics/DeviceContext.h>
@@ -13,11 +15,13 @@
 #include <DX3D/Graphics/Primitives/AGameObject.h>
 #include <DX3D/Graphics/Primitives/Cube.h>
 #include <DX3D/Graphics/Primitives/Plane.h>
-#include <DX3D/Graphics/Shaders/Rainbow3DShader.h>      // Use 3D rainbow shader
-#include <DX3D/Graphics/Shaders/WhiteShader.h>          // White shader for plane
+#include <DX3D/Graphics/Shaders/Rainbow3DShader.h>
+#include <DX3D/Graphics/Shaders/WhiteShader.h>
 #include <DX3D/Math/Math.h>
 #include <cmath>
 #include <random>
+#include <string>
+#include <cstdio>
 #include <DirectXMath.h>
 
 dx3d::Game::Game(const GameDesc& desc) :
@@ -31,7 +35,7 @@ dx3d::Game::Game(const GameDesc& desc) :
 
     createRenderingResources();
 
-    DX3DLogInfo("Game initialized with 3D rainbow cube and white plane.");
+    DX3DLogInfo("Game initialized with Camera and Input system.");
 }
 
 dx3d::Game::~Game()
@@ -59,7 +63,7 @@ void dx3d::Game::createRenderingResources()
     );
 
     // CREATE MULTIPLE SHADERS
-    // 3D Rainbow shader for cubes (FIXED - now has proper 3D transformations)
+    // 3D Rainbow shader for cubes
     m_rainbowVertexShader = std::make_shared<VertexShader>(resourceDesc, Rainbow3DShader::GetVertexShaderCode());
     m_rainbowPixelShader = std::make_shared<PixelShader>(resourceDesc, Rainbow3DShader::GetPixelShaderCode());
 
@@ -89,16 +93,22 @@ void dx3d::Game::createRenderingResources()
     ));
     m_objectRotationDeltas.push_back(Vector3(0.0f, 0.0f, 0.0f)); // Static plane
 
-    // Setup camera
-    float aspectRatio = static_cast<float>(windowSize.width) / static_cast<float>(windowSize.height);
-
-    // Camera positioned to see the colorful intersection
-    m_viewMatrix = Matrix4x4::CreateLookAtLH(
-        Vector3(6.0f, 4.0f, -6.0f),     // Camera position
-        Vector3(0.0f, 0.0f, 0.0f),      // Look at intersection
-        Vector3(0.0f, 1.0f, 0.0f)       // Up vector
+    // Create camera
+    m_camera = std::make_unique<Camera>(
+        Vector3(6.0f, 4.0f, -6.0f),     // Initial position
+        Vector3(0.0f, 0.0f, 0.0f)       // Look at origin
     );
 
+    // Debug log camera info
+    const auto& camPos = m_camera->getPosition();
+    const auto& camForward = m_camera->getForward();
+    /*DX3DLogInfo("Camera created at position: (" + std::to_string(camPos.x) + ", " +
+        std::to_string(camPos.y) + ", " + std::to_string(camPos.z) + ")");
+    DX3DLogInfo("Camera forward vector: (" + std::to_string(camForward.x) + ", " +
+        std::to_string(camForward.y) + ", " + std::to_string(camForward.z) + ")");*/
+
+    // Setup projection matrix
+    float aspectRatio = static_cast<float>(windowSize.width) / static_cast<float>(windowSize.height);
     m_projectionMatrix = Matrix4x4::CreatePerspectiveFovLH(
         1.0472f,        // 60 degrees
         aspectRatio,
@@ -106,7 +116,88 @@ void dx3d::Game::createRenderingResources()
         100.0f
     );
 
-    DX3DLogInfo("3D Rainbow cube and white plane created with proper transformations.");
+    DX3DLogInfo("Camera created. Hold right mouse button + WASD to move camera.");
+}
+
+void dx3d::Game::processInput(float deltaTime)
+{
+    auto& input = Input::getInstance();
+
+    // Only process camera movement when right mouse button is held
+    if (input.isMouseButtonPressed(MouseButton::Right))
+    {
+        // Camera movement
+        float moveSpeed = m_cameraSpeed * deltaTime;
+        bool moved = false;
+
+        if (input.isKeyPressed(KeyCode::W))
+        {
+            m_camera->moveForward(moveSpeed);
+            moved = true;
+        }
+        if (input.isKeyPressed(KeyCode::S))
+        {
+            m_camera->moveBackward(moveSpeed);
+            moved = true;
+        }
+        if (input.isKeyPressed(KeyCode::A))
+        {
+            m_camera->moveLeft(moveSpeed);
+            moved = true;
+        }
+        if (input.isKeyPressed(KeyCode::D))
+        {
+            m_camera->moveRight(moveSpeed);
+            moved = true;
+        }
+
+        // Vertical movement
+        if (input.isKeyPressed(KeyCode::Q))
+        {
+            m_camera->moveDown(moveSpeed);
+            moved = true;
+        }
+        if (input.isKeyPressed(KeyCode::E))
+        {
+            m_camera->moveUp(moveSpeed);
+            moved = true;
+        }
+
+        // Log camera position if moved
+        if (moved)
+        {
+            const auto& pos = m_camera->getPosition();
+            printf("[Camera] Position: (%.2f, %.2f, %.2f)\n", pos.x, pos.y, pos.z);
+        }
+
+        // Mouse look (only when right button is held)
+        float mouseDeltaX = static_cast<float>(input.getMouseDeltaX());
+        float mouseDeltaY = static_cast<float>(input.getMouseDeltaY());
+
+        if (mouseDeltaX != 0.0f || mouseDeltaY != 0.0f)
+        {
+            m_camera->onMouseMove(mouseDeltaX, mouseDeltaY, m_mouseSensitivity * 0.01f);
+        }
+    }
+
+    // R key to reset camera position
+    if (input.isKeyJustPressed(KeyCode::R))
+    {
+        m_camera->setPosition(Vector3(6.0f, 4.0f, -6.0f));
+        m_camera->lookAt(Vector3(0.0f, 0.0f, 0.0f));
+        DX3DLogInfo("Camera reset to initial position");
+
+        const auto& pos = m_camera->getPosition();
+        const auto& forward = m_camera->getForward();
+        printf("[Camera] Reset - Position: (%.2f, %.2f, %.2f), Forward: (%.2f, %.2f, %.2f)\n",
+            pos.x, pos.y, pos.z, forward.x, forward.y, forward.z);
+    }
+
+    // ESC to exit
+    if (input.isKeyPressed(KeyCode::Escape))
+    {
+        m_isRunning = false;
+    }
 }
 
 void dx3d::Game::update()
@@ -114,6 +205,12 @@ void dx3d::Game::update()
     auto currentTime = std::chrono::steady_clock::now();
     m_deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - m_previousTime).count() / 1000000.0f;
     m_previousTime = currentTime;
+
+    // Process input
+    processInput(m_deltaTime);
+
+    // Update camera
+    m_camera->update();
 
     // Update all game objects
     for (size_t i = 0; i < m_gameObjects.size(); ++i)
@@ -185,7 +282,7 @@ void dx3d::Game::render()
         TransformationMatrices transformMatrices;
 
         DirectX::XMMATRIX world = gameObject->getWorldMatrix().toXMMatrix();
-        DirectX::XMMATRIX view = m_viewMatrix.toXMMatrix();
+        DirectX::XMMATRIX view = m_camera->getViewMatrix().toXMMatrix();  // Use camera's view matrix
         DirectX::XMMATRIX projection = m_projectionMatrix.toXMMatrix();
 
         transformMatrices.world = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(world));
@@ -206,4 +303,7 @@ void dx3d::Game::render()
     }
 
     deviceContext.present(swapChain);
+
+    // Update input system at the end of frame
+    Input::getInstance().update();
 }
