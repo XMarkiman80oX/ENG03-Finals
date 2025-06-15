@@ -21,51 +21,62 @@ namespace dx3d
 
                 struct VS_INPUT
                 {
-                    // Per-vertex data (position and color/UV packed)
-                    float3 position : POSITION;
-                    float4 color : COLOR; // Using first 2 components for UV
+                    // Per-vertex data (the corners of our quad)
+                    float3 basePosition : POSITION;
+                    float4 baseColor    : COLOR; // Using .xy for UVs
                     
-                    // Per-instance data
+                    // Per-instance data (unique to each particle)
                     float3 instancePosition : POSITION1;
-                    float instanceSize : POSITION2;
-                    float4 instanceColor : COLOR1;
-                    float instanceRotation : POSITION3;
+                    float  instanceSize     : POSITION2;
+                    float4 instanceColor    : COLOR1;
+                    float  instanceRotation : POSITION3;
                 };
 
                 struct VS_OUTPUT
                 {
-                    float4 position : SV_POSITION;
-                    float2 texCoord : TEXCOORD0;
-                    float4 color : COLOR;
+                    float4 clipPosition : SV_POSITION;
+                    float2 texCoord     : TEXCOORD0;
+                    float4 color        : COLOR;
                 };
 
                 VS_OUTPUT main(VS_INPUT input)
                 {
                     VS_OUTPUT output;
                     
-                    // Extract UV from color field
-                    float2 texCoord = input.color.xy;
+                    // --- Billboarding Logic ---
+                    // This creates a quad in world space that always faces the camera.
                     
-                    // Create rotation matrix for billboard rotation
+                    // Start with the particle's center position in the world.
+                    float3 centerWorldPos = input.instancePosition;
+
+                    // Calculate the vertex's offset from the center, scaled and rotated.
                     float cosRot = cos(input.instanceRotation);
                     float sinRot = sin(input.instanceRotation);
-                    float2x2 rotMatrix = float2x2(cosRot, -sinRot, sinRot, cosRot);
                     
-                    // Rotate the vertex position
-                    float2 rotatedPos = mul(rotMatrix, input.position.xy);
+                    // Rotate the quad corner's local position (which is just a corner of a 2D quad).
+                    float2 rotatedPos;
+                    rotatedPos.x = input.basePosition.x * cosRot - input.basePosition.y * sinRot;
+                    rotatedPos.y = input.basePosition.x * sinRot + input.basePosition.y * cosRot;
+
+                    // Apply the billboard orientation using camera vectors and add to the particle's world position.
+                    float3 finalWorldPos = centerWorldPos 
+                                         + cameraRight * rotatedPos.x * input.instanceSize
+                                         + cameraUp * rotatedPos.y * input.instanceSize;
                     
-                    // Billboard calculation - make quad face camera
-                    float3 worldPos = input.instancePosition;
-                    worldPos += cameraRight * rotatedPos.x * input.instanceSize;
-                    worldPos += cameraUp * rotatedPos.y * input.instanceSize;
+                    // --- Transformation to Clip Space ---
+                    // Combine the transformations in the correct order: World -> View -> Projection.
+                    // HLSL's mul() intrinsic handles this naturally when chained.
+                    // We treat the billboarding result as our "world" matrix transformation.
                     
-                    // Transform to clip space
-                    float4 viewPos = mul(float4(worldPos, 1.0f), view);
-                    output.position = mul(viewPos, projection);
-                    
-                    // Pass through texture coordinates and color
-                    output.texCoord = texCoord;
+                    float4 finalPosition = float4(finalWorldPos, 1.0f);
+                    finalPosition = mul(finalPosition, view);
+                    finalPosition = mul(finalPosition, projection);
+
+                    output.clipPosition = finalPosition;
+
+                    // Pass color and texture coordinates to the pixel shader.
                     output.color = input.instanceColor;
+                    output.texCoord = input.baseColor.xy; // Pass the UV coordinates.
                     
                     return output;
                 }
@@ -84,19 +95,19 @@ namespace dx3d
 
                 float4 main(PS_INPUT input) : SV_TARGET
                 {
-                    // Simple circular particle shape
+                    // Simple circular particle shape using texture coordinates.
                     float2 centerDist = input.texCoord - float2(0.5, 0.5);
                     float dist = length(centerDist);
                     
-                    // Soft circular falloff
-                    float alpha = saturate(1.0 - dist * 2.0);
+                    // Create a soft circular falloff.
+                    float alpha = 1.0 - saturate(dist * 2.0);
                     alpha = smoothstep(0.0, 1.0, alpha);
                     
-                    // Apply color with alpha
+                    // Apply the particle's color with the calculated alpha.
                     float4 finalColor = input.color;
                     finalColor.a *= alpha;
                     
-                    // Discard fully transparent pixels for better performance
+                    // Discard pixels that are fully transparent for performance.
                     if (finalColor.a < 0.01)
                         discard;
                     

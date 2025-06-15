@@ -146,7 +146,7 @@ void ParticleSystem::createRenderingResources(GraphicsEngine& graphicsEngine)
         resourceDesc
     );
 
-    ui32 quadIndices[] = { 0, 1, 2, 0, 2, 3 };
+    ui32 quadIndices[] = { 0, 2, 1, 0, 3, 2 }; // Corrected for CCW winding
     m_quadIndexBuffer = std::make_shared<IndexBuffer>(
         quadIndices,
         6,

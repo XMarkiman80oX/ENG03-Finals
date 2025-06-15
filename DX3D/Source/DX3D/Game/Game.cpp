@@ -76,6 +76,7 @@ void dx3d::Game::createRenderingResources()
         resourceDesc
     );
 
+
     // --- Create Depth Stencil States ---
     // Default state for solid objects (depth test and write on)
     D3D11_DEPTH_STENCIL_DESC solidDesc = {};
@@ -140,8 +141,8 @@ void dx3d::Game::createRenderingResources()
 
     // Create a snow emitter
     ParticleEmitter::EmitterConfig snowConfig;
-    snowConfig.position = Vector3(0.0f, 10.0f, 0.0f);
-    snowConfig.positionVariance = Vector3(20.0f, 0.0f, 20.0f);
+    snowConfig.position = Vector3(0.0f, 10.0f, 0.0f); // Start snowing from above
+    snowConfig.positionVariance = Vector3(20.0f, 0.0f, 20.0f); // Spread out over an area
     snowConfig.velocity = Vector3(0.0f, -2.0f, 0.0f);
     snowConfig.velocityVariance = Vector3(0.5f, 0.5f, 0.5f);
     snowConfig.acceleration = Vector3(0.0f, -0.5f, 0.0f);
@@ -217,10 +218,11 @@ void dx3d::Game::update()
 
     ParticleSystem::getInstance().update(m_deltaTime);
 
+    // Update emitter to follow above the camera for a continuous snow effect
     if (auto snowEmitter = ParticleSystem::getInstance().getEmitter("snow"))
     {
         Vector3 emitterPos = m_camera->getPosition();
-        emitterPos.y += 10.0f;
+        emitterPos.y += 10.0f; // Keep the emitter 10 units above the camera
         snowEmitter->setPosition(emitterPos);
     }
 }
@@ -262,6 +264,7 @@ void dx3d::Game::render()
         }
 
         TransformationMatrices transformMatrices;
+        // FIX: Reinstated matrix transposition. Shaders expect column-major data.
         transformMatrices.world = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(gameObject->getWorldMatrix().toXMMatrix()));
         transformMatrices.view = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(m_camera->getViewMatrix().toXMMatrix()));
         transformMatrices.projection = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(m_projectionMatrix.toXMMatrix()));
@@ -306,7 +309,6 @@ void dx3d::Game::render()
 }
 
 
-// FIX: Encapsulate the main loop within the Game class
 void dx3d::Game::run()
 {
     MSG msg{};
@@ -325,9 +327,8 @@ void dx3d::Game::run()
 
         if (!m_isRunning) break;
 
-        // Moved the core loop logic here
         update();
         render();
-        Input::getInstance().update(); // Reset input state at the end of the frame
+        Input::getInstance().update();
     }
 }
