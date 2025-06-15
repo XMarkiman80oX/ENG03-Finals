@@ -9,6 +9,7 @@ namespace dx3d
     class VertexBuffer;
     class IndexBuffer;
     class SwapChain;
+    class DepthBuffer;  // Add forward declaration
 
     class DeviceContext final : public GraphicsResource
     {
@@ -17,6 +18,10 @@ namespace dx3d
         ~DeviceContext();
 
         void clearRenderTargetColor(SwapChain& swapChain, float red, float green, float blue, float alpha);
+
+        void clearDepthBuffer(DepthBuffer& depthBuffer, float depth = 1.0f);
+        void setRenderTargetsWithDepth(SwapChain& swapChain, DepthBuffer& depthBuffer);
+
         void setVertexBuffer(const VertexBuffer& vertexBuffer);
         void setIndexBuffer(const IndexBuffer& indexBuffer);
         void setViewportSize(ui32 width, ui32 height);

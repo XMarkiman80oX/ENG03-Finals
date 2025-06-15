@@ -14,7 +14,10 @@ namespace dx3d
     class ConstantBuffer;
     class VertexShader;
     class PixelShader;
+    class AGameObject;
     class Cube;
+    class Plane;
+    class DepthBuffer;
 }
 
 namespace dx3d
@@ -37,23 +40,33 @@ namespace dx3d
         std::unique_ptr<Display> m_display{};
         bool m_isRunning{ true };
 
-        // --- Cube Rendering Resources ---
-        std::vector<std::shared_ptr<Cube>> m_cubes;
-        std::vector<Vector3> m_cubeRotationDeltas; // Stores unique rotation vectors
+        // --- 3D Object Rendering Resources ---
+        std::vector<std::shared_ptr<AGameObject>> m_gameObjects;
+        std::vector<Vector3> m_objectRotationDeltas;
+
         std::shared_ptr<VertexBuffer> m_cubeVertexBuffer;
         std::shared_ptr<IndexBuffer> m_cubeIndexBuffer;
+        std::shared_ptr<VertexBuffer> m_planeVertexBuffer;
+        std::shared_ptr<IndexBuffer> m_planeIndexBuffer;
 
-        // Shaders for 3D transformation
-        std::shared_ptr<VertexShader> m_transform3DVertexShader;
-        std::shared_ptr<PixelShader> m_transform3DPixelShader;
+        // MULTIPLE SHADERS for different objects
+        // Rainbow shader for cubes
+        std::shared_ptr<VertexShader> m_rainbowVertexShader;
+        std::shared_ptr<PixelShader> m_rainbowPixelShader;
+
+        // White shader for planes
+        std::shared_ptr<VertexShader> m_whiteVertexShader;
+        std::shared_ptr<PixelShader> m_whitePixelShader;
 
         // Constant buffer for transformation matrices
         std::shared_ptr<ConstantBuffer> m_transformConstantBuffer;
 
+        // Depth buffer for proper 3D depth testing
+        std::shared_ptr<DepthBuffer> m_depthBuffer;
+
         // View and Projection matrices
         Matrix4x4 m_viewMatrix;
         Matrix4x4 m_projectionMatrix;
-        // --- End Cube Rendering Resources ---
 
         // Animation variables
         std::chrono::steady_clock::time_point m_previousTime;

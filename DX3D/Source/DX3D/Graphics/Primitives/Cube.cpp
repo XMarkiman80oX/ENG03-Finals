@@ -6,39 +6,20 @@ using namespace dx3d;
 using namespace DirectX;
 
 // Cube implementation
-Cube::Cube()
+Cube::Cube() : AGameObject()
 {
 }
 
 Cube::Cube(const Vector3& position, const Vector3& rotation, const Vector3& scale)
+    : AGameObject(position, rotation, scale)
 {
-    m_transform.position = position;
-    m_transform.rotation = rotation;
-    m_transform.scale = scale;
 }
 
-void Cube::rotate(const Vector3& deltaRotation)
+void Cube::update(float deltaTime)
 {
-    m_transform.rotation += deltaRotation;
-}
-
-void Cube::translate(const Vector3& deltaPosition)
-{
-    m_transform.position += deltaPosition;
-}
-
-Matrix4x4 Cube::Transform::getWorldMatrix() const
-{
-    // Create individual transformation matrices
-    Matrix4x4 scaleMatrix = Matrix4x4::CreateScale(scale);
-    Matrix4x4 rotationX = Matrix4x4::CreateRotationX(rotation.x);
-    Matrix4x4 rotationY = Matrix4x4::CreateRotationY(rotation.y);
-    Matrix4x4 rotationZ = Matrix4x4::CreateRotationZ(rotation.z);
-    Matrix4x4 translationMatrix = Matrix4x4::CreateTranslation(position);
-
-    // Combine transformations: Scale -> Rotate -> Translate
-    Matrix4x4 result = scaleMatrix * rotationZ * rotationY * rotationX * translationMatrix;
-    return result;
+    // Override this method to add cube-specific update logic if needed
+    // Call base class update if needed
+    AGameObject::update(deltaTime);
 }
 
 std::shared_ptr<VertexBuffer> Cube::CreateVertexBuffer(const GraphicsResourceDesc& resourceDesc)

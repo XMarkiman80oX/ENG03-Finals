@@ -16,7 +16,10 @@ namespace dx3d
 	class IndexBuffer;
 	class ConstantBuffer;
 	class DepthBuffer;
+
+	class AGameObject;  
 	class Cube;
+	class Plane;        
 
 
 	using i32 = int;

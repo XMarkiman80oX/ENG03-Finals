@@ -9,8 +9,12 @@
 #include <DX3D/Graphics/VertexBuffer.h>
 #include <DX3D/Graphics/IndexBuffer.h>
 #include <DX3D/Graphics/ConstantBuffer.h>
+#include <DX3D/Graphics/DepthBuffer.h>
+#include <DX3D/Graphics/Primitives/AGameObject.h>
 #include <DX3D/Graphics/Primitives/Cube.h>
-#include <DX3D/Graphics/Shaders/GradientCubeShader.h> // Include the new shader
+#include <DX3D/Graphics/Primitives/Plane.h>
+#include <DX3D/Graphics/Shaders/Rainbow3DShader.h>      // Use 3D rainbow shader
+#include <DX3D/Graphics/Shaders/WhiteShader.h>          // White shader for plane
 #include <DX3D/Math/Math.h>
 #include <cmath>
 #include <random>
@@ -27,7 +31,7 @@ dx3d::Game::Game(const GameDesc& desc) :
 
     createRenderingResources();
 
-    DX3DLogInfo("Game initialized with 100 rotating cubes.");
+    DX3DLogInfo("Game initialized with 3D rainbow cube and white plane.");
 }
 
 dx3d::Game::~Game()
@@ -40,58 +44,70 @@ void dx3d::Game::createRenderingResources()
     auto& renderSystem = m_graphicsEngine->getRenderSystem();
     auto resourceDesc = renderSystem.getGraphicsResourceDesc();
 
+    // Create vertex and index buffers
     m_cubeVertexBuffer = Cube::CreateVertexBuffer(resourceDesc);
     m_cubeIndexBuffer = Cube::CreateIndexBuffer(resourceDesc);
+    m_planeVertexBuffer = Plane::CreateVertexBuffer(resourceDesc);
+    m_planeIndexBuffer = Plane::CreateIndexBuffer(resourceDesc);
 
-    // Use the new GradientCubeShader instead of the old one
-    m_transform3DVertexShader = std::make_shared<VertexShader>(resourceDesc, GradientCubeShader::GetVertexShaderCode());
-    m_transform3DPixelShader = std::make_shared<PixelShader>(resourceDesc, GradientCubeShader::GetPixelShaderCode());
+    // CREATE DEPTH BUFFER for proper 3D depth testing
+    const auto& windowSize = m_display->getSize();
+    m_depthBuffer = std::make_shared<DepthBuffer>(
+        windowSize.width,
+        windowSize.height,
+        resourceDesc
+    );
+
+    // CREATE MULTIPLE SHADERS
+    // 3D Rainbow shader for cubes (FIXED - now has proper 3D transformations)
+    m_rainbowVertexShader = std::make_shared<VertexShader>(resourceDesc, Rainbow3DShader::GetVertexShaderCode());
+    m_rainbowPixelShader = std::make_shared<PixelShader>(resourceDesc, Rainbow3DShader::GetPixelShaderCode());
+
+    // White shader for planes
+    m_whiteVertexShader = std::make_shared<VertexShader>(resourceDesc, WhiteShader::GetVertexShaderCode());
+    m_whitePixelShader = std::make_shared<PixelShader>(resourceDesc, WhiteShader::GetPixelShaderCode());
 
     m_transformConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(TransformationMatrices), resourceDesc);
 
-    m_cubes.reserve(100);
-    m_cubeRotationDeltas.reserve(100);
+    // Reserve space for objects
+    m_gameObjects.reserve(2);
+    m_objectRotationDeltas.reserve(2);
 
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<> pos_dis(-5.0, 5.0);
-    std::uniform_real_distribution<> rot_dis(-0.8f, 0.8f);
-    Vector3 cubeScale(2.0f, 2.0f, 2.0f);
+    // 1. Create rainbow cube at origin
+    m_gameObjects.push_back(std::make_shared<Cube>(
+        Vector3(0.0f, 0.0f, 0.0f),      // Cube at center
+        Vector3(0.0f, 0.0f, 0.0f),      // No initial rotation
+        Vector3(2.0f, 2.0f, 2.0f)       // Large cube
+    ));
+    m_objectRotationDeltas.push_back(Vector3(0.0f, 0.8f, 0.0f)); // Rotate for rainbow effect
 
-    for (int i = 0; i < 100; ++i)
-    {
-        m_cubes.push_back(std::make_shared<Cube>(
-            Vector3(static_cast<float>(pos_dis(gen)), static_cast<float>(pos_dis(gen)), static_cast<float>(pos_dis(gen))),
-            Vector3(0, 0, 0),
-            cubeScale
-        ));
-        m_cubeRotationDeltas.push_back(Vector3(
-            static_cast<float>(rot_dis(gen)),
-            static_cast<float>(rot_dis(gen)),
-            static_cast<float>(rot_dis(gen))
-        ));
-    }
+    // 2. Create white plane cutting through the cube
+    m_gameObjects.push_back(std::make_shared<Plane>(
+        Vector3(0.0f, 0.0f, 0.0f),      // Same position as cube
+        Vector3(-1.5708f, 0.0f, 0.0f),  // Horizontal cut
+        Vector3(4.0f, 4.0f, 1.0f)       // Large plane
+    ));
+    m_objectRotationDeltas.push_back(Vector3(0.0f, 0.0f, 0.0f)); // Static plane
 
-    // Setup View and Projection Matrices
-    const auto& windowSize = m_display->getSize();
+    // Setup camera
     float aspectRatio = static_cast<float>(windowSize.width) / static_cast<float>(windowSize.height);
 
+    // Camera positioned to see the colorful intersection
     m_viewMatrix = Matrix4x4::CreateLookAtLH(
-        Vector3(0.0f, 0.0f, -12.0f),
-        Vector3(0.0f, 0.0f, 0.0f),
-        Vector3(0.0f, 1.0f, 0.0f)
+        Vector3(6.0f, 4.0f, -6.0f),     // Camera position
+        Vector3(0.0f, 0.0f, 0.0f),      // Look at intersection
+        Vector3(0.0f, 1.0f, 0.0f)       // Up vector
     );
 
     m_projectionMatrix = Matrix4x4::CreatePerspectiveFovLH(
-        1.5708f,
+        1.0472f,        // 60 degrees
         aspectRatio,
         0.1f,
         100.0f
     );
 
-    DX3DLogInfo("100 rotating cube resources created successfully.");
+    DX3DLogInfo("3D Rainbow cube and white plane created with proper transformations.");
 }
-
 
 void dx3d::Game::update()
 {
@@ -99,12 +115,13 @@ void dx3d::Game::update()
     m_deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - m_previousTime).count() / 1000000.0f;
     m_previousTime = currentTime;
 
-    for (size_t i = 0; i < m_cubes.size(); ++i)
+    // Update all game objects
+    for (size_t i = 0; i < m_gameObjects.size(); ++i)
     {
-        m_cubes[i]->rotate(m_cubeRotationDeltas[i] * m_deltaTime);
+        m_gameObjects[i]->rotate(m_objectRotationDeltas[i] * m_deltaTime);
+        m_gameObjects[i]->update(m_deltaTime);
     }
 }
-
 
 void dx3d::Game::render()
 {
@@ -114,27 +131,60 @@ void dx3d::Game::render()
     auto& deviceContext = renderSystem.getDeviceContext();
     auto& swapChain = m_display->getSwapChain();
 
-    deviceContext.clearRenderTargetColor(swapChain, 0.0f, 0.4f, 0.4f, 1.0f);
-    deviceContext.setRenderTargets(swapChain);
+    // Clear both color and depth buffers
+    deviceContext.clearRenderTargetColor(swapChain, 0.1f, 0.1f, 0.2f, 1.0f);
+
+    // Clear depth buffer
+    ID3D11DeviceContext* d3dContext = deviceContext.getDeviceContext();
+    d3dContext->ClearDepthStencilView(
+        m_depthBuffer->getDepthStencilView(),
+        D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
+        1.0f,
+        0
+    );
+
+    // Set render targets with depth buffer
+    ID3D11RenderTargetView* renderTargetView = swapChain.getRenderTargetView();
+    ID3D11DepthStencilView* depthStencilView = m_depthBuffer->getDepthStencilView();
+    d3dContext->OMSetRenderTargets(1, &renderTargetView, depthStencilView);
+
     deviceContext.setViewportSize(m_display->getSize().width, m_display->getSize().height);
 
-    deviceContext.setVertexBuffer(*m_cubeVertexBuffer);
-    deviceContext.setIndexBuffer(*m_cubeIndexBuffer);
-
-    // Make sure to use the new gradient shader
-    deviceContext.setVertexShader(m_transform3DVertexShader->getShader());
-    deviceContext.setPixelShader(m_transform3DPixelShader->getShader());
-    deviceContext.setInputLayout(m_transform3DVertexShader->getInputLayout());
-
-    ID3D11DeviceContext* d3dContext = deviceContext.getDeviceContext();
+    // Set constant buffer (same for all shaders)
     ID3D11Buffer* cb = m_transformConstantBuffer->getBuffer();
     d3dContext->VSSetConstantBuffers(0, 1, &cb);
 
-    for (const auto& cube : m_cubes)
+    // Render all objects with appropriate shaders
+    for (const auto& gameObject : m_gameObjects)
     {
+        // Set buffers and shaders based on object type
+        if (auto cube = std::dynamic_pointer_cast<Cube>(gameObject))
+        {
+            // 3D RAINBOW CUBE
+            deviceContext.setVertexBuffer(*m_cubeVertexBuffer);
+            deviceContext.setIndexBuffer(*m_cubeIndexBuffer);
+
+            // Use 3D rainbow shaders
+            deviceContext.setVertexShader(m_rainbowVertexShader->getShader());
+            deviceContext.setPixelShader(m_rainbowPixelShader->getShader());
+            deviceContext.setInputLayout(m_rainbowVertexShader->getInputLayout());
+        }
+        else if (auto plane = std::dynamic_pointer_cast<Plane>(gameObject))
+        {
+            // WHITE PLANE
+            deviceContext.setVertexBuffer(*m_planeVertexBuffer);
+            deviceContext.setIndexBuffer(*m_planeIndexBuffer);
+
+            // Use white shaders
+            deviceContext.setVertexShader(m_whiteVertexShader->getShader());
+            deviceContext.setPixelShader(m_whitePixelShader->getShader());
+            deviceContext.setInputLayout(m_whiteVertexShader->getInputLayout());
+        }
+
+        // Set up transformation matrices (same for all objects)
         TransformationMatrices transformMatrices;
 
-        DirectX::XMMATRIX world = cube->getWorldMatrix().toXMMatrix();
+        DirectX::XMMATRIX world = gameObject->getWorldMatrix().toXMMatrix();
         DirectX::XMMATRIX view = m_viewMatrix.toXMMatrix();
         DirectX::XMMATRIX projection = m_projectionMatrix.toXMMatrix();
 
@@ -144,7 +194,15 @@ void dx3d::Game::render()
 
         m_transformConstantBuffer->update(deviceContext, &transformMatrices);
 
-        deviceContext.drawIndexed(m_cubeIndexBuffer->getIndexCount(), 0, 0);
+        // Draw the object
+        if (auto cube = std::dynamic_pointer_cast<Cube>(gameObject))
+        {
+            deviceContext.drawIndexed(Cube::GetIndexCount(), 0, 0);
+        }
+        else if (auto plane = std::dynamic_pointer_cast<Plane>(gameObject))
+        {
+            deviceContext.drawIndexed(Plane::GetIndexCount(), 0, 0);
+        }
     }
 
     deviceContext.present(swapChain);

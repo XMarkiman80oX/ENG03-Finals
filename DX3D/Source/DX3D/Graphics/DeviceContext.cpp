@@ -2,6 +2,7 @@
 #include <DX3D/Graphics/SwapChain.h>
 #include <DX3D/Graphics/VertexBuffer.h>
 #include <DX3D/Graphics/IndexBuffer.h>
+#include <DX3D/Graphics/DepthBuffer.h>  // Add this include
 
 dx3d::DeviceContext::DeviceContext(const GraphicsResourceDesc& desc, ID3D11DeviceContext* deviceContext)
     : GraphicsResource(desc)
@@ -18,6 +19,25 @@ void dx3d::DeviceContext::clearRenderTargetColor(SwapChain& swapChain, float red
 {
     float clearColor[] = { red, green, blue, alpha };
     m_deviceContext->ClearRenderTargetView(swapChain.getRenderTargetView(), clearColor);
+}
+
+// ADD THESE NEW DEPTH BUFFER METHODS:
+void dx3d::DeviceContext::clearDepthBuffer(DepthBuffer& depthBuffer, float depth)
+{
+    m_deviceContext->ClearDepthStencilView(
+        depthBuffer.getDepthStencilView(),
+        D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
+        depth,
+        0
+    );
+}
+
+void dx3d::DeviceContext::setRenderTargetsWithDepth(SwapChain& swapChain, DepthBuffer& depthBuffer)
+{
+    ID3D11RenderTargetView* renderTargetView = swapChain.getRenderTargetView();
+    ID3D11DepthStencilView* depthStencilView = depthBuffer.getDepthStencilView();
+
+    m_deviceContext->OMSetRenderTargets(1, &renderTargetView, depthStencilView);
 }
 
 void dx3d::DeviceContext::setVertexBuffer(const VertexBuffer& vertexBuffer)
@@ -38,8 +58,8 @@ void dx3d::DeviceContext::setViewportSize(ui32 width, ui32 height)
     D3D11_VIEWPORT viewport = {};
     viewport.Width = static_cast<float>(width);
     viewport.Height = static_cast<float>(height);
-    viewport.MinDepth = 0.0f;
-    viewport.MaxDepth = 1.0f;
+    viewport.MinDepth = 0.0f;  // Important for depth testing
+    viewport.MaxDepth = 1.0f;  // Important for depth testing
     m_deviceContext->RSSetViewports(1, &viewport);
 }
 
