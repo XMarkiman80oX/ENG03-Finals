@@ -54,7 +54,7 @@ void dx3d::Game::createRenderingResources()
     m_planeVertexBuffer = Plane::CreateVertexBuffer(resourceDesc);
     m_planeIndexBuffer = Plane::CreateIndexBuffer(resourceDesc);
 
-    // CREATE DEPTH BUFFER for proper 3D depth testing
+    // CREATE DEPTH BUFFER
     const auto& windowSize = m_display->getSize();
     m_depthBuffer = std::make_shared<DepthBuffer>(
         windowSize.width,
@@ -62,28 +62,22 @@ void dx3d::Game::createRenderingResources()
         resourceDesc
     );
 
-    // CREATE MULTIPLE SHADERS
-    // 3D Rainbow shader for cubes
     m_rainbowVertexShader = std::make_shared<VertexShader>(resourceDesc, Rainbow3DShader::GetVertexShaderCode());
     m_rainbowPixelShader = std::make_shared<PixelShader>(resourceDesc, Rainbow3DShader::GetPixelShaderCode());
-
-    // White shader for planes
     m_whiteVertexShader = std::make_shared<VertexShader>(resourceDesc, WhiteShader::GetVertexShaderCode());
     m_whitePixelShader = std::make_shared<PixelShader>(resourceDesc, WhiteShader::GetPixelShaderCode());
 
     m_transformConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(TransformationMatrices), resourceDesc);
 
-    // Reserve space for objects
     m_gameObjects.reserve(2);
     m_objectRotationDeltas.reserve(2);
 
-    // 1. Create rainbow cube at origin
     m_gameObjects.push_back(std::make_shared<Cube>(
-        Vector3(0.0f, 0.0f, 0.0f),      // Cube at center
-        Vector3(0.0f, 0.0f, 0.0f),      // No initial rotation
-        Vector3(2.0f, 2.0f, 2.0f)       // Large cube
+        Vector3(0.0f, 0.0f, 0.0f),      
+        Vector3(0.0f, 0.0f, 0.0f),      
+        Vector3(2.0f, 2.0f, 2.0f)      
     ));
-    m_objectRotationDeltas.push_back(Vector3(0.0f, 0.8f, 0.0f)); // Rotate for rainbow effect
+    m_objectRotationDeltas.push_back(Vector3(0.0f, 0.8f, 0.0f)); 
 
     // 2. Create white plane cutting through the cube
     m_gameObjects.push_back(std::make_shared<Plane>(
