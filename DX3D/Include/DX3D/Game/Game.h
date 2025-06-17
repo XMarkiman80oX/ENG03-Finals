@@ -18,6 +18,9 @@ namespace dx3d
     class AGameObject;
     class Cube;
     class Plane;
+    class Sphere;
+    class Cylinder;
+    class Capsule;
     class DepthBuffer;
     class Camera;
 }
@@ -52,13 +55,19 @@ namespace dx3d
         std::vector<std::shared_ptr<AGameObject>> m_gameObjects;
         std::vector<Vector3> m_objectRotationDeltas;
 
+        // Vertex and Index buffers for each primitive type
         std::shared_ptr<VertexBuffer> m_cubeVertexBuffer;
         std::shared_ptr<IndexBuffer> m_cubeIndexBuffer;
         std::shared_ptr<VertexBuffer> m_planeVertexBuffer;
         std::shared_ptr<IndexBuffer> m_planeIndexBuffer;
+        std::shared_ptr<VertexBuffer> m_sphereVertexBuffer;
+        std::shared_ptr<IndexBuffer> m_sphereIndexBuffer;
+        std::shared_ptr<VertexBuffer> m_cylinderVertexBuffer;
+        std::shared_ptr<IndexBuffer> m_cylinderIndexBuffer;
+        std::shared_ptr<VertexBuffer> m_capsuleVertexBuffer;
+        std::shared_ptr<IndexBuffer> m_capsuleIndexBuffer;
 
-        // MULTIPLE SHADERS for different objects
-        // Rainbow shader for cubes
+        // Rainbow shader for 3D objects
         std::shared_ptr<VertexShader> m_rainbowVertexShader;
         std::shared_ptr<PixelShader> m_rainbowPixelShader;
 

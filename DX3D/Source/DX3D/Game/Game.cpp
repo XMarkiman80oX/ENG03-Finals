@@ -15,6 +15,9 @@
 #include <DX3D/Graphics/Primitives/AGameObject.h>
 #include <DX3D/Graphics/Primitives/Cube.h>
 #include <DX3D/Graphics/Primitives/Plane.h>
+#include <DX3D/Graphics/Primitives/Sphere.h>
+#include <DX3D/Graphics/Primitives/Cylinder.h>
+#include <DX3D/Graphics/Primitives/Capsule.h>
 #include <DX3D/Graphics/Shaders/Rainbow3DShader.h>
 #include <DX3D/Graphics/Shaders/WhiteShader.h>
 #include <DX3D/Math/Math.h>
@@ -61,12 +64,17 @@ void dx3d::Game::createRenderingResources()
     ID3D11Device* device = nullptr;
     d3dContext->GetDevice(&device);
 
-
-    // Create vertex and index buffers
+    // Create vertex and index buffers for all primitives
     m_cubeVertexBuffer = Cube::CreateVertexBuffer(resourceDesc);
     m_cubeIndexBuffer = Cube::CreateIndexBuffer(resourceDesc);
     m_planeVertexBuffer = Plane::CreateVertexBuffer(resourceDesc);
     m_planeIndexBuffer = Plane::CreateIndexBuffer(resourceDesc);
+    m_sphereVertexBuffer = Sphere::CreateVertexBuffer(resourceDesc);
+    m_sphereIndexBuffer = Sphere::CreateIndexBuffer(resourceDesc);
+    m_cylinderVertexBuffer = Cylinder::CreateVertexBuffer(resourceDesc);
+    m_cylinderIndexBuffer = Cylinder::CreateIndexBuffer(resourceDesc);
+    m_capsuleVertexBuffer = Capsule::CreateVertexBuffer(resourceDesc);
+    m_capsuleIndexBuffer = Capsule::CreateIndexBuffer(resourceDesc);
 
     // CREATE DEPTH BUFFER
     const auto& windowSize = m_display->getSize();
@@ -75,7 +83,6 @@ void dx3d::Game::createRenderingResources()
         windowSize.height,
         resourceDesc
     );
-
 
     // --- Create Depth Stencil States ---
     // Default state for solid objects (depth test and write on)
@@ -96,7 +103,6 @@ void dx3d::Game::createRenderingResources()
 
     device->Release();
 
-
     m_rainbowVertexShader = std::make_shared<VertexShader>(resourceDesc, Rainbow3DShader::GetVertexShaderCode());
     m_rainbowPixelShader = std::make_shared<PixelShader>(resourceDesc, Rainbow3DShader::GetPixelShaderCode());
     m_whiteVertexShader = std::make_shared<VertexShader>(resourceDesc, WhiteShader::GetVertexShaderCode());
@@ -104,27 +110,63 @@ void dx3d::Game::createRenderingResources()
 
     m_transformConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(TransformationMatrices), resourceDesc);
 
-    m_gameObjects.reserve(2);
-    m_objectRotationDeltas.reserve(2);
+    // Create game objects - arrange them on the plane
+    m_gameObjects.reserve(6); // Increased for new primitives
+    m_objectRotationDeltas.reserve(6);
 
+    // Cube - center
     m_gameObjects.push_back(std::make_shared<Cube>(
+        Vector3(0.0f, 1.0f, 0.0f),
         Vector3(0.0f, 0.0f, 0.0f),
-        Vector3(0.0f, 0.0f, 0.0f),
-        Vector3(2.0f, 2.0f, 2.0f)
+        Vector3(1.5f, 1.5f, 1.5f)
     ));
     m_objectRotationDeltas.push_back(Vector3(0.0f, 0.8f, 0.0f));
 
+    // Sphere - left
+    m_gameObjects.push_back(std::make_shared<Sphere>(
+        Vector3(-3.0f, 1.0f, 0.0f),
+        Vector3(0.0f, 0.0f, 0.0f),
+        Vector3(1.5f, 1.5f, 1.5f)
+    ));
+    m_objectRotationDeltas.push_back(Vector3(0.3f, 0.5f, 0.0f));
+
+    // Cylinder - right
+    m_gameObjects.push_back(std::make_shared<Cylinder>(
+        Vector3(3.0f, 1.0f, 0.0f),
+        Vector3(0.0f, 0.0f, 0.0f),
+        Vector3(1.5f, 1.5f, 1.5f)
+    ));
+    m_objectRotationDeltas.push_back(Vector3(-0.2f, 0.6f, 0.0f));
+
+    // Capsule - front
+    m_gameObjects.push_back(std::make_shared<Capsule>(
+        Vector3(0.0f, 1.0f, 3.0f),
+        Vector3(0.0f, 0.0f, 0.0f),
+        Vector3(1.5f, 1.5f, 1.5f)
+    ));
+    m_objectRotationDeltas.push_back(Vector3(0.4f, 0.3f, 0.2f));
+
+    // Second row of objects
+    // Another Sphere - back left
+    m_gameObjects.push_back(std::make_shared<Sphere>(
+        Vector3(-3.0f, 1.0f, -3.0f),
+        Vector3(0.0f, 0.0f, 0.0f),
+        Vector3(1.2f, 1.2f, 1.2f)
+    ));
+    m_objectRotationDeltas.push_back(Vector3(0.0f, -0.7f, 0.3f));
+
+    // Plane - expanded to accommodate all objects
     m_gameObjects.push_back(std::make_shared<Plane>(
-        Vector3(0.0f, 0.0f, 0.0f),      // Same position as cube
-        Vector3(-1.5708f, 0.0f, 0.0f),  // Horizontal cut
-        Vector3(4.0f, 4.0f, 1.0f)       // Large plane
+        Vector3(0.0f, 0.0f, 0.0f),      // Center at origin
+        Vector3(-1.5708f, 0.0f, 0.0f),  // Horizontal
+        Vector3(10.0f, 10.0f, 1.0f)     // Large plane
     ));
     m_objectRotationDeltas.push_back(Vector3(0.0f, 0.0f, 0.0f)); // Static plane
 
     // Create camera
     m_camera = std::make_unique<Camera>(
-        Vector3(6.0f, 4.0f, -6.0f),     // Initial position
-        Vector3(0.0f, 0.0f, 0.0f)       // Look at origin
+        Vector3(8.0f, 6.0f, -8.0f),     // Initial position
+        Vector3(0.0f, 1.0f, 0.0f)       // Look at slightly above origin
     );
 
     // Setup projection matrix
@@ -161,7 +203,7 @@ void dx3d::Game::createRenderingResources()
         createSnowParticle
     );
 
-    DX3DLogInfo("Snow particle emitter created.");
+    DX3DLogInfo("All primitives created: Cube, Sphere, Cylinder, Capsule, and Plane.");
     DX3DLogInfo("Camera created. Hold right mouse button + WASD to move camera.");
 }
 
@@ -190,8 +232,8 @@ void dx3d::Game::processInput(float deltaTime)
 
     if (input.isKeyJustPressed(KeyCode::R))
     {
-        m_camera->setPosition(Vector3(6.0f, 4.0f, -6.0f));
-        m_camera->lookAt(Vector3(0.0f, 0.0f, 0.0f));
+        m_camera->setPosition(Vector3(8.0f, 6.0f, -8.0f));
+        m_camera->lookAt(Vector3(0.0f, 1.0f, 0.0f));
         DX3DLogInfo("Camera reset to initial position");
     }
 
@@ -210,7 +252,8 @@ void dx3d::Game::update()
     processInput(m_deltaTime);
     m_camera->update();
 
-    for (size_t i = 0; i < m_gameObjects.size(); ++i)
+    // Update all objects except the plane (last object)
+    for (size_t i = 0; i < m_gameObjects.size() - 1; ++i)
     {
         m_gameObjects[i]->rotate(m_objectRotationDeltas[i] * m_deltaTime);
         m_gameObjects[i]->update(m_deltaTime);
@@ -246,10 +289,35 @@ void dx3d::Game::render()
     d3dContext->OMSetDepthStencilState(m_solidDepthState, 0);
     for (const auto& gameObject : m_gameObjects)
     {
+        // Determine which buffers and shaders to use based on object type
         if (auto cube = std::dynamic_pointer_cast<Cube>(gameObject))
         {
             deviceContext.setVertexBuffer(*m_cubeVertexBuffer);
             deviceContext.setIndexBuffer(*m_cubeIndexBuffer);
+            deviceContext.setVertexShader(m_rainbowVertexShader->getShader());
+            deviceContext.setPixelShader(m_rainbowPixelShader->getShader());
+            deviceContext.setInputLayout(m_rainbowVertexShader->getInputLayout());
+        }
+        else if (auto sphere = std::dynamic_pointer_cast<Sphere>(gameObject))
+        {
+            deviceContext.setVertexBuffer(*m_sphereVertexBuffer);
+            deviceContext.setIndexBuffer(*m_sphereIndexBuffer);
+            deviceContext.setVertexShader(m_rainbowVertexShader->getShader());
+            deviceContext.setPixelShader(m_rainbowPixelShader->getShader());
+            deviceContext.setInputLayout(m_rainbowVertexShader->getInputLayout());
+        }
+        else if (auto cylinder = std::dynamic_pointer_cast<Cylinder>(gameObject))
+        {
+            deviceContext.setVertexBuffer(*m_cylinderVertexBuffer);
+            deviceContext.setIndexBuffer(*m_cylinderIndexBuffer);
+            deviceContext.setVertexShader(m_rainbowVertexShader->getShader());
+            deviceContext.setPixelShader(m_rainbowPixelShader->getShader());
+            deviceContext.setInputLayout(m_rainbowVertexShader->getInputLayout());
+        }
+        else if (auto capsule = std::dynamic_pointer_cast<Capsule>(gameObject))
+        {
+            deviceContext.setVertexBuffer(*m_capsuleVertexBuffer);
+            deviceContext.setIndexBuffer(*m_capsuleIndexBuffer);
             deviceContext.setVertexShader(m_rainbowVertexShader->getShader());
             deviceContext.setPixelShader(m_rainbowPixelShader->getShader());
             deviceContext.setInputLayout(m_rainbowVertexShader->getInputLayout());
@@ -264,14 +332,22 @@ void dx3d::Game::render()
         }
 
         TransformationMatrices transformMatrices;
-        // FIX: Reinstated matrix transposition. Shaders expect column-major data.
         transformMatrices.world = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(gameObject->getWorldMatrix().toXMMatrix()));
         transformMatrices.view = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(m_camera->getViewMatrix().toXMMatrix()));
         transformMatrices.projection = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(m_projectionMatrix.toXMMatrix()));
         m_transformConstantBuffer->update(deviceContext, &transformMatrices);
 
-        if (std::dynamic_pointer_cast<Cube>(gameObject)) deviceContext.drawIndexed(Cube::GetIndexCount(), 0, 0);
-        else if (std::dynamic_pointer_cast<Plane>(gameObject)) deviceContext.drawIndexed(Plane::GetIndexCount(), 0, 0);
+        // Draw with appropriate index count
+        if (std::dynamic_pointer_cast<Cube>(gameObject))
+            deviceContext.drawIndexed(Cube::GetIndexCount(), 0, 0);
+        else if (std::dynamic_pointer_cast<Sphere>(gameObject))
+            deviceContext.drawIndexed(Sphere::GetIndexCount(), 0, 0);
+        else if (std::dynamic_pointer_cast<Cylinder>(gameObject))
+            deviceContext.drawIndexed(Cylinder::GetIndexCount(), 0, 0);
+        else if (std::dynamic_pointer_cast<Capsule>(gameObject))
+            deviceContext.drawIndexed(Capsule::GetIndexCount(), 0, 0);
+        else if (std::dynamic_pointer_cast<Plane>(gameObject))
+            deviceContext.drawIndexed(Plane::GetIndexCount(), 0, 0);
     }
 
     // --- RENDER TRANSPARENT PARTICLES ---
@@ -307,7 +383,6 @@ void dx3d::Game::render()
 
     deviceContext.present(swapChain);
 }
-
 
 void dx3d::Game::run()
 {

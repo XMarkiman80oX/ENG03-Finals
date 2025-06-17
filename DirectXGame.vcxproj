@@ -136,6 +136,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="DX3D\Source\DX3D\Game\Camera.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\Capsule.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\Cylinder.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\Sphere.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Input\Input.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\AGameObject.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\ConstantBuffer.cpp" />
@@ -166,6 +169,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DX3D\Include\DX3D\Game\Camera.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\Capsule.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\Cylinder.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\Sphere.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\ParticleShader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\ParticleVertexShader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Input\Input.h" />

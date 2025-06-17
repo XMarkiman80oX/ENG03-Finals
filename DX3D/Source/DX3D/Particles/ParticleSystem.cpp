@@ -229,7 +229,6 @@ void ParticleSystem::createRenderingResources(GraphicsEngine& graphicsEngine)
     m_pixelShader = std::make_shared<PixelShader>(resourceDesc, ParticleShader::GetPixelShaderCode());
 
     // Create constant buffer for view/projection matrices
-    // FIX: Pass constructor arguments directly to std::make_shared
     m_viewProjConstantBuffer = std::make_shared<ConstantBuffer>(
         sizeof(ParticleConstantBuffer),
         resourceDesc
