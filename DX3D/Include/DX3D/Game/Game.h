@@ -6,6 +6,10 @@
 #include <memory>
 #include <vector>
 #include <d3d11.h> // FIX: Include d3d11 for ID3D11DepthStencilState
+#include "imgui.h"
+#include "imgui_impl_win32.h"
+#include "imgui_impl_dx11.h"
+
 
 // Forward declarations
 namespace dx3d

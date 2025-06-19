@@ -2,9 +2,15 @@
 #include <DX3D/Input/Input.h>
 #include <Windows.h>
 #include <stdexcept>
+#include "imgui_impl_win32.h"
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
+	if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wparam, lparam))
+		return true;
+
 	if (dx3d::Input::getInstance().processWindowsMessage(hwnd, msg, wparam, lparam))
 	{
 		if (msg == WM_CLOSE)

@@ -63,6 +63,8 @@ void dx3d::Game::createRenderingResources()
     auto d3dContext = deviceContext.getDeviceContext();
     ID3D11Device* device = nullptr;
     d3dContext->GetDevice(&device);
+    
+
 
     // Create vertex and index buffers for all primitives
     m_cubeVertexBuffer = Cube::CreateVertexBuffer(resourceDesc);
@@ -142,7 +144,7 @@ void dx3d::Game::createRenderingResources()
     m_gameObjects.push_back(std::make_shared<Capsule>(
         Vector3(0.0f, 1.0f, 3.0f),
         Vector3(0.0f, 0.0f, 0.0f),
-        Vector3(1.5f, 1.5f, 1.5f)
+        Vector3(10.5f, 10.5f, 1.5f)
     ));
     m_objectRotationDeltas.push_back(Vector3(0.4f, 0.3f, 0.2f));
 
@@ -203,6 +205,17 @@ void dx3d::Game::createRenderingResources()
         createSnowParticle
     );
 
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+    // Setup Platform/Renderer backends
+    HWND hwnd = m_display->getWindowHandle();
+    ImGui_ImplWin32_Init(hwnd);
+    ImGui_ImplDX11_Init(device, d3dContext);
+
     DX3DLogInfo("All primitives created: Cube, Sphere, Cylinder, Capsule, and Plane.");
     DX3DLogInfo("Camera created. Hold right mouse button + WASD to move camera.");
 }
@@ -248,6 +261,11 @@ void dx3d::Game::update()
     auto currentTime = std::chrono::steady_clock::now();
     m_deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - m_previousTime).count() / 1000000.0f;
     m_previousTime = currentTime;
+
+    ImGui_ImplDX11_NewFrame();
+    ImGui_ImplWin32_NewFrame();
+    ImGui::NewFrame();
+    ImGui::ShowDemoWindow();
 
     processInput(m_deltaTime);
     m_camera->update();
@@ -380,6 +398,9 @@ void dx3d::Game::render()
     d3dContext->OMSetBlendState(nullptr, blendFactor, 0xffffffff); // Restore default blend state
     d3dContext->OMSetDepthStencilState(m_solidDepthState, 0); // Restore default depth state
     if (blendState) blendState->Release();
+
+    ImGui::Render();
+    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
     deviceContext.present(swapChain);
 }

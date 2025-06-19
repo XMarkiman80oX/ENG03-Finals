@@ -8,6 +8,7 @@ namespace dx3d
     {
     public:
         explicit Display(const DisplayDesc& desc);
+        HWND getWindowHandle() const { return static_cast<HWND>(m_handle); }
 
         SwapChain& getSwapChain() const;
 
