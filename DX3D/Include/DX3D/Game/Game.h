@@ -27,6 +27,17 @@ namespace dx3d
     class Capsule;
     class DepthBuffer;
     class Camera;
+    class FogShader;
+}
+
+namespace dx3d {
+    struct FogDesc
+    {
+        bool enabled = true;
+        Vector4 color = { 0.2f, 0.3f, 0.4f, 1.0f };
+        f32 start = 5.0f;
+        f32 end = 25.0f;
+    };
 }
 
 namespace dx3d
@@ -78,6 +89,13 @@ namespace dx3d
         // White shader for planes
         std::shared_ptr<VertexShader> m_whiteVertexShader;
         std::shared_ptr<PixelShader> m_whitePixelShader;
+
+        // Fog shader for everything else.
+        std::shared_ptr<VertexShader> m_fogVertexShader;
+        std::shared_ptr<PixelShader> m_fogPixelShader;
+        std::shared_ptr<ConstantBuffer> m_fogConstantBuffer;
+        std::shared_ptr<ConstantBuffer> m_materialConstantBuffer;
+        FogDesc m_fogDesc;
 
         // Constant buffer for transformation matrices
         std::shared_ptr<ConstantBuffer> m_transformConstantBuffer;

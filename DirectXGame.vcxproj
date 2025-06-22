@@ -111,7 +111,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>E:\Visual Studio Projects\CPP-3D-Game-Tutorial-Series-master\GDENG03-Engine\IMGUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\IMGUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -179,6 +179,7 @@
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\Capsule.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\Cylinder.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\Sphere.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\FogShader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\ParticleShader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\ParticleVertexShader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Input\Input.h" />

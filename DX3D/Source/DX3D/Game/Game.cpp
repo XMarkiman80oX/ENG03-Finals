@@ -20,6 +20,7 @@
 #include <DX3D/Graphics/Primitives/Capsule.h>
 #include <DX3D/Graphics/Shaders/Rainbow3DShader.h>
 #include <DX3D/Graphics/Shaders/WhiteShader.h>
+#include <DX3D/Graphics/Shaders/FogShader.h>
 #include <DX3D/Math/Math.h>
 #include <DX3D/Particles/ParticleSystem.h>
 #include <DX3D/Particles/ParticleEffects/SnowParticle.h>
@@ -109,8 +110,14 @@ void dx3d::Game::createRenderingResources()
     m_rainbowPixelShader = std::make_shared<PixelShader>(resourceDesc, Rainbow3DShader::GetPixelShaderCode());
     m_whiteVertexShader = std::make_shared<VertexShader>(resourceDesc, WhiteShader::GetVertexShaderCode());
     m_whitePixelShader = std::make_shared<PixelShader>(resourceDesc, WhiteShader::GetPixelShaderCode());
+    m_fogVertexShader = std::make_shared<VertexShader>(resourceDesc, FogShader::GetVertexShaderCode());
+    m_fogPixelShader = std::make_shared<PixelShader>(resourceDesc, FogShader::GetPixelShaderCode());
+    m_fogConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(FogShaderConstants), resourceDesc);
+    m_materialConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(FogMaterialConstants), resourceDesc);
 
     m_transformConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(TransformationMatrices), resourceDesc);
+
+
 
     // Create game objects - arrange them on the plane
     m_gameObjects.reserve(6); // Increased for new primitives
@@ -265,7 +272,18 @@ void dx3d::Game::update()
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
-    ImGui::ShowDemoWindow();
+    //ImGui::ShowDemoWindow();
+
+    ImGui::Begin("Settings");
+    ImGui::Checkbox("Enable Fog", &m_fogDesc.enabled);
+    ImGui::SliderFloat("Fog Start", &m_fogDesc.start, 0.1f, 50.0f);
+    ImGui::SliderFloat("Fog End", &m_fogDesc.end, 1.0f, 100.0f);
+
+    if (m_fogDesc.end < m_fogDesc.start) m_fogDesc.end = m_fogDesc.start;
+    if (m_fogDesc.start > m_fogDesc.end) m_fogDesc.start = m_fogDesc.end;
+
+    ImGui::ColorEdit3("Fog Color", &m_fogDesc.color.x);
+    ImGui::End();
 
     processInput(m_deltaTime);
     m_camera->update();
@@ -295,58 +313,73 @@ void dx3d::Game::render()
     auto& swapChain = m_display->getSwapChain();
     auto d3dContext = deviceContext.getDeviceContext();
 
-    deviceContext.clearRenderTargetColor(swapChain, 0.1f, 0.1f, 0.2f, 1.0f);
+    deviceContext.clearRenderTargetColor(swapChain, m_fogDesc.color.x, m_fogDesc.color.y, m_fogDesc.color.z, 1.0f);
     deviceContext.clearDepthBuffer(*m_depthBuffer);
     deviceContext.setRenderTargetsWithDepth(swapChain, *m_depthBuffer);
     deviceContext.setViewportSize(m_display->getSize().width, m_display->getSize().height);
 
-    ID3D11Buffer* cb = m_transformConstantBuffer->getBuffer();
-    d3dContext->VSSetConstantBuffers(0, 1, &cb);
+    // fog stuff
+    ID3D11Buffer* transformCb = m_transformConstantBuffer->getBuffer();
+    d3dContext->VSSetConstantBuffers(0, 1, &transformCb);
+
+    FogShaderConstants fsc = {};
+    fsc.fogColor = m_fogDesc.color;
+    fsc.cameraPosition = m_camera->getPosition();
+    fsc.fogStart = m_fogDesc.start;
+    fsc.fogEnd = m_fogDesc.end;
+    fsc.fogEnabled = m_fogDesc.enabled;
+    m_fogConstantBuffer->update(deviceContext, &fsc);
+
+    ID3D11Buffer* fogCb = m_fogConstantBuffer->getBuffer();
+    d3dContext->PSSetConstantBuffers(1, 1, &fogCb);
+    ID3D11Buffer* materialCb = m_materialConstantBuffer->getBuffer();
+    d3dContext->PSSetConstantBuffers(2, 1, &materialCb);
 
     // --- RENDER SOLID OBJECTS ---
     d3dContext->OMSetDepthStencilState(m_solidDepthState, 0);
+
+    deviceContext.setVertexShader(m_fogVertexShader->getShader());
+    deviceContext.setPixelShader(m_fogPixelShader->getShader());
+    deviceContext.setInputLayout(m_fogVertexShader->getInputLayout());
+
     for (const auto& gameObject : m_gameObjects)
     {
-        // Determine which buffers and shaders to use based on object type
-        if (auto cube = std::dynamic_pointer_cast<Cube>(gameObject))
+        FogMaterialConstants fmc = {};
+        if (std::dynamic_pointer_cast<Plane>(gameObject))
         {
+            fmc.useVertexColor = false;
+            fmc.baseColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+        }
+        else
+        {
+            fmc.useVertexColor = true;
+        }
+        m_materialConstantBuffer->update(deviceContext, &fmc);
+
+        // Determine which buffers and shaders to use based on object type
+        if (auto cube = std::dynamic_pointer_cast<Cube>(gameObject)) {
             deviceContext.setVertexBuffer(*m_cubeVertexBuffer);
             deviceContext.setIndexBuffer(*m_cubeIndexBuffer);
-            deviceContext.setVertexShader(m_rainbowVertexShader->getShader());
-            deviceContext.setPixelShader(m_rainbowPixelShader->getShader());
-            deviceContext.setInputLayout(m_rainbowVertexShader->getInputLayout());
         }
-        else if (auto sphere = std::dynamic_pointer_cast<Sphere>(gameObject))
-        {
+        else if (auto sphere = std::dynamic_pointer_cast<Sphere>(gameObject)) {
             deviceContext.setVertexBuffer(*m_sphereVertexBuffer);
             deviceContext.setIndexBuffer(*m_sphereIndexBuffer);
-            deviceContext.setVertexShader(m_rainbowVertexShader->getShader());
-            deviceContext.setPixelShader(m_rainbowPixelShader->getShader());
-            deviceContext.setInputLayout(m_rainbowVertexShader->getInputLayout());
         }
-        else if (auto cylinder = std::dynamic_pointer_cast<Cylinder>(gameObject))
-        {
+        else if (auto cylinder = std::dynamic_pointer_cast<Cylinder>(gameObject)) {
             deviceContext.setVertexBuffer(*m_cylinderVertexBuffer);
             deviceContext.setIndexBuffer(*m_cylinderIndexBuffer);
-            deviceContext.setVertexShader(m_rainbowVertexShader->getShader());
-            deviceContext.setPixelShader(m_rainbowPixelShader->getShader());
-            deviceContext.setInputLayout(m_rainbowVertexShader->getInputLayout());
         }
-        else if (auto capsule = std::dynamic_pointer_cast<Capsule>(gameObject))
-        {
+        else if (auto capsule = std::dynamic_pointer_cast<Capsule>(gameObject)) {
             deviceContext.setVertexBuffer(*m_capsuleVertexBuffer);
             deviceContext.setIndexBuffer(*m_capsuleIndexBuffer);
-            deviceContext.setVertexShader(m_rainbowVertexShader->getShader());
-            deviceContext.setPixelShader(m_rainbowPixelShader->getShader());
-            deviceContext.setInputLayout(m_rainbowVertexShader->getInputLayout());
         }
-        else if (auto plane = std::dynamic_pointer_cast<Plane>(gameObject))
-        {
+        else if (auto plane = std::dynamic_pointer_cast<Plane>(gameObject)) {
             deviceContext.setVertexBuffer(*m_planeVertexBuffer);
             deviceContext.setIndexBuffer(*m_planeIndexBuffer);
-            deviceContext.setVertexShader(m_whiteVertexShader->getShader());
-            deviceContext.setPixelShader(m_whitePixelShader->getShader());
-            deviceContext.setInputLayout(m_whiteVertexShader->getInputLayout());
+            // The plane uses the simple white shader (no fog)
+            //deviceContext.setVertexShader(m_whiteVertexShader->getShader());
+            //deviceContext.setPixelShader(m_whitePixelShader->getShader());
+            //deviceContext.setInputLayout(m_whiteVertexShader->getInputLayout());
         }
 
         TransformationMatrices transformMatrices;
@@ -355,17 +388,25 @@ void dx3d::Game::render()
         transformMatrices.projection = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(m_projectionMatrix.toXMMatrix()));
         m_transformConstantBuffer->update(deviceContext, &transformMatrices);
 
-        // Draw with appropriate index count
-        if (std::dynamic_pointer_cast<Cube>(gameObject))
+        if (std::dynamic_pointer_cast<Cube>(gameObject)) 
             deviceContext.drawIndexed(Cube::GetIndexCount(), 0, 0);
-        else if (std::dynamic_pointer_cast<Sphere>(gameObject))
+        else if (std::dynamic_pointer_cast<Sphere>(gameObject)) 
             deviceContext.drawIndexed(Sphere::GetIndexCount(), 0, 0);
-        else if (std::dynamic_pointer_cast<Cylinder>(gameObject))
+        else if (std::dynamic_pointer_cast<Cylinder>(gameObject)) 
             deviceContext.drawIndexed(Cylinder::GetIndexCount(), 0, 0);
-        else if (std::dynamic_pointer_cast<Capsule>(gameObject))
+        else if (std::dynamic_pointer_cast<Capsule>(gameObject)) 
             deviceContext.drawIndexed(Capsule::GetIndexCount(), 0, 0);
-        else if (std::dynamic_pointer_cast<Plane>(gameObject))
+        else if (std::dynamic_pointer_cast<Plane>(gameObject)) 
             deviceContext.drawIndexed(Plane::GetIndexCount(), 0, 0);
+
+        /*
+        if (std::dynamic_pointer_cast<Plane>(gameObject))
+        {
+            deviceContext.setVertexShader(m_fogVertexShader->getShader());
+            deviceContext.setPixelShader(m_fogPixelShader->getShader());
+            deviceContext.setInputLayout(m_fogVertexShader->getInputLayout());
+        }
+        */
     }
 
     // --- RENDER TRANSPARENT PARTICLES ---
