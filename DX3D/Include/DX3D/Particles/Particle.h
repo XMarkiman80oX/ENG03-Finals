@@ -9,16 +9,23 @@ namespace dx3d
     public:
         Particle();
         virtual ~Particle() = default;
-
-        // Initialize the particle with starting values
         virtual void initialize(const Vector3& position, const Vector3& velocity);
-
-        // Update the particle (returns false if particle should die)
         virtual bool update(float deltaTime);
-
-        // Reset the particle for reuse
         virtual void reset();
 
+    protected:
+        Vector3 m_position;
+        Vector3 m_velocity;
+        Vector3 m_acceleration;
+        Vector4 m_color;        
+        float m_size;
+        float m_rotation;       
+        float m_rotationSpeed; 
+        float m_age;
+        float m_lifetime;
+        bool m_alive;
+
+    public:
         // Getters
         const Vector3& getPosition() const { return m_position; }
         const Vector3& getVelocity() const { return m_velocity; }
@@ -38,17 +45,5 @@ namespace dx3d
         void setSize(float size) { m_size = size; }
         void setRotation(float rotation) { m_rotation = rotation; }
         void setLifetime(float lifetime) { m_lifetime = lifetime; }
-
-    protected:
-        Vector3 m_position;
-        Vector3 m_velocity;
-        Vector3 m_acceleration;
-        Vector4 m_color;        // RGBA
-        float m_size;
-        float m_rotation;       // Rotation around billboard normal
-        float m_rotationSpeed;  // Rotation speed
-        float m_age;
-        float m_lifetime;
-        bool m_alive;
     };
 }

@@ -5,7 +5,7 @@
 #include <chrono>
 #include <memory>
 #include <vector>
-#include <d3d11.h> // FIX: Include d3d11 for ID3D11DepthStencilState
+#include <d3d11.h> 
 #include "imgui.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
@@ -38,6 +38,23 @@ namespace dx3d {
         f32 start = 5.0f;
         f32 end = 25.0f;
     };
+
+    struct SnowConfig
+    {
+        Vector3 position{ 0.0f, 10.0f, 0.0f };
+        Vector3 positionVariance{ 20.0f, 0.0f, 20.0f };
+        Vector3 velocity{ 0.0f, -2.0f, 0.0f };
+        Vector3 velocityVariance{ 0.5f, 0.5f, 0.5f };
+        Vector3 acceleration{ 0.0f, -0.5f, 0.0f };
+        Vector4 startColor{ 1.0f, 1.0f, 1.0f, 0.8f };
+        Vector4 endColor{ 0.9f, 0.9f, 1.0f, 0.0f };
+        float startSize = 0.2f;
+        float endSize = 0.1f;
+        float lifetime = 8.0f;
+        float lifetimeVariance = 2.0f;
+        float emissionRate = 50.0f;
+        bool active = true;
+    };
 }
 
 namespace dx3d
@@ -54,6 +71,7 @@ namespace dx3d
         void createRenderingResources();
         void update();
         void processInput(float deltaTime);
+        void updateSnowEmitter();
 
     private:
         std::unique_ptr<Logger> m_loggerPtr{};
@@ -96,6 +114,8 @@ namespace dx3d
         std::shared_ptr<ConstantBuffer> m_fogConstantBuffer;
         std::shared_ptr<ConstantBuffer> m_materialConstantBuffer;
         FogDesc m_fogDesc;
+
+        SnowConfig m_snowConfig;
 
         // Constant buffer for transformation matrices
         std::shared_ptr<ConstantBuffer> m_transformConstantBuffer;

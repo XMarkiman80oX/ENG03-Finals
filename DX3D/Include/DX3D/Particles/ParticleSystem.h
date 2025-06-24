@@ -26,9 +26,12 @@ namespace dx3d
             return instance;
         }
 
-        // Initialize the particle system with graphics resources
         void initialize(GraphicsEngine& graphicsEngine);
         void shutdown();
+        // Update all emitters
+        void update(float deltaTime);
+        // Render all particles
+        void render(DeviceContext& deviceContext, const Camera& camera, const Matrix4x4& projectionMatrix);
 
         // Create and manage emitters
         std::shared_ptr<ParticleEmitter> createEmitter(
@@ -36,15 +39,9 @@ namespace dx3d
             const ParticleEmitter::EmitterConfig& config,
             ParticleEmitter::ParticleFactory factory
         );
-
         void removeEmitter(const std::string& name);
         std::shared_ptr<ParticleEmitter> getEmitter(const std::string& name);
-
-        // Update all emitters
-        void update(float deltaTime);
-
-        // Render all particles
-        void render(DeviceContext& deviceContext, const Camera& camera, const Matrix4x4& projectionMatrix);
+        
 
         // Set blend mode for particles
         enum class BlendMode

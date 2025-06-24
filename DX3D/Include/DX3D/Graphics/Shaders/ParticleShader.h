@@ -21,11 +21,9 @@ namespace dx3d
 
                 struct VS_INPUT
                 {
-                    // Per-vertex data (the corners of our quad)
                     float3 basePosition : POSITION;
-                    float4 baseColor    : COLOR; // Using .xy for UVs
+                    float4 baseColor    : COLOR; 
                     
-                    // Per-instance data (unique to each particle)
                     float3 instancePosition : POSITION1;
                     float  instanceSize     : POSITION2;
                     float4 instanceColor    : COLOR1;
@@ -43,40 +41,28 @@ namespace dx3d
                 {
                     VS_OUTPUT output;
                     
-                    // --- Billboarding Logic ---
-                    // This creates a quad in world space that always faces the camera.
-                    
-                    // Start with the particle's center position in the world.
                     float3 centerWorldPos = input.instancePosition;
 
-                    // Calculate the vertex's offset from the center, scaled and rotated.
                     float cosRot = cos(input.instanceRotation);
                     float sinRot = sin(input.instanceRotation);
                     
-                    // Rotate the quad corner's local position (which is just a corner of a 2D quad).
                     float2 rotatedPos;
                     rotatedPos.x = input.basePosition.x * cosRot - input.basePosition.y * sinRot;
                     rotatedPos.y = input.basePosition.x * sinRot + input.basePosition.y * cosRot;
 
-                    // Apply the billboard orientation using camera vectors and add to the particle's world position.
                     float3 finalWorldPos = centerWorldPos 
                                          + cameraRight * rotatedPos.x * input.instanceSize
                                          + cameraUp * rotatedPos.y * input.instanceSize;
                     
-                    // --- Transformation to Clip Space ---
-                    // Combine the transformations in the correct order: World -> View -> Projection.
-                    // HLSL's mul() intrinsic handles this naturally when chained.
-                    // We treat the billboarding result as our "world" matrix transformation.
-                    
+                           
                     float4 finalPosition = float4(finalWorldPos, 1.0f);
                     finalPosition = mul(finalPosition, view);
                     finalPosition = mul(finalPosition, projection);
 
                     output.clipPosition = finalPosition;
 
-                    // Pass color and texture coordinates to the pixel shader.
                     output.color = input.instanceColor;
-                    output.texCoord = input.baseColor.xy; // Pass the UV coordinates.
+                    output.texCoord = input.baseColor.xy; 
                     
                     return output;
                 }

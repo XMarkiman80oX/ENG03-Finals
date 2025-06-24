@@ -65,8 +65,6 @@ void dx3d::Game::createRenderingResources()
     ID3D11Device* device = nullptr;
     d3dContext->GetDevice(&device);
     
-
-
     // Create vertex and index buffers for all primitives
     m_cubeVertexBuffer = Cube::CreateVertexBuffer(resourceDesc);
     m_cubeIndexBuffer = Cube::CreateIndexBuffer(resourceDesc);
@@ -190,25 +188,25 @@ void dx3d::Game::createRenderingResources()
     // Initialize particle system
     ParticleSystem::getInstance().initialize(*m_graphicsEngine);
 
-    // Create a snow emitter
+    // Create snow emitter using member config
     ParticleEmitter::EmitterConfig snowConfig;
-    snowConfig.position = Vector3(0.0f, 10.0f, 0.0f); // Start snowing from above
-    snowConfig.positionVariance = Vector3(20.0f, 0.0f, 20.0f); // Spread out over an area
-    snowConfig.velocity = Vector3(0.0f, -2.0f, 0.0f);
-    snowConfig.velocityVariance = Vector3(0.5f, 0.5f, 0.5f);
-    snowConfig.acceleration = Vector3(0.0f, -0.5f, 0.0f);
-    snowConfig.startColor = Vector4(1.0f, 1.0f, 1.0f, 0.8f);
-    snowConfig.endColor = Vector4(0.9f, 0.9f, 1.0f, 0.0f);
-    snowConfig.startSize = 0.2f;
-    snowConfig.endSize = 0.1f;
-    snowConfig.lifetime = 8.0f;
-    snowConfig.lifetimeVariance = 2.0f;
-    snowConfig.emissionRate = 50.0f;
+    snowConfig.position = m_snowConfig.position;
+    snowConfig.positionVariance = m_snowConfig.positionVariance;
+    snowConfig.velocity = m_snowConfig.velocity;
+    snowConfig.velocityVariance = m_snowConfig.velocityVariance;
+    snowConfig.acceleration = m_snowConfig.acceleration;
+    snowConfig.startColor = m_snowConfig.startColor;
+    snowConfig.endColor = m_snowConfig.endColor;
+    snowConfig.startSize = m_snowConfig.startSize;
+    snowConfig.endSize = m_snowConfig.endSize;
+    snowConfig.lifetime = m_snowConfig.lifetime;
+    snowConfig.lifetimeVariance = m_snowConfig.lifetimeVariance;
+    snowConfig.emissionRate = m_snowConfig.emissionRate;
     snowConfig.maxParticles = 2000;
 
     auto snowEmitter = ParticleSystem::getInstance().createEmitter(
-        "snow",
-        snowConfig,
+        "snow", 
+        snowConfig, 
         createSnowParticle
     );
 
@@ -278,17 +276,65 @@ void dx3d::Game::update()
     ImGui::Checkbox("Enable Fog", &m_fogDesc.enabled);
     ImGui::SliderFloat("Fog Start", &m_fogDesc.start, 0.1f, 50.0f);
     ImGui::SliderFloat("Fog End", &m_fogDesc.end, 1.0f, 100.0f);
-
-    if (m_fogDesc.end < m_fogDesc.start) m_fogDesc.end = m_fogDesc.start;
-    if (m_fogDesc.start > m_fogDesc.end) m_fogDesc.start = m_fogDesc.end;
-
     ImGui::ColorEdit3("Fog Color", &m_fogDesc.color.x);
+
+    if (ImGui::CollapsingHeader("Snow Particles"))
+    {
+        bool configChanged = false;
+
+        // Enable/disable snow
+        configChanged |= ImGui::Checkbox("Enable Snow", &m_snowConfig.active);
+
+        // Emission properties
+        ImGui::Separator();
+        ImGui::Text("Emission");
+        configChanged |= ImGui::SliderFloat("Emission Rate", &m_snowConfig.emissionRate, 0.0f, 200.0f);
+        configChanged |= ImGui::SliderFloat("Lifetime", &m_snowConfig.lifetime, 1.0f, 20.0f);
+        configChanged |= ImGui::SliderFloat("Lifetime Variance", &m_snowConfig.lifetimeVariance, 0.0f, 5.0f);
+
+        // Position and movement
+        ImGui::Separator();
+        ImGui::Text("Movement");
+        configChanged |= ImGui::SliderFloat3("Velocity", &m_snowConfig.velocity.x, -10.0f, 10.0f);
+        configChanged |= ImGui::SliderFloat3("Velocity Variance", &m_snowConfig.velocityVariance.x, 0.0f, 5.0f);
+        configChanged |= ImGui::SliderFloat3("Acceleration", &m_snowConfig.acceleration.x, -5.0f, 5.0f);
+
+        // Spawn area
+        ImGui::Separator();
+        ImGui::Text("Spawn Area");
+        configChanged |= ImGui::SliderFloat("Spawn Height", &m_snowConfig.position.y, 5.0f, 50.0f);
+        configChanged |= ImGui::SliderFloat("Spawn Width", &m_snowConfig.positionVariance.x, 5.0f, 100.0f);
+        configChanged |= ImGui::SliderFloat("Spawn Depth", &m_snowConfig.positionVariance.z, 5.0f, 100.0f);
+
+        // Appearance
+        ImGui::Separator();
+        ImGui::Text("Appearance");
+        configChanged |= ImGui::SliderFloat("Start Size", &m_snowConfig.startSize, 0.05f, 2.0f);
+        configChanged |= ImGui::SliderFloat("End Size", &m_snowConfig.endSize, 0.05f, 2.0f);
+        configChanged |= ImGui::ColorEdit4("Start Color", &m_snowConfig.startColor.x);
+        configChanged |= ImGui::ColorEdit4("End Color", &m_snowConfig.endColor.x);
+
+        // Reset button
+        ImGui::Separator();
+        if (ImGui::Button("Reset to Defaults"))
+        {
+            m_snowConfig = SnowConfig{}; // Reset to default values
+            configChanged = true;
+        }
+
+        // Apply changes to emitter
+        if (configChanged)
+        {
+            updateSnowEmitter();
+        }
+    }
+
     ImGui::End();
 
     processInput(m_deltaTime);
     m_camera->update();
 
-    // Update all objects except the plane (last object)
+    // Update all objects except the plane 
     for (size_t i = 0; i < m_gameObjects.size() - 1; ++i)
     {
         m_gameObjects[i]->rotate(m_objectRotationDeltas[i] * m_deltaTime);
@@ -297,13 +343,54 @@ void dx3d::Game::update()
 
     ParticleSystem::getInstance().update(m_deltaTime);
 
-    // Update emitter to follow above the camera for a continuous snow effect
     if (auto snowEmitter = ParticleSystem::getInstance().getEmitter("snow"))
     {
         Vector3 emitterPos = m_camera->getPosition();
-        emitterPos.y += 10.0f; // Keep the emitter 10 units above the camera
+        emitterPos.y += 10.0f; 
         snowEmitter->setPosition(emitterPos);
     }
+}
+
+void dx3d::Game::updateSnowEmitter()
+{
+    auto snowEmitter = ParticleSystem::getInstance().getEmitter("snow");
+    if (!snowEmitter)
+        return;
+
+    // Handle enable/disable
+    if (m_snowConfig.active)
+    {
+        snowEmitter->start();
+    }
+    else
+    {
+        snowEmitter->stop();
+        return;
+    }
+
+    // Update emitter rate
+    snowEmitter->setEmissionRate(m_snowConfig.emissionRate);
+
+    // For more complex changes, recreate the emitter
+    ParticleEmitter::EmitterConfig newConfig;
+    newConfig.position = m_snowConfig.position;
+    newConfig.positionVariance = m_snowConfig.positionVariance;
+    newConfig.velocity = m_snowConfig.velocity;
+    newConfig.velocityVariance = m_snowConfig.velocityVariance;
+    newConfig.acceleration = m_snowConfig.acceleration;
+    newConfig.startColor = m_snowConfig.startColor;
+    newConfig.endColor = m_snowConfig.endColor;
+    newConfig.startSize = m_snowConfig.startSize;
+    newConfig.endSize = m_snowConfig.endSize;
+    newConfig.lifetime = m_snowConfig.lifetime;
+    newConfig.lifetimeVariance = m_snowConfig.lifetimeVariance;
+    newConfig.emissionRate = m_snowConfig.emissionRate;
+    newConfig.maxParticles = 2000;
+    newConfig.loop = true;
+
+    // Remove old emitter and create new one
+    ParticleSystem::getInstance().removeEmitter("snow");
+    ParticleSystem::getInstance().createEmitter("snow", newConfig, createSnowParticle);
 }
 
 void dx3d::Game::render()
