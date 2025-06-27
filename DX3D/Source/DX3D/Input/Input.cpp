@@ -70,7 +70,6 @@ void Input::onMouseButtonDown(MouseButton button)
         m_mouseButtons[index] = true;
         m_mouseButtonsJustPressed[index] = true;
 
-        // Debug log mouse button press
         const char* buttonName = (button == MouseButton::Left) ? "Left" :
             (button == MouseButton::Right) ? "Right" : "Middle";
         printf("[Input] Mouse button pressed: %s\n", buttonName);

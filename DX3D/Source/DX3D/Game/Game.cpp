@@ -1,4 +1,4 @@
-#include <DX3D/Game/Game.h>
+﻿#include <DX3D/Game/Game.h>
 #include <DX3D/Window/Window.h>
 #include <DX3D/Graphics/GraphicsEngine.h>
 #include <DX3D/Core/Logger.h>
@@ -64,7 +64,7 @@ void dx3d::Game::createRenderingResources()
     auto d3dContext = deviceContext.getDeviceContext();
     ID3D11Device* device = nullptr;
     d3dContext->GetDevice(&device);
-    
+
     // Create vertex and index buffers for all primitives
     m_cubeVertexBuffer = Cube::CreateVertexBuffer(resourceDesc);
     m_cubeIndexBuffer = Cube::CreateIndexBuffer(resourceDesc);
@@ -86,7 +86,6 @@ void dx3d::Game::createRenderingResources()
     );
 
     // --- Create Depth Stencil States ---
-    // Default state for solid objects (depth test and write on)
     D3D11_DEPTH_STENCIL_DESC solidDesc = {};
     solidDesc.DepthEnable = TRUE;
     solidDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
@@ -94,16 +93,16 @@ void dx3d::Game::createRenderingResources()
     solidDesc.StencilEnable = FALSE;
     device->CreateDepthStencilState(&solidDesc, &m_solidDepthState);
 
-    // State for transparent particles (depth test on, depth write off)
     D3D11_DEPTH_STENCIL_DESC particleDesc = {};
     particleDesc.DepthEnable = TRUE;
-    particleDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO; // Main difference here!
+    particleDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
     particleDesc.DepthFunc = D3D11_COMPARISON_LESS;
     particleDesc.StencilEnable = FALSE;
     device->CreateDepthStencilState(&particleDesc, &m_particleDepthState);
 
     device->Release();
 
+    // Create shaders
     m_rainbowVertexShader = std::make_shared<VertexShader>(resourceDesc, Rainbow3DShader::GetVertexShaderCode());
     m_rainbowPixelShader = std::make_shared<PixelShader>(resourceDesc, Rainbow3DShader::GetPixelShaderCode());
     m_whiteVertexShader = std::make_shared<VertexShader>(resourceDesc, WhiteShader::GetVertexShaderCode());
@@ -115,68 +114,41 @@ void dx3d::Game::createRenderingResources()
 
     m_transformConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(TransformationMatrices), resourceDesc);
 
+    // ===== CREATE 10 STATIC CUBES =====
+    m_gameObjects.clear();
+    m_gameObjects.reserve(11); // 10 cubes + 1 plane
 
+    // Create 10 cubes arranged in a circle (STATIC - no automatic rotation)
+    const float radius = 6.0f;
+    const int numCubes = 10;
 
-    // Create game objects - arrange them on the plane
-    m_gameObjects.reserve(6); // Increased for new primitives
-    m_objectRotationDeltas.reserve(6);
+    for (int i = 0; i < numCubes; ++i)
+    {
+        float angle = (static_cast<float>(i) / numCubes) * 2.0f * 3.14159265f;
+        float x = radius * std::cos(angle);
+        float z = radius * std::sin(angle);
 
-    // Cube - center
-    m_gameObjects.push_back(std::make_shared<Cube>(
-        Vector3(0.0f, 1.0f, 0.0f),
-        Vector3(0.0f, 0.0f, 0.0f),
-        Vector3(1.5f, 1.5f, 1.5f)
-    ));
-    m_objectRotationDeltas.push_back(Vector3(0.0f, 0.8f, 0.0f));
+        // Create cube at calculated position (completely static)
+        m_gameObjects.push_back(std::make_shared<Cube>(
+            Vector3(x, 2.0f, z),                    // Position in circle, elevated
+            Vector3(0.0f, 0.0f, 0.0f),              // Initial rotation
+            Vector3(1.5f, 1.5f, 1.5f)               // Scale
+        ));
+    }
 
-    // Sphere - left
-    m_gameObjects.push_back(std::make_shared<Sphere>(
-        Vector3(-3.0f, 1.0f, 0.0f),
-        Vector3(0.0f, 0.0f, 0.0f),
-        Vector3(1.5f, 1.5f, 1.5f)
-    ));
-    m_objectRotationDeltas.push_back(Vector3(0.3f, 0.5f, 0.0f));
-
-    // Cylinder - right
-    m_gameObjects.push_back(std::make_shared<Cylinder>(
-        Vector3(3.0f, 1.0f, 0.0f),
-        Vector3(0.0f, 0.0f, 0.0f),
-        Vector3(1.5f, 1.5f, 1.5f)
-    ));
-    m_objectRotationDeltas.push_back(Vector3(-0.2f, 0.6f, 0.0f));
-
-    // Capsule - front
-    m_gameObjects.push_back(std::make_shared<Capsule>(
-        Vector3(0.0f, 1.0f, 3.0f),
-        Vector3(0.0f, 0.0f, 0.0f),
-        Vector3(10.5f, 10.5f, 1.5f)
-    ));
-    m_objectRotationDeltas.push_back(Vector3(0.4f, 0.3f, 0.2f));
-
-    // Second row of objects
-    // Another Sphere - back left
-    m_gameObjects.push_back(std::make_shared<Sphere>(
-        Vector3(-3.0f, 1.0f, -3.0f),
-        Vector3(0.0f, 0.0f, 0.0f),
-        Vector3(1.2f, 1.2f, 1.2f)
-    ));
-    m_objectRotationDeltas.push_back(Vector3(0.0f, -0.7f, 0.3f));
-
-    // Plane - expanded to accommodate all objects
+    // Add the ground plane
     m_gameObjects.push_back(std::make_shared<Plane>(
         Vector3(0.0f, 0.0f, 0.0f),      // Center at origin
         Vector3(-1.5708f, 0.0f, 0.0f),  // Horizontal
-        Vector3(10.0f, 10.0f, 1.0f)     // Large plane
+        Vector3(15.0f, 15.0f, 1.0f)     // Large plane to accommodate all cubes
     ));
-    m_objectRotationDeltas.push_back(Vector3(0.0f, 0.0f, 0.0f)); // Static plane
 
-    // Create camera
+    // Create camera positioned to see all cubes
     m_camera = std::make_unique<Camera>(
-        Vector3(8.0f, 6.0f, -8.0f),     // Initial position
-        Vector3(0.0f, 1.0f, 0.0f)       // Look at slightly above origin
+        Vector3(12.0f, 8.0f, -12.0f),   // Position farther back to see all cubes
+        Vector3(0.0f, 2.0f, 0.0f)       // Look at center, slightly elevated
     );
 
-    // Setup projection matrix
     float aspectRatio = static_cast<float>(windowSize.width) / static_cast<float>(windowSize.height);
     m_projectionMatrix = Matrix4x4::CreatePerspectiveFovLH(
         1.0472f,        // 60 degrees
@@ -188,7 +160,6 @@ void dx3d::Game::createRenderingResources()
     // Initialize particle system
     ParticleSystem::getInstance().initialize(*m_graphicsEngine);
 
-    // Create snow emitter using member config
     ParticleEmitter::EmitterConfig snowConfig;
     snowConfig.position = m_snowConfig.position;
     snowConfig.positionVariance = m_snowConfig.positionVariance;
@@ -205,30 +176,30 @@ void dx3d::Game::createRenderingResources()
     snowConfig.maxParticles = 2000;
 
     auto snowEmitter = ParticleSystem::getInstance().createEmitter(
-        "snow", 
-        snowConfig, 
+        "snow",
+        snowConfig,
         createSnowParticle
     );
 
+    // Initialize ImGui
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
-    // Setup Platform/Renderer backends
     HWND hwnd = m_display->getWindowHandle();
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX11_Init(device, d3dContext);
 
-    DX3DLogInfo("All primitives created: Cube, Sphere, Cylinder, Capsule, and Plane.");
-    DX3DLogInfo("Camera created. Hold right mouse button + WASD to move camera.");
+    DX3DLogInfo("Created 10 cubes. Press W for positive XYZ rotation, S for negative XYZ rotation!");
 }
 
 void dx3d::Game::processInput(float deltaTime)
 {
     auto& input = Input::getInstance();
 
+    // Camera movement 
     if (input.isMouseButtonPressed(MouseButton::Right))
     {
         float moveSpeed = m_cameraSpeed * deltaTime;
@@ -248,13 +219,42 @@ void dx3d::Game::processInput(float deltaTime)
         }
     }
 
+    // Cube rotation controls (ALWAYS ACTIVE - W/S only, all 3 axes)
+    if (input.isKeyPressed(KeyCode::W))
+    {
+        // Rotate all cubes positive on all axes (X, Y, Z)
+        Vector3 rotationDelta(m_cubeRotationSpeed * deltaTime, m_cubeRotationSpeed * deltaTime, m_cubeRotationSpeed * deltaTime);
+        for (size_t i = 0; i < m_gameObjects.size() - 1; ++i)
+        {
+            if (std::dynamic_pointer_cast<Cube>(m_gameObjects[i]))
+            {
+                m_gameObjects[i]->rotate(rotationDelta);
+            }
+        }
+    }
+
+    if (input.isKeyPressed(KeyCode::S))
+    {
+        // Rotate all cubes negative on all axes (X, Y, Z)
+        Vector3 rotationDelta(-m_cubeRotationSpeed * deltaTime, -m_cubeRotationSpeed * deltaTime, -m_cubeRotationSpeed * deltaTime);
+        for (size_t i = 0; i < m_gameObjects.size() - 1; ++i)
+        {
+            if (std::dynamic_pointer_cast<Cube>(m_gameObjects[i]))
+            {
+                m_gameObjects[i]->rotate(rotationDelta);
+            }
+        }
+    }
+
+    // Camera reset
     if (input.isKeyJustPressed(KeyCode::R))
     {
-        m_camera->setPosition(Vector3(8.0f, 6.0f, -8.0f));
-        m_camera->lookAt(Vector3(0.0f, 1.0f, 0.0f));
+        m_camera->setPosition(Vector3(12.0f, 8.0f, -12.0f));
+        m_camera->lookAt(Vector3(0.0f, 2.0f, 0.0f));
         DX3DLogInfo("Camera reset to initial position");
     }
 
+    // Exit game
     if (input.isKeyPressed(KeyCode::Escape))
     {
         m_isRunning = false;
@@ -270,7 +270,6 @@ void dx3d::Game::update()
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
-    //ImGui::ShowDemoWindow();
 
     ImGui::Begin("Settings");
     ImGui::Checkbox("Enable Fog", &m_fogDesc.enabled);
@@ -331,13 +330,75 @@ void dx3d::Game::update()
 
     ImGui::End();
 
+    // Cube Controls Window
+    ImGui::Begin("Cube Controls");
+    ImGui::Text("🎮 Camera & Cube Controls:");
+    ImGui::Separator();
+
+    auto& input = Input::getInstance();
+
+    // Camera status
+    if (input.isMouseButtonPressed(MouseButton::Right)) {
+        ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "📷 CAMERA MODE: ACTIVE");
+        ImGui::Text("Right mouse + WASD/QE moves camera");
+    }
+    else {
+        ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "📷 Camera Mode: Inactive");
+        ImGui::Text("Hold right mouse + WASD/QE to move camera");
+    }
+
+    ImGui::Separator();
+
+    // Cube controls (only W/S)
+    ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "🎲 CUBE ROTATION: W/S ONLY");
+    ImGui::Text("W: Rotate cubes forward (pitch+)");
+    ImGui::Text("S: Rotate cubes backward (pitch-)");
+    ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "A/D: Camera strafe only (no cube rotation)");
+    ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "✨ Cubes are STATIC unless W/S pressed!");
+
+    // Show which rotation keys are currently pressed
+    ImGui::Separator();
+    ImGui::Text("Cube Rotation Status:");
+    bool anyRotationActive = false;
+    if (input.isKeyPressed(KeyCode::W)) {
+        ImGui::SameLine();
+        ImGui::TextColored(ImVec4(1, 0, 0, 1), "W(Forward) ");
+        anyRotationActive = true;
+    }
+    if (input.isKeyPressed(KeyCode::S)) {
+        ImGui::SameLine();
+        ImGui::TextColored(ImVec4(1, 0, 0, 1), "S(Backward) ");
+        anyRotationActive = true;
+    }
+
+    if (!anyRotationActive) {
+        ImGui::SameLine();
+        ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "STATIC (not rotating)");
+    }
+
+    ImGui::Separator();
+    ImGui::SliderFloat("Cube Rotation Speed", &m_cubeRotationSpeed, 0.5f, 10.0f);
+
+    if (ImGui::Button("Reset Camera (R)")) {
+        m_camera->setPosition(Vector3(12.0f, 8.0f, -12.0f));
+        m_camera->lookAt(Vector3(0.0f, 2.0f, 0.0f));
+        DX3DLogInfo("Camera reset via UI button");
+    }
+
+    ImGui::Separator();
+    ImGui::Text("Scene Info:");
+    ImGui::Text("Active Cubes: %d", static_cast<int>(m_gameObjects.size() - 1)); // -1 for the plane
+    ImGui::Text("FPS: %.1f (%.3f ms)", 1.0f / m_deltaTime, m_deltaTime * 1000.0f);
+
+    ImGui::End();
+
     processInput(m_deltaTime);
     m_camera->update();
 
-    // Update all objects except the plane 
-    for (size_t i = 0; i < m_gameObjects.size() - 1; ++i)
+    // Update all objects (but NO automatic rotation - cubes are static unless W/S pressed)
+    for (size_t i = 0; i < m_gameObjects.size(); ++i)
     {
-        m_gameObjects[i]->rotate(m_objectRotationDeltas[i] * m_deltaTime);
+        // Only call update() for base functionality, NO rotate() call
         m_gameObjects[i]->update(m_deltaTime);
     }
 
@@ -346,7 +407,7 @@ void dx3d::Game::update()
     if (auto snowEmitter = ParticleSystem::getInstance().getEmitter("snow"))
     {
         Vector3 emitterPos = m_camera->getPosition();
-        emitterPos.y += 10.0f; 
+        emitterPos.y += 10.0f;
         snowEmitter->setPosition(emitterPos);
     }
 }

@@ -83,6 +83,7 @@ namespace dx3d
         std::unique_ptr<Camera> m_camera{};
         float m_cameraSpeed{ 5.0f };  // Units per second
         float m_mouseSensitivity{ 0.3f };
+        float m_cubeRotationSpeed{ 3.0f };
 
         // --- 3D Object Rendering Resources ---
         std::vector<std::shared_ptr<AGameObject>> m_gameObjects;
