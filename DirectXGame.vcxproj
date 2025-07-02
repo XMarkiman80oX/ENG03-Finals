@@ -137,9 +137,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="DX3D\Source\DX3D\Game\Camera.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Game\SelectionSystem.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Game\ViewportManager.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\CameraGizmo.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\CameraObject.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\Capsule.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\Cylinder.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\Sphere.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Graphics\RenderTexture.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Input\Input.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\AGameObject.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\ConstantBuffer.cpp" />
@@ -176,9 +181,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DX3D\Include\DX3D\Game\Camera.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Game\SelectionSystem.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\CameraGizmo.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\CameraObject.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\Capsule.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\Cylinder.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\Sphere.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\RenderTexture.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\FogShader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\ParticleShader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\ParticleVertexShader.h" />
@@ -215,6 +224,7 @@
     <ClInclude Include="DX3D\Include\DX3D\Window\Window.h" />
     <ClInclude Include="DX3D\Include\DX3D\Game\Game.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\GraphicsEngine.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Game\ViewportManager.h" />
     <ClInclude Include="DX3D\Source\DX3D\Graphics\GraphicsLogUtils.h" />
     <ClInclude Include="DX3D\Source\DX3D\Graphics\GraphicsResource.h" />
     <ClInclude Include="DX3D\Source\DX3D\Graphics\RenderSystem.h" />

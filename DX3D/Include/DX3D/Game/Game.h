@@ -10,8 +10,6 @@
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
 
-
-// Forward declarations
 namespace dx3d
 {
     class VertexBuffer;
@@ -28,6 +26,9 @@ namespace dx3d
     class DepthBuffer;
     class Camera;
     class FogShader;
+    class CameraObject;
+    class ViewportManager;
+    class SelectionSystem;
 }
 
 namespace dx3d {
@@ -68,6 +69,8 @@ namespace dx3d
         virtual void run() final;
     private:
         void render();
+        void renderScene(Camera& camera, const Matrix4x4& projMatrix, RenderTexture* renderTarget = nullptr);
+        void renderUI();
         void createRenderingResources();
         void update();
         void processInput(float deltaTime);
@@ -79,17 +82,18 @@ namespace dx3d
         std::unique_ptr<Display> m_display{};
         bool m_isRunning{ true };
 
-        // Camera
-        std::unique_ptr<Camera> m_camera{};
-        float m_cameraSpeed{ 5.0f };  // Units per second
+        std::unique_ptr<Camera> m_sceneCamera{};
+        std::shared_ptr<CameraObject> m_gameCamera{};
+        std::unique_ptr<ViewportManager> m_viewportManager{};
+        std::unique_ptr<SelectionSystem> m_selectionSystem{};
+
+        float m_cameraSpeed{ 5.0f };
         float m_mouseSensitivity{ 0.3f };
         float m_cubeRotationSpeed{ 3.0f };
 
-        // --- 3D Object Rendering Resources ---
         std::vector<std::shared_ptr<AGameObject>> m_gameObjects;
         std::vector<Vector3> m_objectRotationDeltas;
 
-        // Vertex and Index buffers for each primitive type
         std::shared_ptr<VertexBuffer> m_cubeVertexBuffer;
         std::shared_ptr<IndexBuffer> m_cubeIndexBuffer;
         std::shared_ptr<VertexBuffer> m_planeVertexBuffer;
@@ -100,38 +104,29 @@ namespace dx3d
         std::shared_ptr<IndexBuffer> m_cylinderIndexBuffer;
         std::shared_ptr<VertexBuffer> m_capsuleVertexBuffer;
         std::shared_ptr<IndexBuffer> m_capsuleIndexBuffer;
+        std::shared_ptr<VertexBuffer> m_cameraGizmoVertexBuffer;
+        std::shared_ptr<IndexBuffer> m_cameraGizmoIndexBuffer;
 
-        // Rainbow shader for 3D objects
         std::shared_ptr<VertexShader> m_rainbowVertexShader;
         std::shared_ptr<PixelShader> m_rainbowPixelShader;
-
-        // White shader for planes
         std::shared_ptr<VertexShader> m_whiteVertexShader;
         std::shared_ptr<PixelShader> m_whitePixelShader;
-
-        // Fog shader for everything else.
         std::shared_ptr<VertexShader> m_fogVertexShader;
         std::shared_ptr<PixelShader> m_fogPixelShader;
         std::shared_ptr<ConstantBuffer> m_fogConstantBuffer;
         std::shared_ptr<ConstantBuffer> m_materialConstantBuffer;
-        FogDesc m_fogDesc;
 
         SnowConfig m_snowConfig;
+        FogDesc m_fogDesc;
 
-        // Constant buffer for transformation matrices
         std::shared_ptr<ConstantBuffer> m_transformConstantBuffer;
-
-        // Depth buffer for proper 3D depth testing
         std::shared_ptr<DepthBuffer> m_depthBuffer;
 
-        // FIX: Declare the depth stencil states as member variables
         ID3D11DepthStencilState* m_solidDepthState = nullptr;
         ID3D11DepthStencilState* m_particleDepthState = nullptr;
 
-        // Projection matrix (view matrix now comes from Camera)
         Matrix4x4 m_projectionMatrix;
 
-        // Animation variables
         std::chrono::steady_clock::time_point m_previousTime;
         float m_deltaTime{ 0.0f };
     };
