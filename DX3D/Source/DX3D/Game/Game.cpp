@@ -481,18 +481,33 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
 
 void dx3d::Game::renderUI()
 {
-    ImGui::Begin("Scene View");
-    ImVec2 viewportSize = ImGui::GetContentRegionAvail();
-    if (viewportSize.x > 0 && viewportSize.y > 0)
+    ImGuiIO& io = ImGui::GetIO();
+    float windowWidth = io.DisplaySize.x;
+    float windowHeight = io.DisplaySize.y;
+
+    float viewportHeight = windowHeight * 0.85f; // 85% for viewports
+    float settingsHeight = windowHeight * 0.15f; // 15% for settings
+    float halfWidth = windowWidth * 0.5f;
+
+    // Scene View - Left Half
+    ImGui::SetNextWindowPos(ImVec2(0, 0));
+    ImGui::SetNextWindowSize(ImVec2(halfWidth, viewportHeight));
+    ImGui::Begin("Scene View", nullptr,
+        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
+
+    ImVec2 sceneViewportSize = ImGui::GetContentRegionAvail();
+    if (sceneViewportSize.x > 0 && sceneViewportSize.y > 0)
     {
-        m_viewportManager->resize(ViewportType::Scene, static_cast<ui32>(viewportSize.x), static_cast<ui32>(viewportSize.y));
+        m_viewportManager->resize(ViewportType::Scene,
+            static_cast<ui32>(sceneViewportSize.x),
+            static_cast<ui32>(sceneViewportSize.y));
 
         auto& sceneViewport = m_viewportManager->getViewport(ViewportType::Scene);
-        ImGui::Image((void*)sceneViewport.renderTexture->getShaderResourceView(), viewportSize);
+        ImGui::Image((void*)sceneViewport.renderTexture->getShaderResourceView(), sceneViewportSize);
 
         ImVec2 mousePos = ImGui::GetMousePos();
         ImVec2 windowPos = ImGui::GetWindowPos();
-        ImVec2 windowSize = ImGui::GetWindowSize();
         float localX = mousePos.x - windowPos.x - 8;
         float localY = mousePos.y - windowPos.y - ImGui::GetFrameHeight() - 4;
 
@@ -506,18 +521,38 @@ void dx3d::Game::renderUI()
     }
     ImGui::End();
 
-    ImGui::Begin("Game View");
-    viewportSize = ImGui::GetContentRegionAvail();
-    if (viewportSize.x > 0 && viewportSize.y > 0)
+    // Game View - Right Half
+    ImGui::SetNextWindowPos(ImVec2(halfWidth, 0));
+    ImGui::SetNextWindowSize(ImVec2(halfWidth, viewportHeight));
+    ImGui::Begin("Game View", nullptr,
+        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
+
+    ImVec2 gameViewportSize = ImGui::GetContentRegionAvail();
+    if (gameViewportSize.x > 0 && gameViewportSize.y > 0)
     {
-        m_viewportManager->resize(ViewportType::Game, static_cast<ui32>(viewportSize.x), static_cast<ui32>(viewportSize.y));
+        m_viewportManager->resize(ViewportType::Game,
+            static_cast<ui32>(gameViewportSize.x),
+            static_cast<ui32>(gameViewportSize.y));
 
         auto& gameViewport = m_viewportManager->getViewport(ViewportType::Game);
-        ImGui::Image((void*)gameViewport.renderTexture->getShaderResourceView(), viewportSize);
+        ImGui::Image((void*)gameViewport.renderTexture->getShaderResourceView(), gameViewportSize);
     }
     ImGui::End();
 
-    ImGui::Begin("Inspector");
+    // Settings Panel - Bottom Full Width
+    ImGui::SetNextWindowPos(ImVec2(0, viewportHeight));
+    ImGui::SetNextWindowSize(ImVec2(windowWidth, settingsHeight));
+    ImGui::Begin("Settings", nullptr,
+        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
+
+    // Create columns for organized settings layout
+    ImGui::Columns(3, "SettingsColumns", true);
+
+    // Column 1: Inspector
+    ImGui::Text("Inspector");
+    ImGui::Separator();
     if (auto selected = m_selectionSystem->getSelectedObject())
     {
         ImGui::Text("Selected: %s", typeid(*selected).name());
@@ -552,13 +587,13 @@ void dx3d::Game::renderUI()
             }
 
             float nearPlane = camera->getNearPlane();
-            if (ImGui::DragFloat("Near Plane", &nearPlane, 0.01f, 0.01f, 10.0f))
+            if (ImGui::DragFloat("Near", &nearPlane, 0.01f, 0.01f, 10.0f))
             {
                 camera->setNearPlane(nearPlane);
             }
 
             float farPlane = camera->getFarPlane();
-            if (ImGui::DragFloat("Far Plane", &farPlane, 1.0f, 10.0f, 1000.0f))
+            if (ImGui::DragFloat("Far", &farPlane, 1.0f, 10.0f, 1000.0f))
             {
                 camera->setFarPlane(farPlane);
             }
@@ -573,13 +608,77 @@ void dx3d::Game::renderUI()
     {
         ImGui::Text("No object selected");
     }
-    ImGui::End();
 
-    ImGui::Begin("Settings");
+    ImGui::NextColumn();
+
+    // Column 2: Fog Settings
+    ImGui::Text("Fog Settings");
+    ImGui::Separator();
     ImGui::Checkbox("Enable Fog", &m_fogDesc.enabled);
     ImGui::SliderFloat("Fog Start", &m_fogDesc.start, 0.1f, 50.0f);
     ImGui::SliderFloat("Fog End", &m_fogDesc.end, 1.0f, 100.0f);
     ImGui::ColorEdit3("Fog Color", &m_fogDesc.color.x);
+
+    ImGui::NextColumn();
+
+    // Column 3: Camera Controls
+    ImGui::Text("Camera Controls");
+    ImGui::Separator();
+
+    // Scene Camera Controls
+    ImGui::Text("Scene Camera");
+    ImGui::Text("Speed: %.1f", m_cameraSpeed);
+    if (ImGui::SliderFloat("##CameraSpeed", &m_cameraSpeed, 1.0f, 20.0f))
+    {
+        // Camera speed updated
+    }
+
+    ImGui::Text("Mouse Sens: %.2f", m_mouseSensitivity);
+    if (ImGui::SliderFloat("##MouseSens", &m_mouseSensitivity, 0.1f, 2.0f))
+    {
+        // Mouse sensitivity updated
+    }
+
+    if (ImGui::Button("Reset Scene Camera"))
+    {
+        m_sceneCamera->setPosition(Vector3(15.0f, 10.0f, -15.0f));
+        m_sceneCamera->lookAt(Vector3(0.0f, 2.0f, 0.0f));
+    }
+
+    ImGui::Separator();
+
+    // Game Camera Controls
+    ImGui::Text("Game Camera");
+    Vector3 gameCamPos = m_gameCamera->getPosition();
+    if (ImGui::DragFloat3("Position##GameCam", &gameCamPos.x, 0.1f))
+    {
+        m_gameCamera->setPosition(gameCamPos);
+    }
+
+    Vector3 gameCamRot = m_gameCamera->getRotation();
+    Vector3 gameCamRotDeg = Vector3(
+        gameCamRot.x * 180.0f / 3.14159265f,
+        gameCamRot.y * 180.0f / 3.14159265f,
+        gameCamRot.z * 180.0f / 3.14159265f
+    );
+    if (ImGui::DragFloat3("Rotation##GameCam", &gameCamRotDeg.x, 1.0f))
+    {
+        Vector3 newRotRad = Vector3(
+            gameCamRotDeg.x * 3.14159265f / 180.0f,
+            gameCamRotDeg.y * 3.14159265f / 180.0f,
+            gameCamRotDeg.z * 3.14159265f / 180.0f
+        );
+        m_gameCamera->setRotation(newRotRad);
+    }
+
+    if (ImGui::Button("Reset Game Camera"))
+    {
+        m_gameCamera->setPosition(Vector3(12.0f, 8.0f, -12.0f));
+        m_gameCamera->setRotation(Vector3(0.0f, 0.0f, 0.0f));
+        m_gameCamera->getCamera().lookAt(Vector3(0.0f, 2.0f, 0.0f));
+    }
+
+    ImGui::Columns(1);
     ImGui::End();
 }
 
