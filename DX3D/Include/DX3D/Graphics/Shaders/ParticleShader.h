@@ -81,19 +81,18 @@ namespace dx3d
 
                 float4 main(PS_INPUT input) : SV_TARGET
                 {
-                    // Simple circular particle shape using texture coordinates.
+                    // Create smooth circular particle
                     float2 centerDist = input.texCoord - float2(0.5, 0.5);
                     float dist = length(centerDist);
                     
-                    // Create a soft circular falloff.
-                    float alpha = 1.0 - saturate(dist * 2.0);
-                    alpha = smoothstep(0.0, 1.0, alpha);
+                    // Smooth circular falloff with soft edges
+                    float alpha = 1.0 - smoothstep(0.0, 0.5, dist);
                     
-                    // Apply the particle's color with the calculated alpha.
+                    // Apply the particle's color with the calculated alpha
                     float4 finalColor = input.color;
                     finalColor.a *= alpha;
                     
-                    // Discard pixels that are fully transparent for performance.
+                    // Discard fully transparent pixels
                     if (finalColor.a < 0.01)
                         discard;
                     

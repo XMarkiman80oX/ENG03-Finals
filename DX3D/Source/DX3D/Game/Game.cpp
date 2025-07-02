@@ -78,8 +78,6 @@ void dx3d::Game::createRenderingResources()
     m_cylinderIndexBuffer = Cylinder::CreateIndexBuffer(resourceDesc);
     m_capsuleVertexBuffer = Capsule::CreateVertexBuffer(resourceDesc);
     m_capsuleIndexBuffer = Capsule::CreateIndexBuffer(resourceDesc);
-   // m_cameraGizmoVertexBuffer = CameraGizmo::CreateVertexBuffer(resourceDesc);
-    // m_cameraGizmoIndexBuffer = CameraGizmo::CreateIndexBuffer(resourceDesc);
 
     const auto& windowSize = m_display->getSize();
     m_depthBuffer = std::make_shared<DepthBuffer>(
@@ -102,8 +100,6 @@ void dx3d::Game::createRenderingResources()
     particleDesc.StencilEnable = FALSE;
     device->CreateDepthStencilState(&particleDesc, &m_particleDepthState);
 
-    device->Release();
-
     m_rainbowVertexShader = std::make_shared<VertexShader>(resourceDesc, Rainbow3DShader::GetVertexShaderCode());
     m_rainbowPixelShader = std::make_shared<PixelShader>(resourceDesc, Rainbow3DShader::GetPixelShaderCode());
     m_whiteVertexShader = std::make_shared<VertexShader>(resourceDesc, WhiteShader::GetVertexShaderCode());
@@ -114,6 +110,21 @@ void dx3d::Game::createRenderingResources()
     m_materialConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(FogMaterialConstants), resourceDesc);
 
     m_transformConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(TransformationMatrices), resourceDesc);
+
+    // Initialize snow configuration with proper default values
+    m_snowConfig.position = Vector3(0.0f, 10.0f, 0.0f);
+    m_snowConfig.positionVariance = Vector3(20.0f, 0.0f, 20.0f);
+    m_snowConfig.velocity = Vector3(0.0f, -2.0f, 0.0f);
+    m_snowConfig.velocityVariance = Vector3(0.5f, 0.5f, 0.5f);
+    m_snowConfig.acceleration = Vector3(0.0f, -0.5f, 0.0f);
+    m_snowConfig.startColor = Vector4(1.0f, 1.0f, 1.0f, 0.8f);  // White
+    m_snowConfig.endColor = Vector4(0.9f, 0.9f, 1.0f, 0.0f);    // Light blue, transparent
+    m_snowConfig.startSize = 0.2f;
+    m_snowConfig.endSize = 0.1f;
+    m_snowConfig.lifetime = 8.0f;
+    m_snowConfig.lifetimeVariance = 2.0f;
+    m_snowConfig.emissionRate = 50.0f;
+    m_snowConfig.active = true;
 
     m_gameObjects.clear();
     m_gameObjects.reserve(12);
@@ -197,6 +208,8 @@ void dx3d::Game::createRenderingResources()
     HWND hwnd = m_display->getWindowHandle();
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX11_Init(device, d3dContext);
+
+    device->Release();
 }
 
 void dx3d::Game::processInput(float deltaTime)
@@ -294,9 +307,7 @@ void dx3d::Game::update()
 
     if (auto snowEmitter = ParticleSystem::getInstance().getEmitter("snow"))
     {
-        Vector3 emitterPos = m_gameCamera->getPosition();
-        emitterPos.y += 10.0f;
-        snowEmitter->setPosition(emitterPos);
+        snowEmitter->setPosition(m_snowConfig.position);
     }
 }
 
@@ -611,13 +622,51 @@ void dx3d::Game::renderUI()
 
     ImGui::NextColumn();
 
-    // Column 2: Fog Settings
-    ImGui::Text("Fog Settings");
+    // Column 2: Effects Settings
+    ImGui::Text("Effects Settings");
     ImGui::Separator();
+
+    // Fog Settings
+    ImGui::Text("Fog");
     ImGui::Checkbox("Enable Fog", &m_fogDesc.enabled);
     ImGui::SliderFloat("Fog Start", &m_fogDesc.start, 0.1f, 50.0f);
     ImGui::SliderFloat("Fog End", &m_fogDesc.end, 1.0f, 100.0f);
     ImGui::ColorEdit3("Fog Color", &m_fogDesc.color.x);
+
+    ImGui::Separator();
+
+    // Snow Particle Settings
+    ImGui::Text("Snow Particles");
+    bool snowSettingsChanged = false;
+
+    if (ImGui::Checkbox("Active##Snow", &m_snowConfig.active))
+        snowSettingsChanged = true;
+
+    if (ImGui::DragFloat3("Position##Snow", &m_snowConfig.position.x, 0.5f))
+        snowSettingsChanged = true;
+
+    if (ImGui::ColorEdit4("Start Color##Snow", &m_snowConfig.startColor.x))
+        snowSettingsChanged = true;
+
+    if (ImGui::ColorEdit4("End Color##Snow", &m_snowConfig.endColor.x))
+        snowSettingsChanged = true;
+
+    if (ImGui::SliderFloat("Emission Rate##Snow", &m_snowConfig.emissionRate, 1.0f, 200.0f))
+        snowSettingsChanged = true;
+
+    if (ImGui::SliderFloat("Start Size##Snow", &m_snowConfig.startSize, 0.1f, 2.0f))
+        snowSettingsChanged = true;
+
+    if (ImGui::SliderFloat("End Size##Snow", &m_snowConfig.endSize, 0.05f, 1.0f))
+        snowSettingsChanged = true;
+
+    if (ImGui::SliderFloat("Lifetime##Snow", &m_snowConfig.lifetime, 1.0f, 20.0f))
+        snowSettingsChanged = true;
+
+    if (snowSettingsChanged)
+    {
+        updateSnowEmitter();
+    }
 
     ImGui::NextColumn();
 
