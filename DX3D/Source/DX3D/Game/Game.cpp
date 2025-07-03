@@ -457,17 +457,16 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
 
             m_transformConstantBuffer->update(deviceContext, &transformMatrices);
 
-            // Use a simple white shader for the gizmo
-            deviceContext.setVertexShader(m_whiteVertexShader->getShader());
-            deviceContext.setPixelShader(m_whitePixelShader->getShader());
-            deviceContext.setInputLayout(m_whiteVertexShader->getInputLayout());
+            // Use the fog shader to render the gizmo with vertex colors
+            FogMaterialConstants fmc = {};
+            fmc.useVertexColor = true;
+            m_materialConstantBuffer->update(deviceContext, &fmc);
 
-            deviceContext.drawIndexed(CameraGizmo::GetIndexCount(), 0, 0);
-
-            // Set shaders back to the fog shader for other objects
             deviceContext.setVertexShader(m_fogVertexShader->getShader());
             deviceContext.setPixelShader(m_fogPixelShader->getShader());
             deviceContext.setInputLayout(m_fogVertexShader->getInputLayout());
+
+            deviceContext.drawIndexed(CameraGizmo::GetIndexCount(), 0, 0);
         }
 
         TransformationMatrices transformMatrices;
@@ -486,8 +485,6 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
             deviceContext.drawIndexed(Capsule::GetIndexCount(), 0, 0);
         else if (std::dynamic_pointer_cast<Plane>(gameObject))
             deviceContext.drawIndexed(Plane::GetIndexCount(), 0, 0);
-        else if (isCamera && isSceneView)
-            deviceContext.drawIndexed(CameraGizmo::GetIndexCount(), 0, 0);
     }
 
     ID3D11BlendState* blendState = nullptr;
