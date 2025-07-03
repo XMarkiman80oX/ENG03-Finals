@@ -105,6 +105,18 @@ void Camera::setPosition(const Vector3& position)
     updateViewMatrix();
 }
 
+Vector3 Camera::getForward()
+{
+    Vector3 forward;
+
+    forward.x = cosf(m_pitch) * sinf(m_yaw);
+    forward.y = sinf(m_pitch);
+    forward.z = cosf(m_pitch) * cosf(m_yaw);
+
+    return forward;
+    //return forward.normalized(); // if you have a normalize function
+}
+
 void Camera::lookAt(const Vector3& target)
 {
     // Calculate direction from position to target

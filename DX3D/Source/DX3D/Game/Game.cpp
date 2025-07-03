@@ -694,6 +694,10 @@ void dx3d::Game::renderUI()
         m_sceneCamera->lookAt(Vector3(0.0f, 2.0f, 0.0f));
     }
 
+    //
+    //m_gameCamera->setPosition(m_sceneCamera->getPosition());
+    //m_gameCamera->lookAt(m_sceneCamera->getPosition());
+
     ImGui::Separator();
 
     // Game Camera Controls
@@ -725,6 +729,11 @@ void dx3d::Game::renderUI()
         m_gameCamera->setPosition(Vector3(12.0f, 8.0f, -12.0f));
         m_gameCamera->setRotation(Vector3(0.0f, 0.0f, 0.0f));
         m_gameCamera->getCamera().lookAt(Vector3(0.0f, 2.0f, 0.0f));
+    }
+
+    if (ImGui::Button("Align Game Camera To View"))
+    {
+        m_gameCamera->alignWithView(*m_sceneCamera.get());
     }
 
     ImGui::Columns(1);

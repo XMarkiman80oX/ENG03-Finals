@@ -39,6 +39,8 @@ namespace dx3d
         float getYaw() const { return m_yaw; }
         float getPitch() const { return m_pitch; }
 
+        Vector3 getForward();
+
         // Setters
         void setPosition(const Vector3& position);
         void lookAt(const Vector3& target);
