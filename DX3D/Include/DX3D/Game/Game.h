@@ -126,6 +126,7 @@ namespace dx3d
         ID3D11DepthStencilState* m_solidDepthState = nullptr;
         ID3D11DepthStencilState* m_particleDepthState = nullptr;
 
+        bool m_showGizmos{ true };
         Matrix4x4 m_projectionMatrix;
 
         std::chrono::steady_clock::time_point m_previousTime;

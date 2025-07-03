@@ -439,7 +439,7 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
             deviceContext.setIndexBuffer(*m_planeIndexBuffer);
             deviceContext.drawIndexed(Plane::GetIndexCount(), 0, 0);
         }
-        else if (isCamera && isSceneView) {
+        else if (isCamera && isSceneView && m_showGizmos) {
             // Render the camera gizmo
             deviceContext.setVertexBuffer(*m_cameraGizmoVertexBuffer);
             deviceContext.setIndexBuffer(*m_cameraGizmoIndexBuffer);
@@ -700,6 +700,9 @@ void dx3d::Game::renderUI()
     // Column 3: Camera Controls
     ImGui::Text("Camera Controls");
     ImGui::Separator();
+
+    // Toggle Gizmos On/Off
+    ImGui::Checkbox("Show Gizmos", &m_showGizmos); 
 
     // Scene Camera Controls
     ImGui::Text("Scene Camera");
