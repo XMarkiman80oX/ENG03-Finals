@@ -7,6 +7,10 @@
 
 namespace dx3d
 {
+    /*class VertexBuffer;
+    class IndexBuffer;
+    class GraphicsResourceDesc;*/
+
     class CameraGizmo
     {
     public:
@@ -15,6 +19,6 @@ namespace dx3d
         static std::shared_ptr<IndexBuffer> CreateIndexBuffer(const GraphicsResourceDesc& resourceDesc);
 
         // Get the number of indices for a camera gizmo
-        static ui32 GetIndexCount() { return 60; } 
+        static ui32 GetIndexCount() { return 864; } 
     };
 }
