@@ -81,6 +81,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -95,6 +96,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -112,6 +114,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(SolutionDir)\IMGUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -127,6 +130,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -136,10 +140,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\CameraGizmo.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Game\Camera.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Game\SelectionSystem.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Game\ViewportManager.cpp" />
-    <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\CameraGizmo.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\CameraObject.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\Capsule.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\Cylinder.cpp" />
@@ -180,9 +184,9 @@
     <ClCompile Include="imgui\imgui_widgets.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\CameraGizmo.h" />
     <ClInclude Include="DX3D\Include\DX3D\Game\Camera.h" />
     <ClInclude Include="DX3D\Include\DX3D\Game\SelectionSystem.h" />
-    <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\CameraGizmo.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\CameraObject.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\Capsule.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\Cylinder.h" />

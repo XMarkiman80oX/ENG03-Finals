@@ -29,6 +29,7 @@ namespace dx3d
     class CameraObject;
     class ViewportManager;
     class SelectionSystem;
+    class CameraGizmo;
 }
 
 namespace dx3d {
@@ -114,7 +115,7 @@ namespace dx3d
         std::shared_ptr<VertexShader> m_fogVertexShader;
         std::shared_ptr<PixelShader> m_fogPixelShader;
         std::shared_ptr<ConstantBuffer> m_fogConstantBuffer;
-        std::shared_ptr<ConstantBuffer> m_materialConstantBuffer;
+        std::shared_ptr<ConstantBuffer> m_materialConstantBuffer; 
 
         SnowConfig m_snowConfig;
         FogDesc m_fogDesc;
