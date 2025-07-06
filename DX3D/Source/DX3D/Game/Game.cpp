@@ -312,17 +312,24 @@ void dx3d::Game::createRenderingResources()
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX11_Init(device, d3dContext);
 
-    // Create a blend state for alpha blending (for transparent textures)
+    // Create the definitive blend state for UI and sprite alpha blending.
+    // This correctly handles PNGs with premultiplied alpha.
     D3D11_BLEND_DESC blendDesc = {};
     blendDesc.RenderTarget[0].BlendEnable = TRUE;
     blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
     blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
     blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-    blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-    blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+    blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE; // Use the source alpha
+    blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA; // Use the inverse of the source alpha
     blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
     blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-    device->CreateBlendState(&blendDesc, &m_alphaBlendState);
+
+    d3dContext->GetDevice(&device);
+    if (device)
+    {
+        device->CreateBlendState(&blendDesc, &m_alphaBlendState);
+        device->Release();
+    }
 
     // Create a rasterizer state that disables back-face culling
     D3D11_RASTERIZER_DESC rasterizerDesc = {};
