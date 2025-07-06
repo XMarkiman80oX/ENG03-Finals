@@ -93,6 +93,7 @@ void dx3d::Game::createRenderingResources()
         { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
     };
 
+
     // Update the creation of your existing vertex shaders
     m_rainbowVertexShader = std::make_shared<VertexShader>(resourceDesc, Rainbow3DShader::GetVertexShaderCode(), defaultLayout, 2);
     m_whiteVertexShader = std::make_shared<VertexShader>(resourceDesc, WhiteShader::GetVertexShaderCode(), defaultLayout, 2);
@@ -113,11 +114,7 @@ void dx3d::Game::createRenderingResources()
     };
 
     // Create the texture vertex shader with the correct layout
-    m_textureVertexShader = std::make_shared<VertexShader>(resourceDesc, TextureShader::GetVertexShaderCode(), textureLayout, 2);
-
-    // ---- END: Critical fix ----
-
-    // The rest of your shader and texture loading code...
+    m_textureVertexShader = std::make_shared<VertexShader>(resourceDesc, TextureShader::GetVertexShaderCode(), defaultLayout, 2);
     m_texturePixelShader = std::make_shared<PixelShader>(resourceDesc, TextureShader::GetPixelShaderCode());
 
     // Load the camera icon texture using a simple relative path
@@ -314,6 +311,25 @@ void dx3d::Game::createRenderingResources()
     HWND hwnd = m_display->getWindowHandle();
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX11_Init(device, d3dContext);
+
+    // Create a blend state for alpha blending (for transparent textures)
+    D3D11_BLEND_DESC blendDesc = {};
+    blendDesc.RenderTarget[0].BlendEnable = TRUE;
+    blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+    blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+    blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+    blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+    blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+    blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+    blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+    device->CreateBlendState(&blendDesc, &m_alphaBlendState);
+
+    // Create a rasterizer state that disables back-face culling
+    D3D11_RASTERIZER_DESC rasterizerDesc = {};
+    rasterizerDesc.FillMode = D3D11_FILL_SOLID;
+    rasterizerDesc.CullMode = D3D11_CULL_NONE; // This is the key change!
+    rasterizerDesc.FrontCounterClockwise = TRUE;
+    device->CreateRasterizerState(&rasterizerDesc, &m_noCullRasterizerState);
 
     device->Release();
 }
@@ -573,20 +589,23 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
             deviceContext.drawIndexed(CameraGizmo::GetIndexCount(), 0, 0);
             */
 
-            // --- 1. Render the 3D Camera Gizmo ---
-    // This part remains the same to draw the red, green, and blue arrows.
+            // --- 1. Render the 3D Camera Gizmo (as before) ---
             {
+                // Set the shaders and input layout for the gizmo
                 deviceContext.setVertexShader(m_fogVertexShader->getShader());
                 deviceContext.setPixelShader(m_fogPixelShader->getShader());
                 deviceContext.setInputLayout(m_fogVertexShader->getInputLayout());
 
+                // Set material properties for the gizmo
                 FogMaterialConstants fmc = {};
                 fmc.useVertexColor = true;
                 m_materialConstantBuffer->update(deviceContext, &fmc);
 
+                // Set gizmo geometry
                 deviceContext.setVertexBuffer(*m_cameraGizmoVertexBuffer);
                 deviceContext.setIndexBuffer(*m_cameraGizmoIndexBuffer);
 
+                // Set gizmo transformations
                 TransformationMatrices transformMatrices;
                 Matrix4x4 world = Matrix4x4::CreateRotationX(gameObject->getRotation().x) *
                     Matrix4x4::CreateRotationY(gameObject->getRotation().y) *
@@ -596,76 +615,53 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
                 transformMatrices.world = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(world.toXMMatrix()));
                 transformMatrices.view = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(camera.getViewMatrix().toXMMatrix()));
                 transformMatrices.projection = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(projMatrix.toXMMatrix()));
-
                 m_transformConstantBuffer->update(deviceContext, &transformMatrices);
 
+                // Draw the gizmo
                 deviceContext.drawIndexed(CameraGizmo::GetIndexCount(), 0, 0);
             }
 
-            // --- 2. Render the 2D Camera Icon with Alpha Blending ---
+            // --- 2. Render the 2D Camera Icon with All Correct States ---
             {
-                // Store the original states so we can restore them later
-                ID3D11BlendState* originalBlendState = nullptr;
-                FLOAT originalBlendFactor[4];
-                UINT originalSampleMask;
-                d3dContext->OMGetBlendState(&originalBlendState, originalBlendFactor, &originalSampleMask);
+                // Store original states
+                ID3D11RasterizerState* originalRasterizerState = nullptr;
+                d3dContext->RSGetState(&originalRasterizerState);
 
-                // Create and set a blend state for transparency
-                ID3D11BlendState* blendState = nullptr;
-                D3D11_BLEND_DESC blendDesc = {};
-                blendDesc.RenderTarget[0].BlendEnable = TRUE;
-                blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-                blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-                blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-                blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-                blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
-                blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-                blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-
-                ID3D11Device* device = nullptr;
-                d3dContext->GetDevice(&device);
-                if (device)
-                {
-                    device->CreateBlendState(&blendDesc, &blendState);
-                    device->Release();
-                }
-
-                d3dContext->OMSetBlendState(blendState, nullptr, 0xffffffff);
-                // Use the particle depth state to prevent the icon's quad from writing to the depth buffer
+                // Apply states for transparency
+                d3dContext->OMSetBlendState(m_alphaBlendState, nullptr, 0xffffffff);
+                d3dContext->RSSetState(m_noCullRasterizerState);
                 d3dContext->OMSetDepthStencilState(m_particleDepthState, 0);
 
-                // Set shaders and resources for the icon
+                // Set shaders and resources. No need to switch input layout anymore.
                 deviceContext.setVertexShader(m_textureVertexShader->getShader());
                 deviceContext.setPixelShader(m_texturePixelShader->getShader());
-                deviceContext.setInputLayout(m_textureVertexShader->getInputLayout());
+                deviceContext.setInputLayout(m_textureVertexShader->getInputLayout()); // This is still important!
                 deviceContext.setVertexBuffer(*m_cameraIconVertexBuffer);
                 deviceContext.setIndexBuffer(*m_cameraIconIndexBuffer);
-
                 d3dContext->PSSetShaderResources(0, 1, &m_cameraIconTexture);
                 d3dContext->PSSetSamplers(0, 1, &m_samplerState);
 
-                // Set up transformation and draw the icon
+                // Set transformations for the icon (billboarding)
                 TransformationMatrices transformMatrices;
                 Vector3 iconPos = gameObject->getPosition();
+                Vector3 finalIconPos = Vector3(iconPos.x, iconPos.y + 1.5f, iconPos.z);
                 Vector3 camToIconDir = iconPos - camera.getPosition();
                 float angleY = atan2(camToIconDir.x, camToIconDir.z);
-                Matrix4x4 world = Matrix4x4::CreateScale({ 0.75f, 0.75f, 0.75f }) * Matrix4x4::CreateRotationY(angleY) * Matrix4x4::CreateTranslation(iconPos);
+                Matrix4x4 world = Matrix4x4::CreateScale({ 0.75f, 0.75f, 0.75f }) * Matrix4x4::CreateRotationY(angleY) * Matrix4x4::CreateTranslation(finalIconPos);
 
                 transformMatrices.world = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(world.toXMMatrix()));
                 transformMatrices.view = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(camera.getViewMatrix().toXMMatrix()));
                 transformMatrices.projection = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(projMatrix.toXMMatrix()));
-
                 m_transformConstantBuffer->update(deviceContext, &transformMatrices);
 
+                // Draw the icon
                 deviceContext.drawIndexed(CameraIcon::GetIndexCount(), 0, 0);
 
-                // Restore the original states to not affect other objects
-                d3dContext->OMSetBlendState(originalBlendState, originalBlendFactor, originalSampleMask);
+                // Restore original states
+                d3dContext->OMSetBlendState(nullptr, nullptr, 0xffffffff);
+                d3dContext->RSSetState(originalRasterizerState);
                 d3dContext->OMSetDepthStencilState(m_solidDepthState, 0);
-
-                // Release the blend states we created
-                if (originalBlendState) originalBlendState->Release();
-                if (blendState) blendState->Release();
+                if (originalRasterizerState) originalRasterizerState->Release();
             }
         }
 
