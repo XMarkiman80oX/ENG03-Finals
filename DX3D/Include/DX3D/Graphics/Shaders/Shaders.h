@@ -27,6 +27,7 @@ namespace dx3d
     {
     public:
         VertexShader(const GraphicsResourceDesc& desc, const char* shaderCode);
+        VertexShader(const GraphicsResourceDesc& desc, const char* shaderCode, D3D11_INPUT_ELEMENT_DESC* layout, ui32 layoutSize);
         ~VertexShader();
 
         virtual ID3D11VertexShader* getShader() const;

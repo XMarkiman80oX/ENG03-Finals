@@ -88,6 +88,45 @@ dx3d::VertexShader::VertexShader(const GraphicsResourceDesc& desc, const char* s
     }
 }
 
+dx3d::VertexShader::VertexShader(const GraphicsResourceDesc& desc, const char* shaderCode, D3D11_INPUT_ELEMENT_DESC* layout, ui32 layoutSize)
+    : Shader(desc)
+{
+    try {
+        DX3DLogInfo("Compiling vertex shader...");
+        m_blob = compileShader(shaderCode, "main", "vs_5_0");
+        DX3DLogInfo("Vertex shader compiled successfully.");
+
+        // Create the vertex shader
+        DX3DGraphicsLogErrorAndThrow(
+            m_device.CreateVertexShader(
+                m_blob->GetBufferPointer(),
+                m_blob->GetBufferSize(),
+                nullptr,
+                &m_shader
+            ),
+            "Failed to create vertex shader"
+        );
+        DX3DLogInfo("Vertex shader created successfully.");
+
+        // Create input layout using the provided parameters
+        DX3DGraphicsLogErrorAndThrow(
+            m_device.CreateInputLayout(
+                layout,
+                layoutSize, // Use the provided size
+                m_blob->GetBufferPointer(),
+                m_blob->GetBufferSize(),
+                &m_inputLayout
+            ),
+            "Failed to create input layout"
+        );
+        DX3DLogInfo("Input layout created successfully.");
+    }
+    catch (const std::exception& e) {
+        DX3DLogError(e.what());
+        throw;
+    }
+}
+
 dx3d::VertexShader::~VertexShader()
 {
 }

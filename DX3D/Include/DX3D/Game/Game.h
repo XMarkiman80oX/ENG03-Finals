@@ -30,6 +30,7 @@ namespace dx3d
     class ViewportManager;
     class SelectionSystem;
     class CameraGizmo;
+    class CameraIcon;
 }
 
 namespace dx3d {
@@ -107,6 +108,14 @@ namespace dx3d
         std::shared_ptr<IndexBuffer> m_capsuleIndexBuffer;
         std::shared_ptr<VertexBuffer> m_cameraGizmoVertexBuffer;
         std::shared_ptr<IndexBuffer> m_cameraGizmoIndexBuffer;
+        std::shared_ptr<VertexBuffer> m_cameraIconVertexBuffer; // camera icon
+        std::shared_ptr<IndexBuffer> m_cameraIconIndexBuffer;
+        std::shared_ptr<VertexShader> m_textureVertexShader;
+        std::shared_ptr<PixelShader> m_texturePixelShader;
+
+        // load textures
+        ID3D11ShaderResourceView* m_cameraIconTexture = nullptr;
+        ID3D11SamplerState* m_samplerState = nullptr;
 
         std::shared_ptr<VertexShader> m_rainbowVertexShader;
         std::shared_ptr<PixelShader> m_rainbowPixelShader;
