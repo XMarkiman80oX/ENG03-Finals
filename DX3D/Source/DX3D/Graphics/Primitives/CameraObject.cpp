@@ -26,21 +26,16 @@ void CameraObject::syncCameraTransform()
 {
     m_camera->setPosition(m_transform.position);
 
-    float currentYaw = m_camera->getYaw();
-    float currentPitch = m_camera->getPitch();
-    float currentRoll = m_camera->getRoll();
+    float yaw = m_transform.rotation.y;
+    float pitch = m_transform.rotation.x;
 
-    float deltaYaw = m_transform.rotation.y - currentYaw;
-    float deltaPitch = m_transform.rotation.x - currentPitch;
-    float deltaRoll = m_transform.rotation.z - currentRoll;
+    Vector3 forward;
+    forward.x = std::sin(yaw) * std::cos(pitch);
+    forward.y = std::sin(pitch);
+    forward.z = std::cos(yaw) * std::cos(pitch);
 
-    if (std::abs(deltaYaw) > 0.001f)
-        m_camera->rotateYaw(deltaYaw);
-    if (std::abs(deltaPitch) > 0.001f)
-        m_camera->rotatePitch(deltaPitch);
-    if (std::abs(deltaRoll) > 0.001f)
-        m_camera->rotateRoll(deltaRoll);
-
+    Vector3 target = m_transform.position + forward;
+    m_camera->lookAt(target);
 }
 
 Matrix4x4 CameraObject::getProjectionMatrix(float aspectRatio) const
