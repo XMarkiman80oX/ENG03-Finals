@@ -24,8 +24,6 @@
 #include <DX3D/Graphics/Shaders/WhiteShader.h>
 #include <DX3D/Graphics/Shaders/FogShader.h>
 #include <DX3D/Graphics/Primitives/CameraGizmo.h>
-#include <DX3D/Graphics/Primitives/CameraIcon.h>
-#include <DX3D/Graphics/Shaders/TextureShader.h>
 #include <DX3D/Math/Math.h>
 #include <DX3D/Particles/ParticleSystem.h>
 #include <DX3D/Particles/ParticleEffects/SnowParticle.h>
@@ -36,8 +34,6 @@
 #include <string>
 #include <cstdio>
 #include <DirectXMath.h>
-#define STB_IMAGE_IMPLEMENTATION
-#include <External/stb_image.h>
 
 dx3d::Game::Game(const GameDesc& desc) :
     Base({ *std::make_unique<Logger>(desc.logLevel).release() }),
@@ -84,105 +80,6 @@ void dx3d::Game::createRenderingResources()
     m_capsuleIndexBuffer = Capsule::CreateIndexBuffer(resourceDesc);
     m_cameraGizmoVertexBuffer = CameraGizmo::CreateVertexBuffer(resourceDesc);
     m_cameraGizmoIndexBuffer = CameraGizmo::CreateIndexBuffer(resourceDesc);
-    m_cameraIconVertexBuffer = CameraIcon::CreateVertexBuffer(resourceDesc);
-    m_cameraIconIndexBuffer = CameraIcon::CreateIndexBuffer(resourceDesc);
-
-    // Define the default layout for shaders that use Position and Color
-    D3D11_INPUT_ELEMENT_DESC defaultLayout[] = {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
-    };
-
-    // Update the creation of your existing vertex shaders
-    m_rainbowVertexShader = std::make_shared<VertexShader>(resourceDesc, Rainbow3DShader::GetVertexShaderCode(), defaultLayout, 2);
-    m_whiteVertexShader = std::make_shared<VertexShader>(resourceDesc, WhiteShader::GetVertexShaderCode(), defaultLayout, 2);
-    m_fogVertexShader = std::make_shared<VertexShader>(resourceDesc, FogShader::GetVertexShaderCode(), defaultLayout, 2);
-    m_fogConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(FogShaderConstants), resourceDesc);
-    m_materialConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(FogMaterialConstants), resourceDesc);
-
-    m_transformConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(TransformationMatrices), resourceDesc);
-
-    // ---- START: This is the critical fix for your texture shader ----
-
-    // Define the texture layout for shaders that use Position and TexCoord
-    D3D11_INPUT_ELEMENT_DESC textureLayout[] = {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        // This correctly describes the layout for a vertex with texture coordinates.
-        // The offset (12) tells DirectX to look for the texcoord data right after the position data (3 floats * 4 bytes = 12 bytes).
-        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
-    };
-
-    // Create the texture vertex shader with the correct layout
-    m_textureVertexShader = std::make_shared<VertexShader>(resourceDesc, TextureShader::GetVertexShaderCode(), textureLayout, 2);
-
-    // ---- END: Critical fix ----
-
-    // The rest of your shader and texture loading code...
-    m_texturePixelShader = std::make_shared<PixelShader>(resourceDesc, TextureShader::GetPixelShaderCode());
-
-    // Load the camera icon texture using a simple relative path
-    int width, height, channels;
-    const char* imagePath = "Resources/cam.png"; // Clean and simple!
-    unsigned char* image_data = stbi_load(imagePath, &width, &height, &channels, 4);
-    if (!image_data)
-    {
-        const char* failure_reason = stbi_failure_reason();
-        std::string error_message = "Failed to load texture file: " + std::string(imagePath) + "\nReason: " + std::string(failure_reason);
-        DX3DLogErrorAndThrow(error_message.c_str());
-    }
-
-    
-    // Create the texture resource
-    D3D11_TEXTURE2D_DESC textureDesc = {};
-    textureDesc.Width = width;
-    textureDesc.Height = height;
-    textureDesc.MipLevels = 1;
-    textureDesc.ArraySize = 1;
-    textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    textureDesc.SampleDesc.Count = 1;
-    textureDesc.Usage = D3D11_USAGE_DEFAULT;
-    textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-
-    D3D11_SUBRESOURCE_DATA subresourceData = {};
-    subresourceData.pSysMem = image_data;
-    subresourceData.SysMemPitch = width * 4; // 4 bytes per pixel (RGBA)
-
-    
-    ID3D11Texture2D* texture = nullptr;
-    HRESULT hr = device->CreateTexture2D(&textureDesc, &subresourceData, &texture);
-
-    stbi_image_free(image_data); // Free the image data from CPU memory
-
-    if (FAILED(hr))
-    {
-        DX3DLogErrorAndThrow("Failed to create 2D texture.");
-    }
-
-    // Create the shader resource view from the texture
-    hr = device->CreateShaderResourceView(texture, nullptr, &m_cameraIconTexture);
-    texture->Release(); // We don't need the texture object itself anymore
-
-    if (FAILED(hr))
-    {
-        DX3DLogErrorAndThrow("Failed to create shader resource view.");
-    }
-
-    // Create a sampler state
-    D3D11_SAMPLER_DESC samplerDesc = {};
-    samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-    samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-    samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-    samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-    samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-    samplerDesc.MinLOD = 0;
-    samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
-
-    hr = device->CreateSamplerState(&samplerDesc, &m_samplerState);
-    if (FAILED(hr))
-    {
-        DX3DLogErrorAndThrow("Failed to create sampler state.");
-    }
-    
 
     const auto& windowSize = m_display->getSize();
     m_depthBuffer = std::make_shared<DepthBuffer>(
@@ -543,7 +440,6 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
             deviceContext.drawIndexed(Plane::GetIndexCount(), 0, 0);
         }
         else if (isCamera && isSceneView && m_showGizmos) {
-            /*
             // Render the camera gizmo
             deviceContext.setVertexBuffer(*m_cameraGizmoVertexBuffer);
             deviceContext.setIndexBuffer(*m_cameraGizmoIndexBuffer);
@@ -571,102 +467,6 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
             deviceContext.setInputLayout(m_fogVertexShader->getInputLayout());
 
             deviceContext.drawIndexed(CameraGizmo::GetIndexCount(), 0, 0);
-            */
-
-            // --- 1. Render the 3D Camera Gizmo ---
-    // This part remains the same to draw the red, green, and blue arrows.
-            {
-                deviceContext.setVertexShader(m_fogVertexShader->getShader());
-                deviceContext.setPixelShader(m_fogPixelShader->getShader());
-                deviceContext.setInputLayout(m_fogVertexShader->getInputLayout());
-
-                FogMaterialConstants fmc = {};
-                fmc.useVertexColor = true;
-                m_materialConstantBuffer->update(deviceContext, &fmc);
-
-                deviceContext.setVertexBuffer(*m_cameraGizmoVertexBuffer);
-                deviceContext.setIndexBuffer(*m_cameraGizmoIndexBuffer);
-
-                TransformationMatrices transformMatrices;
-                Matrix4x4 world = Matrix4x4::CreateRotationX(gameObject->getRotation().x) *
-                    Matrix4x4::CreateRotationY(gameObject->getRotation().y) *
-                    Matrix4x4::CreateRotationZ(gameObject->getRotation().z) *
-                    Matrix4x4::CreateTranslation(gameObject->getPosition());
-
-                transformMatrices.world = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(world.toXMMatrix()));
-                transformMatrices.view = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(camera.getViewMatrix().toXMMatrix()));
-                transformMatrices.projection = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(projMatrix.toXMMatrix()));
-
-                m_transformConstantBuffer->update(deviceContext, &transformMatrices);
-
-                deviceContext.drawIndexed(CameraGizmo::GetIndexCount(), 0, 0);
-            }
-
-            // --- 2. Render the 2D Camera Icon with Alpha Blending ---
-            {
-                // Store the original states so we can restore them later
-                ID3D11BlendState* originalBlendState = nullptr;
-                FLOAT originalBlendFactor[4];
-                UINT originalSampleMask;
-                d3dContext->OMGetBlendState(&originalBlendState, originalBlendFactor, &originalSampleMask);
-
-                // Create and set a blend state for transparency
-                ID3D11BlendState* blendState = nullptr;
-                D3D11_BLEND_DESC blendDesc = {};
-                blendDesc.RenderTarget[0].BlendEnable = TRUE;
-                blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-                blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-                blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-                blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-                blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
-                blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-                blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-
-                ID3D11Device* device = nullptr;
-                d3dContext->GetDevice(&device);
-                if (device)
-                {
-                    device->CreateBlendState(&blendDesc, &blendState);
-                    device->Release();
-                }
-
-                d3dContext->OMSetBlendState(blendState, nullptr, 0xffffffff);
-                // Use the particle depth state to prevent the icon's quad from writing to the depth buffer
-                d3dContext->OMSetDepthStencilState(m_particleDepthState, 0);
-
-                // Set shaders and resources for the icon
-                deviceContext.setVertexShader(m_textureVertexShader->getShader());
-                deviceContext.setPixelShader(m_texturePixelShader->getShader());
-                deviceContext.setInputLayout(m_textureVertexShader->getInputLayout());
-                deviceContext.setVertexBuffer(*m_cameraIconVertexBuffer);
-                deviceContext.setIndexBuffer(*m_cameraIconIndexBuffer);
-
-                d3dContext->PSSetShaderResources(0, 1, &m_cameraIconTexture);
-                d3dContext->PSSetSamplers(0, 1, &m_samplerState);
-
-                // Set up transformation and draw the icon
-                TransformationMatrices transformMatrices;
-                Vector3 iconPos = gameObject->getPosition();
-                Vector3 camToIconDir = iconPos - camera.getPosition();
-                float angleY = atan2(camToIconDir.x, camToIconDir.z);
-                Matrix4x4 world = Matrix4x4::CreateScale({ 0.75f, 0.75f, 0.75f }) * Matrix4x4::CreateRotationY(angleY) * Matrix4x4::CreateTranslation(iconPos);
-
-                transformMatrices.world = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(world.toXMMatrix()));
-                transformMatrices.view = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(camera.getViewMatrix().toXMMatrix()));
-                transformMatrices.projection = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(projMatrix.toXMMatrix()));
-
-                m_transformConstantBuffer->update(deviceContext, &transformMatrices);
-
-                deviceContext.drawIndexed(CameraIcon::GetIndexCount(), 0, 0);
-
-                // Restore the original states to not affect other objects
-                d3dContext->OMSetBlendState(originalBlendState, originalBlendFactor, originalSampleMask);
-                d3dContext->OMSetDepthStencilState(m_solidDepthState, 0);
-
-                // Release the blend states we created
-                if (originalBlendState) originalBlendState->Release();
-                if (blendState) blendState->Release();
-            }
         }
 
         TransformationMatrices transformMatrices;
