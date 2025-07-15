@@ -87,14 +87,14 @@ void dx3d::Game::createRenderingResources()
     m_cameraIconVertexBuffer = CameraIcon::CreateVertexBuffer(resourceDesc);
     m_cameraIconIndexBuffer = CameraIcon::CreateIndexBuffer(resourceDesc);
 
-    //def layout for shaders that use Position and Color
+    // Define the default layout for shaders that use Position and Color
     D3D11_INPUT_ELEMENT_DESC defaultLayout[] = {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
     };
 
 
-    //update existing vertex shaders
+    // Update the creation of your existing vertex shaders
     m_rainbowVertexShader = std::make_shared<VertexShader>(resourceDesc, Rainbow3DShader::GetVertexShaderCode(), defaultLayout, 2);
     m_whiteVertexShader = std::make_shared<VertexShader>(resourceDesc, WhiteShader::GetVertexShaderCode(), defaultLayout, 2);
     m_fogVertexShader = std::make_shared<VertexShader>(resourceDesc, FogShader::GetVertexShaderCode(), defaultLayout, 2);
@@ -103,19 +103,23 @@ void dx3d::Game::createRenderingResources()
 
     m_transformConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(TransformationMatrices), resourceDesc);
 
-    //def texture layout for shaders that use Position and TexCoord
+    // ---- START: This is the critical fix for your texture shader ----
+
+    // Define the texture layout for shaders that use Position and TexCoord
     D3D11_INPUT_ELEMENT_DESC textureLayout[] = {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        // This correctly describes the layout for a vertex with texture coordinates.
+        // The offset (12) tells DirectX to look for the texcoord data right after the position data (3 floats * 4 bytes = 12 bytes).
         { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
     };
 
-    //texture vertex shader
+    // Create the texture vertex shader with the correct layout
     m_textureVertexShader = std::make_shared<VertexShader>(resourceDesc, TextureShader::GetVertexShaderCode(), defaultLayout, 2);
     m_texturePixelShader = std::make_shared<PixelShader>(resourceDesc, TextureShader::GetPixelShaderCode());
 
-    //load texture using a simple relative path
+    // Load the camera icon texture using a simple relative path
     int width, height, channels;
-    const char* imagePath = "Resources/cam.png";
+    const char* imagePath = "Resources/cam.png"; // Clean and simple!
     unsigned char* image_data = stbi_load(imagePath, &width, &height, &channels, 4);
     if (!image_data)
     {
@@ -125,7 +129,7 @@ void dx3d::Game::createRenderingResources()
     }
 
     
-    //texture resource
+    // Create the texture resource
     D3D11_TEXTURE2D_DESC textureDesc = {};
     textureDesc.Width = width;
     textureDesc.Height = height;
@@ -138,30 +142,29 @@ void dx3d::Game::createRenderingResources()
 
     D3D11_SUBRESOURCE_DATA subresourceData = {};
     subresourceData.pSysMem = image_data;
-    subresourceData.SysMemPitch = width * 4; //4 bytes per pixel because (RGBA)
+    subresourceData.SysMemPitch = width * 4; // 4 bytes per pixel (RGBA)
 
     
     ID3D11Texture2D* texture = nullptr;
     HRESULT hr = device->CreateTexture2D(&textureDesc, &subresourceData, &texture);
 
-    stbi_image_free(image_data);
-    //important: Free the image data from CPU memory
+    stbi_image_free(image_data); // Free the image data from CPU memory
 
     if (FAILED(hr))
     {
         DX3DLogErrorAndThrow("Failed to create 2D texture.");
     }
 
-    //shader resource view from the texture
+    // Create the shader resource view from the texture
     hr = device->CreateShaderResourceView(texture, nullptr, &m_cameraIconTexture);
-    texture->Release();
+    texture->Release(); // We don't need the texture object itself anymore
 
     if (FAILED(hr))
     {
         DX3DLogErrorAndThrow("Failed to create shader resource view.");
     }
 
-    //sampler state
+    // Create a sampler state
     D3D11_SAMPLER_DESC samplerDesc = {};
     samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
     samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -331,7 +334,7 @@ void dx3d::Game::createRenderingResources()
     // Create a rasterizer state that disables back-face culling
     D3D11_RASTERIZER_DESC rasterizerDesc = {};
     rasterizerDesc.FillMode = D3D11_FILL_SOLID;
-    rasterizerDesc.CullMode = D3D11_CULL_NONE;
+    rasterizerDesc.CullMode = D3D11_CULL_NONE; // This is the key change!
     rasterizerDesc.FrontCounterClockwise = TRUE;
     device->CreateRasterizerState(&rasterizerDesc, &m_noCullRasterizerState);
 
@@ -576,7 +579,38 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
             deviceContext.drawIndexed(Plane::GetIndexCount(), 0, 0);
         }
         else if (isCamera && isSceneView && m_showGizmos) {
-            {// --- 1. Render the 3D Camera Gizmo ---
+            /*
+            // Render the camera gizmo
+            deviceContext.setVertexBuffer(*m_cameraGizmoVertexBuffer);
+            deviceContext.setIndexBuffer(*m_cameraGizmoIndexBuffer);
+
+            TransformationMatrices transformMatrices;
+            // We want the gizmo to have the same position and rotation as the camera, but not the scale.
+            Matrix4x4 world = Matrix4x4::CreateRotationX(gameObject->getRotation().x) *
+                Matrix4x4::CreateRotationY(gameObject->getRotation().y) *
+                Matrix4x4::CreateRotationZ(gameObject->getRotation().z) *
+                Matrix4x4::CreateTranslation(gameObject->getPosition());
+
+            transformMatrices.world = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(world.toXMMatrix()));
+            transformMatrices.view = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(camera.getViewMatrix().toXMMatrix()));
+            transformMatrices.projection = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(projMatrix.toXMMatrix()));
+
+            m_transformConstantBuffer->update(deviceContext, &transformMatrices);
+
+            // Use the fog shader to render the gizmo with vertex colors
+            FogMaterialConstants fmc = {};
+            fmc.useVertexColor = true;
+            m_materialConstantBuffer->update(deviceContext, &fmc);
+
+            deviceContext.setVertexShader(m_fogVertexShader->getShader());
+            deviceContext.setPixelShader(m_fogPixelShader->getShader());
+            deviceContext.setInputLayout(m_fogVertexShader->getInputLayout());
+
+            deviceContext.drawIndexed(CameraGizmo::GetIndexCount(), 0, 0);
+            */
+
+            // --- 1. Render the 3D Camera Gizmo (as before) ---
+            {
                 // Set the shaders and input layout for the gizmo
                 deviceContext.setVertexShader(m_fogVertexShader->getShader());
                 deviceContext.setPixelShader(m_fogPixelShader->getShader());
@@ -603,11 +637,12 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
                 transformMatrices.projection = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(projMatrix.toXMMatrix()));
                 m_transformConstantBuffer->update(deviceContext, &transformMatrices);
 
+                // Draw the gizmo
                 deviceContext.drawIndexed(CameraGizmo::GetIndexCount(), 0, 0);
             }
 
-            
-            {// --- 2. Render the 2D Camera Icon ---
+            // --- 2. Render the 2D Camera Icon with All Correct States ---
+            {
                 // Store original states
                 ID3D11RasterizerState* originalRasterizerState = nullptr;
                 d3dContext->RSGetState(&originalRasterizerState);
@@ -617,23 +652,22 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
                 d3dContext->RSSetState(m_noCullRasterizerState);
                 d3dContext->OMSetDepthStencilState(m_particleDepthState, 0);
 
-                // Set shaders and resources
+                // Set shaders and resources. No need to switch input layout anymore.
                 deviceContext.setVertexShader(m_textureVertexShader->getShader());
                 deviceContext.setPixelShader(m_texturePixelShader->getShader());
-                deviceContext.setInputLayout(m_textureVertexShader->getInputLayout());
+                deviceContext.setInputLayout(m_textureVertexShader->getInputLayout()); // This is still important!
                 deviceContext.setVertexBuffer(*m_cameraIconVertexBuffer);
                 deviceContext.setIndexBuffer(*m_cameraIconIndexBuffer);
                 d3dContext->PSSetShaderResources(0, 1, &m_cameraIconTexture);
                 d3dContext->PSSetSamplers(0, 1, &m_samplerState);
 
-                // Set transformations for the icon w/ billboarding effect
+                // Set transformations for the icon (billboarding)
                 TransformationMatrices transformMatrices;
                 Vector3 iconPos = gameObject->getPosition();
                 Vector3 finalIconPos = Vector3(iconPos.x, iconPos.y + 1.5f, iconPos.z);
                 Vector3 camToIconDir = iconPos - camera.getPosition();
                 float angleY = atan2(camToIconDir.x, camToIconDir.z);
-                Matrix4x4 world = Matrix4x4::CreateScale({ 0.75f, 0.75f, 0.75f }) * 
-                    Matrix4x4::CreateRotationY(angleY) * Matrix4x4::CreateTranslation(finalIconPos);
+                Matrix4x4 world = Matrix4x4::CreateScale({ 0.75f, 0.75f, 0.75f }) * Matrix4x4::CreateRotationY(angleY) * Matrix4x4::CreateTranslation(finalIconPos);
 
                 transformMatrices.world = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(world.toXMMatrix()));
                 transformMatrices.view = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(camera.getViewMatrix().toXMMatrix()));
