@@ -20,10 +20,10 @@
 #include <DX3D/Graphics/Primitives/Cylinder.h>
 #include <DX3D/Graphics/Primitives/Capsule.h>
 #include <DX3D/Graphics/Primitives/CameraObject.h>
+#include <DX3D/Graphics/Primitives/CameraGizmo.h>
 #include <DX3D/Graphics/Shaders/Rainbow3DShader.h>
 #include <DX3D/Graphics/Shaders/WhiteShader.h>
 #include <DX3D/Graphics/Shaders/FogShader.h>
-#include <DX3D/Graphics/Primitives/CameraGizmo.h>
 #include <DX3D/Math/Math.h>
 #include <DX3D/Particles/ParticleSystem.h>
 #include <DX3D/Particles/ParticleEffects/SnowParticle.h>
@@ -78,8 +78,6 @@ void dx3d::Game::createRenderingResources()
     m_cylinderIndexBuffer = Cylinder::CreateIndexBuffer(resourceDesc);
     m_capsuleVertexBuffer = Capsule::CreateVertexBuffer(resourceDesc);
     m_capsuleIndexBuffer = Capsule::CreateIndexBuffer(resourceDesc);
-    m_cameraGizmoVertexBuffer = CameraGizmo::CreateVertexBuffer(resourceDesc);
-    m_cameraGizmoIndexBuffer = CameraGizmo::CreateIndexBuffer(resourceDesc);
 
     const auto& windowSize = m_display->getSize();
     m_depthBuffer = std::make_shared<DepthBuffer>(
@@ -110,7 +108,6 @@ void dx3d::Game::createRenderingResources()
     m_fogPixelShader = std::make_shared<PixelShader>(resourceDesc, FogShader::GetPixelShaderCode());
     m_fogConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(FogShaderConstants), resourceDesc);
     m_materialConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(FogMaterialConstants), resourceDesc);
-
 
     m_transformConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(TransformationMatrices), resourceDesc);
 
@@ -437,38 +434,11 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
         else if (auto plane = std::dynamic_pointer_cast<Plane>(gameObject)) {
             deviceContext.setVertexBuffer(*m_planeVertexBuffer);
             deviceContext.setIndexBuffer(*m_planeIndexBuffer);
-            deviceContext.drawIndexed(Plane::GetIndexCount(), 0, 0);
         }
-        else if (isCamera && isSceneView) {
-            // Render the camera gizmo
+        /*else if (isCamera && isSceneView) {
             deviceContext.setVertexBuffer(*m_cameraGizmoVertexBuffer);
             deviceContext.setIndexBuffer(*m_cameraGizmoIndexBuffer);
-
-            TransformationMatrices transformMatrices;
-            // We want the gizmo to have the same position and rotation as the camera, but not the scale.
-            Matrix4x4 world = Matrix4x4::CreateRotationX(gameObject->getRotation().x) *
-                Matrix4x4::CreateRotationY(gameObject->getRotation().y) *
-                Matrix4x4::CreateRotationZ(gameObject->getRotation().z) *
-                Matrix4x4::CreateTranslation(gameObject->getPosition());
-
-            transformMatrices.world = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(world.toXMMatrix()));
-            transformMatrices.view = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(camera.getViewMatrix().toXMMatrix()));
-            transformMatrices.projection = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(projMatrix.toXMMatrix()));
-
-            m_transformConstantBuffer->update(deviceContext, &transformMatrices);
-
-            // Use a simple white shader for the gizmo
-            deviceContext.setVertexShader(m_whiteVertexShader->getShader());
-            deviceContext.setPixelShader(m_whitePixelShader->getShader());
-            deviceContext.setInputLayout(m_whiteVertexShader->getInputLayout());
-
-            deviceContext.drawIndexed(CameraGizmo::GetIndexCount(), 0, 0);
-
-            // Set shaders back to the fog shader for other objects
-            deviceContext.setVertexShader(m_fogVertexShader->getShader());
-            deviceContext.setPixelShader(m_fogPixelShader->getShader());
-            deviceContext.setInputLayout(m_fogVertexShader->getInputLayout());
-        }
+        }*/
 
         TransformationMatrices transformMatrices;
         transformMatrices.world = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(gameObject->getWorldMatrix().toXMMatrix()));
