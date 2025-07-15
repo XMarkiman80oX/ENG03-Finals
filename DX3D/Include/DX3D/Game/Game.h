@@ -116,8 +116,6 @@ namespace dx3d
         // load textures
         ID3D11ShaderResourceView* m_cameraIconTexture = nullptr;
         ID3D11SamplerState* m_samplerState = nullptr;
-        ID3D11BlendState* m_alphaBlendState = nullptr;
-        ID3D11RasterizerState* m_noCullRasterizerState = nullptr;
 
         std::shared_ptr<VertexShader> m_rainbowVertexShader;
         std::shared_ptr<PixelShader> m_rainbowPixelShader;

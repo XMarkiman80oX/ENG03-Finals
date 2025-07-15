@@ -9,21 +9,34 @@ namespace dx3d
         static const char* GetVertexShaderCode()
         {
             return R"(
-                cbuffer TransformBuffer : register(b0) { matrix world; matrix view; matrix projection; };
+                cbuffer TransformBuffer : register(b0)
+                {
+                    matrix world;
+                    matrix view;
+                    matrix projection;
+                };
 
                 struct VS_INPUT {
                     float3 position : POSITION;
-                    float4 color    : COLOR; // Read texture coords from the color semantic
+                    float2 texcoord : TEXCOORD;
                 };
                 
-                struct VS_OUTPUT { float4 position : SV_POSITION; float2 texcoord : TEXCOORD; };
+                struct VS_OUTPUT {
+                    float4 position : SV_POSITION;
+                    float2 texcoord : TEXCOORD;
+                };
                 
                 VS_OUTPUT main(VS_INPUT input) {
                     VS_OUTPUT output;
+                    
+                    // Transform the position from object space to world space, then to view, and finally to projection space.
                     output.position = mul(float4(input.position, 1.0f), world);
                     output.position = mul(output.position, view);
                     output.position = mul(output.position, projection);
-                    output.texcoord = input.color.xy; // Pass the U,V coords to the pixel shader
+                    
+                    // Pass the texture coordinates to the pixel shader.
+                    output.texcoord = input.texcoord;
+                    
                     return output;
                 }
             )";
