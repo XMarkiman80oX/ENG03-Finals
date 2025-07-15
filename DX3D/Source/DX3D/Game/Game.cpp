@@ -629,10 +629,11 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
                 // Set transformations for the icon w/ billboarding effect
                 TransformationMatrices transformMatrices;
                 Vector3 iconPos = gameObject->getPosition();
+                Vector3 finalIconPos = Vector3(iconPos.x, iconPos.y + 1.5f, iconPos.z);
                 Vector3 camToIconDir = iconPos - camera.getPosition();
                 float angleY = atan2(camToIconDir.x, camToIconDir.z);
                 Matrix4x4 world = Matrix4x4::CreateScale({ 0.75f, 0.75f, 0.75f }) * 
-                    Matrix4x4::CreateRotationY(angleY) * Matrix4x4::CreateTranslation(iconPos);
+                    Matrix4x4::CreateRotationY(angleY) * Matrix4x4::CreateTranslation(finalIconPos);
 
                 transformMatrices.world = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(world.toXMMatrix()));
                 transformMatrices.view = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(camera.getViewMatrix().toXMMatrix()));
