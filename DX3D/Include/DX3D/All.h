@@ -15,3 +15,13 @@
 #include <DX3D/Graphics/Primitives/Sphere.h>
 #include <DX3D/Graphics/Primitives/Cylinder.h>
 #include <DX3D/Graphics/Primitives/Capsule.h>
+
+#include <DX3D/Graphics/Texture2D.h>
+#include <DX3D/Graphics/Material.h>
+#include <DX3D/Graphics/Mesh.h>
+#include <DX3D/Graphics/Primitives/Model.h>
+#include <DX3D/Assets/ModelLoader.h>
+#include <DX3D/Assets/AssetManager.h>
+
+#include <DX3D/Graphics/Shaders/ModelShader.h>
+#include <DX3D/Graphics/Shaders/ModelVertexShader.h>

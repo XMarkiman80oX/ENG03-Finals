@@ -136,15 +136,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DX3D\Source\DX3D\Assets\AssetManager.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Assets\ModelLoader.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Game\Camera.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Game\SelectionSystem.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Game\ViewportManager.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Graphics\Material.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Graphics\Mesh.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\Model.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\CameraGizmo.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\CameraObject.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\Capsule.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\Cylinder.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\Sphere.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\RenderTexture.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Graphics\Texture2D.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Input\Input.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\AGameObject.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\ConstantBuffer.cpp" />
@@ -180,8 +186,14 @@
     <ClCompile Include="imgui\imgui_widgets.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DX3D\Include\DX3D\Assets\AssetManager.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Assets\ModelLoader.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Assets\tiny_obj_loader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Game\Camera.h" />
     <ClInclude Include="DX3D\Include\DX3D\Game\SelectionSystem.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Material.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Mesh.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\Model.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\CameraGizmo.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\CameraObject.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\Capsule.h" />
@@ -189,8 +201,11 @@
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\Sphere.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\RenderTexture.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\FogShader.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\ModelShader.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\ModelVertexShader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\ParticleShader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\ParticleVertexShader.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Texture2D.h" />
     <ClInclude Include="DX3D\Include\DX3D\Input\Input.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\AGameObject.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\ConstantBuffer.h" />
@@ -245,6 +260,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="imgui\imgui.ini" />
+  </ItemGroup>
+  <ItemGroup>
+    <Object Include="DX3D\Assets\Models\teapot.obj" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
