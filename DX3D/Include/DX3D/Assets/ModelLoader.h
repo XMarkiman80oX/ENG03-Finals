@@ -45,6 +45,7 @@ namespace dx3d
 
         static std::string getDirectory(const std::string& filePath);
         static std::string getAssetPath(const std::string& relativePath);
+        static std::shared_ptr<Model> createDefaultModel(const GraphicsResourceDesc& resourceDesc);
 
         // Material cache to avoid loading the same material multiple times
         static std::unordered_map<std::string, std::shared_ptr<Material>> s_materialCache;

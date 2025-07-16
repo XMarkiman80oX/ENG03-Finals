@@ -111,7 +111,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(SolutionDir)\IMGUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>E:\Visual Studio Projects\CPP-3D-Game-Tutorial-Series-master\GDENG03-Engine\Assets;$(SolutionDir)\IMGUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -305,7 +305,7 @@
     <Image Include="DX3D\Assets\Textures\wood.jpg" />
   </ItemGroup>
   <ItemGroup>
-    <Object Include="DX3D\Assets\Models\bunny.obj" />
+    <Object Include="DX3D\Source\DX3D\Assets\bunnynew.obj" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
