@@ -2,6 +2,7 @@
 #include <DX3D/Assets/ModelLoader.h>
 #include <thread>
 #include <atomic>
+#include <iostream>
 
 using namespace dx3d;
 
@@ -15,7 +16,6 @@ std::shared_ptr<Model> AssetManager::loadModelSync(
         auto it = m_modelCache.find(filePath);
         if (it != m_modelCache.end())
         {
-            DX3DLogInfo(("Model loaded from cache: " + filePath).c_str());
             return it->second;
         }
     }
@@ -59,7 +59,6 @@ std::string AssetManager::loadModelAsync(
                 m_loadingTasks[taskId] = std::move(task);
             }
 
-            DX3DLogInfo(("Model loaded from cache (async): " + filePath).c_str());
             return taskId;
         }
     }
@@ -80,7 +79,6 @@ std::string AssetManager::loadModelAsync(
         m_loadingTasks[taskId] = std::move(task);
     }
 
-    DX3DLogInfo(("Started async loading for: " + filePath).c_str());
     return taskId;
 }
 
@@ -166,7 +164,6 @@ void AssetManager::cacheModel(const std::string& filePath, std::shared_ptr<Model
 {
     std::lock_guard<std::mutex> lock(m_cacheMutex);
     m_modelCache[filePath] = model;
-    DX3DLogInfo(("Model cached: " + filePath).c_str());
 }
 
 std::shared_ptr<Model> AssetManager::getCachedModel(const std::string& filePath)
@@ -186,7 +183,6 @@ void AssetManager::clearCache()
 {
     std::lock_guard<std::mutex> lock(m_cacheMutex);
     m_modelCache.clear();
-    DX3DLogInfo("Model cache cleared");
 }
 
 void AssetManager::update()
@@ -211,14 +207,12 @@ void AssetManager::update()
                         cacheModel(task.filePath, model);
                         task.progress = 100.0f;
                         task.isComplete = true;
-                        DX3DLogInfo(("Async loading completed: " + task.filePath).c_str());
                     }
                     else
                     {
                         task.hasError = true;
                         task.errorMessage = "Failed to load model";
                         task.isComplete = true;
-                        DX3DLogError(("Async loading failed: " + task.filePath).c_str());
                     }
                 }
                 catch (const std::exception& e)
@@ -226,7 +220,6 @@ void AssetManager::update()
                     task.hasError = true;
                     task.errorMessage = e.what();
                     task.isComplete = true;
-                    DX3DLogError(("Async loading exception: " + std::string(e.what())).c_str());
                 }
             }
             else

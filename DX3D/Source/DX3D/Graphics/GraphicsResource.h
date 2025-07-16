@@ -23,7 +23,8 @@ namespace dx3d
 			Base(desc.base),
 			m_renderSystem(desc.renderSystem),
 			m_device(desc.device),
-			m_factory(desc.factory) {}
+			m_factory(desc.factory) {
+		}
 
 	protected:
 		std::shared_ptr<const RenderSystem> m_renderSystem;

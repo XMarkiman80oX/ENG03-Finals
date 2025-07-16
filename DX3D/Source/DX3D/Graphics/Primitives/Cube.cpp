@@ -17,51 +17,49 @@ Cube::Cube(const Vector3& position, const Vector3& rotation, const Vector3& scal
 
 void Cube::update(float deltaTime)
 {
-    // Override this method to add cube-specific update logic if needed
-    // Call base class update if needed
     AGameObject::update(deltaTime);
 }
 
 std::shared_ptr<VertexBuffer> Cube::CreateVertexBuffer(const GraphicsResourceDesc& resourceDesc)
 {
-    // Define cube vertices with positions and colors
-    std::vector<Vertex> vertices;
+    // Define cube vertices with positions, colors, normals, and texture coordinates
+    std::vector<Vertex> vertices = {
+        // Front face
+        Vertex({-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f}),
+        Vertex({-0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}),
+        Vertex({ 0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}),
+        Vertex({ 0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f}),
 
-    // Front face (red)
-    vertices.push_back({ {-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f, 1.0f} });
-    vertices.push_back({ {-0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 0.0f, 1.0f} });
-    vertices.push_back({ { 0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 0.0f, 1.0f} });
-    vertices.push_back({ { 0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f, 1.0f} });
+        // Back face
+        Vertex({ 0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}),
+        Vertex({ 0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}),
+        Vertex({-0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}),
+        Vertex({-0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}),
 
-    // Back face (green)
-    vertices.push_back({ {-0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 0.0f, 1.0f} });
-    vertices.push_back({ { 0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 0.0f, 1.0f} });
-    vertices.push_back({ { 0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 0.0f, 1.0f} });
-    vertices.push_back({ {-0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 0.0f, 1.0f} });
+        // Top face
+        Vertex({-0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}),
+        Vertex({-0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}),
+        Vertex({ 0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}),
+        Vertex({ 0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}),
 
-    // Top face (blue)
-    vertices.push_back({ {-0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 1.0f, 1.0f} });
-    vertices.push_back({ {-0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 1.0f, 1.0f} });
-    vertices.push_back({ { 0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 1.0f, 1.0f} });
-    vertices.push_back({ { 0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 1.0f, 1.0f} });
+        // Bottom face
+        Vertex({-0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f}),
+        Vertex({-0.5f, -0.5f,  0.5f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}),
+        Vertex({ 0.5f, -0.5f,  0.5f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f}),
+        Vertex({ 0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f}),
 
-    // Bottom face (yellow)
-    vertices.push_back({ {-0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 0.0f, 1.0f} });
-    vertices.push_back({ { 0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 0.0f, 1.0f} });
-    vertices.push_back({ { 0.5f, -0.5f,  0.5f}, {1.0f, 1.0f, 0.0f, 1.0f} });
-    vertices.push_back({ {-0.5f, -0.5f,  0.5f}, {1.0f, 1.0f, 0.0f, 1.0f} });
+        // Right face
+        Vertex({ 0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}),
+        Vertex({ 0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}),
+        Vertex({ 0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}),
+        Vertex({ 0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}),
 
-    // Right face (magenta)
-    vertices.push_back({ { 0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 1.0f, 1.0f} });
-    vertices.push_back({ { 0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 1.0f, 1.0f} });
-    vertices.push_back({ { 0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 1.0f, 1.0f} });
-    vertices.push_back({ { 0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 1.0f, 1.0f} });
-
-    // Left face (cyan)
-    vertices.push_back({ {-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 1.0f, 1.0f} });
-    vertices.push_back({ {-0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 1.0f, 1.0f} });
-    vertices.push_back({ {-0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 1.0f, 1.0f} });
-    vertices.push_back({ {-0.5f,  0.5f, -0.5f}, {0.0f, 1.0f, 1.0f, 1.0f} });
+        // Left face
+        Vertex({-0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}),
+        Vertex({-0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}),
+        Vertex({-0.5f,  0.5f, -0.5f}, {0.0f, 1.0f, 1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}),
+        Vertex({-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f})
+    };
 
     return std::make_shared<VertexBuffer>(
         vertices.data(),
@@ -73,7 +71,6 @@ std::shared_ptr<VertexBuffer> Cube::CreateVertexBuffer(const GraphicsResourceDes
 
 std::shared_ptr<IndexBuffer> Cube::CreateIndexBuffer(const GraphicsResourceDesc& resourceDesc)
 {
-    // Define cube indices (each face has 2 triangles)
     std::vector<ui32> indices = {
         // Front face
         0, 1, 2,    0, 2, 3,
@@ -89,7 +86,6 @@ std::shared_ptr<IndexBuffer> Cube::CreateIndexBuffer(const GraphicsResourceDesc&
         20, 21, 22, 20, 22, 23
     };
 
-    // Create index buffer
     return std::make_shared<IndexBuffer>(
         indices.data(),
         static_cast<ui32>(indices.size()),

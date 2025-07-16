@@ -18,7 +18,6 @@ void Model::addMesh(std::shared_ptr<Mesh> mesh)
     if (mesh)
     {
         m_meshes.push_back(mesh);
-        DX3DLogInfo(("Added mesh '" + mesh->getName() + "' to model '" + m_name + "'").c_str());
     }
 }
 
@@ -28,14 +27,12 @@ void Model::removeMesh(size_t index)
     {
         auto meshName = m_meshes[index]->getName();
         m_meshes.erase(m_meshes.begin() + index);
-        DX3DLogInfo(("Removed mesh '" + meshName + "' from model '" + m_name + "'").c_str());
     }
 }
 
 void Model::clearMeshes()
 {
     m_meshes.clear();
-    DX3DLogInfo(("Cleared all meshes from model '" + m_name + "'").c_str());
 }
 
 std::shared_ptr<Mesh> Model::getMesh(size_t index) const

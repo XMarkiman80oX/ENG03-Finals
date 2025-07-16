@@ -18,7 +18,6 @@ void Mesh::createRenderingResources(
 {
     if (vertices.empty() || indices.empty())
     {
-        DX3DLogError("Cannot create mesh with empty vertices or indices");
         return;
     }
 
@@ -38,10 +37,6 @@ void Mesh::createRenderingResources(
     );
 
     m_indexCount = static_cast<ui32>(indices.size());
-
-    DX3DLogInfo(("Mesh '" + m_name + "' created with " +
-        std::to_string(vertices.size()) + " vertices and " +
-        std::to_string(indices.size()) + " indices").c_str());
 }
 
 bool Mesh::isReadyForRendering() const

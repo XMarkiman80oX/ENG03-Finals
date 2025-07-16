@@ -15,7 +15,6 @@ x64/
 x86/
 ARM/
 arm64/
-*.obj
 *.exe
 *.dll
 *.pdb
