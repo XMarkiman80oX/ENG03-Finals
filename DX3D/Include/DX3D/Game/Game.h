@@ -9,6 +9,8 @@
 #include "imgui.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
+#include <DX3D/Graphics/Shaders/ModelVertexShader.h>
+
 
 namespace dx3d
 {
@@ -115,6 +117,9 @@ namespace dx3d
         std::shared_ptr<PixelShader> m_fogPixelShader;
         std::shared_ptr<ConstantBuffer> m_fogConstantBuffer;
         std::shared_ptr<ConstantBuffer> m_materialConstantBuffer;
+
+        std::shared_ptr<VertexShader> m_modelVertexShader;
+        std::shared_ptr<PixelShader> m_modelPixelShader;
 
         SnowConfig m_snowConfig;
         FogDesc m_fogDesc;

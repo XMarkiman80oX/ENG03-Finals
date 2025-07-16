@@ -19,11 +19,14 @@
 #include <DX3D/Graphics/Primitives/Sphere.h>
 #include <DX3D/Graphics/Primitives/Cylinder.h>
 #include <DX3D/Graphics/Primitives/Capsule.h>
+#include <DX3D/Graphics/Primitives/Model.h>
 #include <DX3D/Graphics/Primitives/CameraObject.h>
 #include <DX3D/Graphics/Primitives/CameraGizmo.h>
 #include <DX3D/Graphics/Shaders/Rainbow3DShader.h>
 #include <DX3D/Graphics/Shaders/WhiteShader.h>
 #include <DX3D/Graphics/Shaders/FogShader.h>
+#include <DX3D/Graphics/Shaders/ModelShader.h>
+#include <DX3D/Graphics/Shaders/ModelVertexShader.h>
 #include <DX3D/Math/Math.h>
 #include <DX3D/Particles/ParticleSystem.h>
 #include <DX3D/Particles/ParticleEffects/SnowParticle.h>
@@ -79,6 +82,9 @@ void dx3d::Game::createRenderingResources()
     m_capsuleVertexBuffer = Capsule::CreateVertexBuffer(resourceDesc);
     m_capsuleIndexBuffer = Capsule::CreateIndexBuffer(resourceDesc);
 
+    m_modelVertexShader = createModelVertexShader(resourceDesc);
+    m_modelPixelShader = std::make_shared<PixelShader>(resourceDesc, ModelShader::GetPixelShaderCode());
+
     const auto& windowSize = m_display->getSize();
     m_depthBuffer = std::make_shared<DepthBuffer>(
         windowSize.width,
@@ -127,7 +133,7 @@ void dx3d::Game::createRenderingResources()
     m_snowConfig.active = true;
 
     m_gameObjects.clear();
-    m_gameObjects.reserve(12);
+    m_gameObjects.reserve(15);
 
     const float radius = 6.0f;
     const int numCubes = 10;
@@ -143,6 +149,31 @@ void dx3d::Game::createRenderingResources()
             Vector3(0.0f, 0.0f, 0.0f),
             Vector3(1.5f, 1.5f, 1.5f)
         ));
+    }
+
+    try
+    {
+        auto bunnyModel = Model::LoadFromFile("bunnynew.obj", resourceDesc);
+        if (bunnyModel && bunnyModel->isReadyForRendering())
+        {
+            // Position the bunny in the middle of the plane, slightly above it
+            bunnyModel->setPosition(Vector3(0.0f, 1.0f, 0.0f));
+            bunnyModel->setScale(Vector3(2.0f, 2.0f, 2.0f)); // Scale it up to make it more visible
+            bunnyModel->setRotation(Vector3(0.0f, 0.0f, 0.0f));
+            bunnyModel->setName("BunnyModel");
+
+            m_gameObjects.push_back(bunnyModel);
+
+            DX3DLogInfo("Bunny model loaded successfully!");
+        }
+        else
+        {
+            DX3DLogError("Failed to load bunny model or model is not ready for rendering");
+        }
+    }
+    catch (const std::exception& e)
+    {
+        DX3DLogError(("Failed to load bunny model: " + std::string(e.what())).c_str());
     }
 
     m_gameObjects.push_back(std::make_shared<Plane>(
@@ -373,6 +404,7 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
         renderTarget ? renderTarget->getShaderResourceView() ? 480 : m_display->getSize().height : m_display->getSize().height
     );
 
+    // Set up common constant buffers
     ID3D11Buffer* transformCb = m_transformConstantBuffer->getBuffer();
     d3dContext->VSSetConstantBuffers(0, 1, &transformCb);
 
@@ -384,6 +416,7 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
     fsc.fogEnabled = m_fogDesc.enabled;
     m_fogConstantBuffer->update(deviceContext, &fsc);
 
+    // Set fog shader constant buffers (fog shader expects: b1=fog scene, b2=fog material)
     ID3D11Buffer* fogCb = m_fogConstantBuffer->getBuffer();
     d3dContext->PSSetConstantBuffers(1, 1, &fogCb);
     ID3D11Buffer* materialCb = m_materialConstantBuffer->getBuffer();
@@ -391,10 +424,7 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
 
     d3dContext->OMSetDepthStencilState(m_solidDepthState, 0);
 
-    deviceContext.setVertexShader(m_fogVertexShader->getShader());
-    deviceContext.setPixelShader(m_fogPixelShader->getShader());
-    deviceContext.setInputLayout(m_fogVertexShader->getInputLayout());
-
+    // Start with fog shaders for primitive rendering
     bool isSceneView = (&camera == m_sceneCamera.get());
 
     for (const auto& gameObject : m_gameObjects)
@@ -403,61 +433,126 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
         if (!isSceneView && isCamera)
             continue;
 
-        FogMaterialConstants fmc = {};
-        if (std::dynamic_pointer_cast<Plane>(gameObject))
+        // Check if this is a Model object
+        if (auto model = std::dynamic_pointer_cast<Model>(gameObject))
         {
-            fmc.useVertexColor = false;
-            fmc.baseColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+            // Switch to model shaders for better model rendering
+            deviceContext.setVertexShader(m_modelVertexShader->getShader());
+            deviceContext.setPixelShader(m_modelPixelShader->getShader());
+            deviceContext.setInputLayout(m_modelVertexShader->getInputLayout());
+
+            // Render each mesh in the model
+            for (size_t meshIndex = 0; meshIndex < model->getMeshCount(); ++meshIndex)
+            {
+                auto mesh = model->getMesh(meshIndex);
+                if (!mesh || !mesh->isReadyForRendering())
+                    continue;
+
+                // Set up model material constants
+                ModelMaterialConstants mmc = {};
+                if (mesh->getMaterial())
+                {
+                    auto material = mesh->getMaterial();
+                    mmc.diffuseColor = material->getDiffuseColor();
+                    mmc.ambientColor = material->getAmbientColor();
+                    mmc.specularColor = material->getSpecularColor();
+                    mmc.emissiveColor = material->getEmissiveColor();
+                    mmc.specularPower = material->getSpecularPower();
+                    mmc.opacity = material->getOpacity();
+                    mmc.hasTexture = material->hasDiffuseTexture();
+                }
+                else
+                {
+                    // Default material
+                    mmc.diffuseColor = { 0.8f, 0.8f, 0.8f, 1.0f };
+                    mmc.ambientColor = { 0.2f, 0.2f, 0.2f, 1.0f };
+                    mmc.specularColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+                    mmc.emissiveColor = { 0.0f, 0.0f, 0.0f, 1.0f };
+                    mmc.specularPower = 32.0f;
+                    mmc.opacity = 1.0f;
+                    mmc.hasTexture = false;
+                }
+
+                m_materialConstantBuffer->update(deviceContext, &mmc);
+
+                // Set vertex and index buffers for this mesh
+                deviceContext.setVertexBuffer(*mesh->getVertexBuffer());
+                deviceContext.setIndexBuffer(*mesh->getIndexBuffer());
+
+                // Set up transformation matrices
+                TransformationMatrices transformMatrices;
+                transformMatrices.world = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(model->getWorldMatrix().toXMMatrix()));
+                transformMatrices.view = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(camera.getViewMatrix().toXMMatrix()));
+                transformMatrices.projection = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(projMatrix.toXMMatrix()));
+                m_transformConstantBuffer->update(deviceContext, &transformMatrices);
+
+                // Draw the mesh
+                deviceContext.drawIndexed(mesh->getIndexCount(), 0, 0);
+            }
+
+            // Switch back to fog shaders for other objects
+            deviceContext.setVertexShader(m_fogVertexShader->getShader());
+            deviceContext.setPixelShader(m_fogPixelShader->getShader());
+            deviceContext.setInputLayout(m_fogVertexShader->getInputLayout());
         }
         else
         {
-            fmc.useVertexColor = true;
-        }
-        m_materialConstantBuffer->update(deviceContext, &fmc);
+            // Handle primitive objects with fog shader
+            FogMaterialConstants fmc = {};
+            if (std::dynamic_pointer_cast<Plane>(gameObject))
+            {
+                fmc.useVertexColor = false;
+                fmc.baseColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+            }
+            else
+            {
+                fmc.useVertexColor = true;
+            }
+            m_materialConstantBuffer->update(deviceContext, &fmc);
 
-        if (auto cube = std::dynamic_pointer_cast<Cube>(gameObject)) {
-            deviceContext.setVertexBuffer(*m_cubeVertexBuffer);
-            deviceContext.setIndexBuffer(*m_cubeIndexBuffer);
-        }
-        else if (auto sphere = std::dynamic_pointer_cast<Sphere>(gameObject)) {
-            deviceContext.setVertexBuffer(*m_sphereVertexBuffer);
-            deviceContext.setIndexBuffer(*m_sphereIndexBuffer);
-        }
-        else if (auto cylinder = std::dynamic_pointer_cast<Cylinder>(gameObject)) {
-            deviceContext.setVertexBuffer(*m_cylinderVertexBuffer);
-            deviceContext.setIndexBuffer(*m_cylinderIndexBuffer);
-        }
-        else if (auto capsule = std::dynamic_pointer_cast<Capsule>(gameObject)) {
-            deviceContext.setVertexBuffer(*m_capsuleVertexBuffer);
-            deviceContext.setIndexBuffer(*m_capsuleIndexBuffer);
-        }
-        else if (auto plane = std::dynamic_pointer_cast<Plane>(gameObject)) {
-            deviceContext.setVertexBuffer(*m_planeVertexBuffer);
-            deviceContext.setIndexBuffer(*m_planeIndexBuffer);
-        }
-        /*else if (isCamera && isSceneView) {
-            deviceContext.setVertexBuffer(*m_cameraGizmoVertexBuffer);
-            deviceContext.setIndexBuffer(*m_cameraGizmoIndexBuffer);
-        }*/
+            // Set appropriate vertex and index buffers for primitive types
+            if (auto cube = std::dynamic_pointer_cast<Cube>(gameObject)) {
+                deviceContext.setVertexBuffer(*m_cubeVertexBuffer);
+                deviceContext.setIndexBuffer(*m_cubeIndexBuffer);
+            }
+            else if (auto sphere = std::dynamic_pointer_cast<Sphere>(gameObject)) {
+                deviceContext.setVertexBuffer(*m_sphereVertexBuffer);
+                deviceContext.setIndexBuffer(*m_sphereIndexBuffer);
+            }
+            else if (auto cylinder = std::dynamic_pointer_cast<Cylinder>(gameObject)) {
+                deviceContext.setVertexBuffer(*m_cylinderVertexBuffer);
+                deviceContext.setIndexBuffer(*m_cylinderIndexBuffer);
+            }
+            else if (auto capsule = std::dynamic_pointer_cast<Capsule>(gameObject)) {
+                deviceContext.setVertexBuffer(*m_capsuleVertexBuffer);
+                deviceContext.setIndexBuffer(*m_capsuleIndexBuffer);
+            }
+            else if (auto plane = std::dynamic_pointer_cast<Plane>(gameObject)) {
+                deviceContext.setVertexBuffer(*m_planeVertexBuffer);
+                deviceContext.setIndexBuffer(*m_planeIndexBuffer);
+            }
 
-        TransformationMatrices transformMatrices;
-        transformMatrices.world = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(gameObject->getWorldMatrix().toXMMatrix()));
-        transformMatrices.view = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(camera.getViewMatrix().toXMMatrix()));
-        transformMatrices.projection = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(projMatrix.toXMMatrix()));
-        m_transformConstantBuffer->update(deviceContext, &transformMatrices);
+            // Set up transformation matrices
+            TransformationMatrices transformMatrices;
+            transformMatrices.world = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(gameObject->getWorldMatrix().toXMMatrix()));
+            transformMatrices.view = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(camera.getViewMatrix().toXMMatrix()));
+            transformMatrices.projection = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(projMatrix.toXMMatrix()));
+            m_transformConstantBuffer->update(deviceContext, &transformMatrices);
 
-        if (std::dynamic_pointer_cast<Cube>(gameObject))
-            deviceContext.drawIndexed(Cube::GetIndexCount(), 0, 0);
-        else if (std::dynamic_pointer_cast<Sphere>(gameObject))
-            deviceContext.drawIndexed(Sphere::GetIndexCount(), 0, 0);
-        else if (std::dynamic_pointer_cast<Cylinder>(gameObject))
-            deviceContext.drawIndexed(Cylinder::GetIndexCount(), 0, 0);
-        else if (std::dynamic_pointer_cast<Capsule>(gameObject))
-            deviceContext.drawIndexed(Capsule::GetIndexCount(), 0, 0);
-        else if (std::dynamic_pointer_cast<Plane>(gameObject))
-            deviceContext.drawIndexed(Plane::GetIndexCount(), 0, 0);
-        else if (isCamera && isSceneView)
-            deviceContext.drawIndexed(CameraGizmo::GetIndexCount(), 0, 0);
+            // Draw the primitive
+            if (std::dynamic_pointer_cast<Cube>(gameObject))
+                deviceContext.drawIndexed(Cube::GetIndexCount(), 0, 0);
+            else if (std::dynamic_pointer_cast<Sphere>(gameObject))
+                deviceContext.drawIndexed(Sphere::GetIndexCount(), 0, 0);
+            else if (std::dynamic_pointer_cast<Cylinder>(gameObject))
+                deviceContext.drawIndexed(Cylinder::GetIndexCount(), 0, 0);
+            else if (std::dynamic_pointer_cast<Capsule>(gameObject))
+                deviceContext.drawIndexed(Capsule::GetIndexCount(), 0, 0);
+            else if (std::dynamic_pointer_cast<Plane>(gameObject))
+                deviceContext.drawIndexed(Plane::GetIndexCount(), 0, 0);
+            else if (isCamera && isSceneView)
+                deviceContext.drawIndexed(CameraGizmo::GetIndexCount(), 0, 0);
+        }
     }
 
     ID3D11BlendState* blendState = nullptr;

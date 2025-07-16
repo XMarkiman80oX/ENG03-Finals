@@ -1,5 +1,7 @@
 #pragma once
 #include <DX3D/Graphics/Shaders/Shaders.h>
+#include <DX3D/Math/Math.h>
+
 
 namespace dx3d
 {

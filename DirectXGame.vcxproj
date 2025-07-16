@@ -150,6 +150,7 @@
     <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\Cylinder.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\Sphere.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\RenderTexture.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Graphics\Shaders\ModelVertexShader.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\Texture2D.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Input\Input.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\AGameObject.cpp" />
@@ -303,9 +304,6 @@
     <Image Include="DX3D\Assets\Textures\wall.jpg" />
     <Image Include="DX3D\Assets\Textures\waveHeightMap.png" />
     <Image Include="DX3D\Assets\Textures\wood.jpg" />
-  </ItemGroup>
-  <ItemGroup>
-    <Object Include="DX3D\Source\DX3D\Assets\bunnynew.obj" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
