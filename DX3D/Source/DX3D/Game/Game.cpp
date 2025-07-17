@@ -28,6 +28,7 @@
 #include <DX3D/Graphics/Shaders/ModelShader.h>
 #include <DX3D/Graphics/Shaders/ModelVertexShader.h>
 #include <DX3D/Math/Math.h>
+#include <DX3D/Graphics/Texture2D.h>
 #include <DX3D/Particles/ParticleSystem.h>
 #include <DX3D/Particles/ParticleEffects/SnowParticle.h>
 #include <DX3D/Game/ViewportManager.h>
@@ -71,8 +72,7 @@ void dx3d::Game::createRenderingResources()
 	ID3D11Device* device = nullptr;
 	d3dContext->GetDevice(&device);
 
-	m_cubeVertexBuffer = Cube::CreateVertexBuffer(resourceDesc);
-	m_cubeIndexBuffer = Cube::CreateIndexBuffer(resourceDesc);
+	// Remove cube buffers, keep other primitives for potential use
 	m_planeVertexBuffer = Plane::CreateVertexBuffer(resourceDesc);
 	m_planeIndexBuffer = Plane::CreateIndexBuffer(resourceDesc);
 	m_sphereVertexBuffer = Sphere::CreateVertexBuffer(resourceDesc);
@@ -118,14 +118,14 @@ void dx3d::Game::createRenderingResources()
 
 	m_transformConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(TransformationMatrices), resourceDesc);
 
-	// Initialize snow configuration with proper default values
+	// Initialize snow configuration
 	m_snowConfig.position = Vector3(0.0f, 10.0f, 0.0f);
 	m_snowConfig.positionVariance = Vector3(20.0f, 0.0f, 20.0f);
 	m_snowConfig.velocity = Vector3(0.0f, -2.0f, 0.0f);
 	m_snowConfig.velocityVariance = Vector3(0.5f, 0.5f, 0.5f);
 	m_snowConfig.acceleration = Vector3(0.0f, -0.5f, 0.0f);
-	m_snowConfig.startColor = Vector4(1.0f, 1.0f, 1.0f, 0.8f);  // White
-	m_snowConfig.endColor = Vector4(0.9f, 0.9f, 1.0f, 0.0f);    // Light blue, transparent
+	m_snowConfig.startColor = Vector4(1.0f, 1.0f, 1.0f, 0.8f);
+	m_snowConfig.endColor = Vector4(0.9f, 0.9f, 1.0f, 0.0f);
 	m_snowConfig.startSize = 0.2f;
 	m_snowConfig.endSize = 0.1f;
 	m_snowConfig.lifetime = 8.0f;
@@ -133,56 +133,126 @@ void dx3d::Game::createRenderingResources()
 	m_snowConfig.emissionRate = 50.0f;
 	m_snowConfig.active = true;
 
+	// Clear game objects and create the three models
 	m_gameObjects.clear();
-	m_gameObjects.reserve(15);
+	m_gameObjects.reserve(5); // Plane + 3 models + camera
 
-	const float radius = 6.0f;
-	const int numCubes = 10;
-
-	for (int i = 0; i < numCubes; ++i)
-	{
-		float angle = (static_cast<float>(i) / numCubes) * 2.0f * 3.14159265f;
-		float x = radius * std::cos(angle);
-		float z = radius * std::sin(angle);
-
-		m_gameObjects.push_back(std::make_shared<Cube>(
-			Vector3(x, 2.0f, z),
-			Vector3(0.0f, 0.0f, 0.0f),
-			Vector3(1.5f, 1.5f, 1.5f)
-		));
-	}
-
+	// Load and create the three models
 	try
 	{
-		auto bunnyModel = Model::LoadFromFile("armadillo.obj", resourceDesc);
+		// 1. Teapot with brick texture and scale 5.0
+		auto teapotModel = Model::LoadFromFile("teapot.obj", resourceDesc);
+		if (teapotModel && teapotModel->isReadyForRendering())
+		{
+			teapotModel->setPosition(Vector3(-8.0f, 3.0f, 0.0f)); // Left side of plane
+			teapotModel->setScale(Vector3(5.0f, 5.0f, 5.0f));
+			teapotModel->setRotation(Vector3(0.0f, 0.0f, 0.0f));
+			teapotModel->setName("Teapot");
+
+			// Try to load brick texture for the teapot
+			try
+			{
+				auto brickTexture = std::make_shared<Texture2D>("DX3D/Assets/Textures/brick.png", resourceDesc);
+				if (teapotModel->getMeshCount() > 0)
+				{
+					auto mesh = teapotModel->getMesh(0);
+					if (mesh && mesh->getMaterial())
+					{
+						mesh->getMaterial()->setDiffuseTexture(brickTexture);
+						mesh->getMaterial()->setDiffuseColor(Vector4(1.0f, 1.0f, 1.0f, 1.0f)); // White to show texture properly
+					}
+				}
+				DX3DLogInfo("Brick texture loaded for teapot");
+			}
+			catch (const std::exception& e)
+			{
+				DX3DLogError(("Failed to load brick texture: " + std::string(e.what())).c_str());
+				// Set a brown color as fallback
+				if (teapotModel->getMeshCount() > 0)
+				{
+					auto mesh = teapotModel->getMesh(0);
+					if (mesh && mesh->getMaterial())
+					{
+						mesh->getMaterial()->setDiffuseColor(Vector4(0.8f, 0.4f, 0.2f, 1.0f)); // Brown color
+					}
+				}
+			}
+
+			m_gameObjects.push_back(teapotModel);
+			DX3DLogInfo("Teapot model loaded successfully!");
+		}
+		else
+		{
+			DX3DLogError("Failed to load teapot model");
+		}
+
+		// 2. Bunny with scale 10.0
+		auto bunnyModel = Model::LoadFromFile("bunnynew.obj", resourceDesc);
 		if (bunnyModel && bunnyModel->isReadyForRendering())
 		{
-			// Position the bunny in the middle of the plane, slightly above it
-			bunnyModel->setPosition(Vector3(0.0f, 1.0f, 0.0f));
-			bunnyModel->setScale(Vector3(1.0f, 1.0f, 1.0f)); // Scale it up to make it more visible
+			bunnyModel->setPosition(Vector3(0.0f, 1.0f, 0.0f)); // Center of plane
+			bunnyModel->setScale(Vector3(10.0f, 10.0f, 10.0f));
 			bunnyModel->setRotation(Vector3(0.0f, 0.0f, 0.0f));
-			bunnyModel->setName("BunnyModel");
+			bunnyModel->setName("Bunny");
+
+			// Set a nice color for the bunny
+			if (bunnyModel->getMeshCount() > 0)
+			{
+				auto mesh = bunnyModel->getMesh(0);
+				if (mesh && mesh->getMaterial())
+				{
+					mesh->getMaterial()->setDiffuseColor(Vector4(0.9f, 0.9f, 0.9f, 1.0f)); // Light gray
+				}
+			}
 
 			m_gameObjects.push_back(bunnyModel);
-
 			DX3DLogInfo("Bunny model loaded successfully!");
 		}
 		else
 		{
-			DX3DLogError("Failed to load bunny model or model is not ready for rendering");
+			DX3DLogError("Failed to load bunny model");
+		}
+
+		// 3. Armadillo with scale 0.01
+		auto armadilloModel = Model::LoadFromFile("armadillo.obj", resourceDesc);
+		if (armadilloModel && armadilloModel->isReadyForRendering())
+		{
+			armadilloModel->setPosition(Vector3(8.0f, 2.0f, 0.0f)); // Right side of plane
+			armadilloModel->setScale(Vector3(0.01f, 0.01f, 0.01f));
+			armadilloModel->setRotation(Vector3(0.0f, 0.0f, 0.0f));
+			armadilloModel->setName("Armadillo");
+
+			// Set a nice color for the armadillo
+			if (armadilloModel->getMeshCount() > 0)
+			{
+				auto mesh = armadilloModel->getMesh(0);
+				if (mesh && mesh->getMaterial())
+				{
+					mesh->getMaterial()->setDiffuseColor(Vector4(0.7f, 0.5f, 0.3f, 1.0f)); // Brownish color
+				}
+			}
+
+			m_gameObjects.push_back(armadilloModel);
+			DX3DLogInfo("Armadillo model loaded successfully!");
+		}
+		else
+		{
+			DX3DLogError("Failed to load armadillo model");
 		}
 	}
 	catch (const std::exception& e)
 	{
-		DX3DLogError(("Failed to load bunny model: " + std::string(e.what())).c_str());
+		DX3DLogError(("Failed to load one or more models: " + std::string(e.what())).c_str());
 	}
 
+	// Add the plane (ground)
 	m_gameObjects.push_back(std::make_shared<Plane>(
 		Vector3(0.0f, 0.0f, 0.0f),
-		Vector3(-1.5708f, 0.0f, 0.0f),
+		Vector3(-1.5708f, 0.0f, 0.0f), // 90 degrees rotation to make it horizontal
 		Vector3(15.0f, 15.0f, 1.0f)
 	));
 
+	// Add game camera
 	m_gameCamera = std::make_shared<CameraObject>(
 		Vector3(12.0f, 8.0f, -12.0f),
 		Vector3(0.0f, 0.0f, 0.0f)
@@ -190,6 +260,7 @@ void dx3d::Game::createRenderingResources()
 	m_gameCamera->getCamera().lookAt(Vector3(0.0f, 2.0f, 0.0f));
 	m_gameObjects.push_back(m_gameCamera);
 
+	// Set up scene camera
 	m_sceneCamera = std::make_unique<Camera>(
 		Vector3(15.0f, 10.0f, -15.0f),
 		Vector3(0.0f, 2.0f, 0.0f)
@@ -208,6 +279,7 @@ void dx3d::Game::createRenderingResources()
 
 	m_selectionSystem = std::make_unique<SelectionSystem>();
 
+	// Initialize particle system
 	ParticleSystem::getInstance().initialize(*m_graphicsEngine);
 
 	ParticleEmitter::EmitterConfig snowConfig;
@@ -231,6 +303,7 @@ void dx3d::Game::createRenderingResources()
 		createSnowParticle
 	);
 
+	// Initialize ImGui
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
@@ -249,6 +322,7 @@ void dx3d::Game::processInput(float deltaTime)
 	auto& input = Input::getInstance();
 	auto& sceneViewport = m_viewportManager->getViewport(ViewportType::Scene);
 
+	// Scene camera controls (when right mouse button is held and scene viewport is focused)
 	if (sceneViewport.isFocused && input.isMouseButtonPressed(MouseButton::Right))
 	{
 		float moveSpeed = m_cameraSpeed * deltaTime;
@@ -268,6 +342,7 @@ void dx3d::Game::processInput(float deltaTime)
 		}
 	}
 
+	// Object selection in scene viewport
 	if (sceneViewport.isHovered && input.isMouseButtonJustPressed(MouseButton::Left))
 	{
 		auto picked = m_selectionSystem->pickObject(
@@ -281,36 +356,14 @@ void dx3d::Game::processInput(float deltaTime)
 		m_selectionSystem->setSelectedObject(picked);
 	}
 
-	if (input.isKeyPressed(KeyCode::W))
-	{
-		Vector3 rotationDelta(m_cubeRotationSpeed * deltaTime, m_cubeRotationSpeed * deltaTime, m_cubeRotationSpeed * deltaTime);
-		for (size_t i = 0; i < m_gameObjects.size() - 2; ++i)
-		{
-			if (std::dynamic_pointer_cast<Cube>(m_gameObjects[i]))
-			{
-				m_gameObjects[i]->rotate(rotationDelta);
-			}
-		}
-	}
-
-	if (input.isKeyPressed(KeyCode::S))
-	{
-		Vector3 rotationDelta(-m_cubeRotationSpeed * deltaTime, -m_cubeRotationSpeed * deltaTime, -m_cubeRotationSpeed * deltaTime);
-		for (size_t i = 0; i < m_gameObjects.size() - 2; ++i)
-		{
-			if (std::dynamic_pointer_cast<Cube>(m_gameObjects[i]))
-			{
-				m_gameObjects[i]->rotate(rotationDelta);
-			}
-		}
-	}
-
+	// Reset scene camera
 	if (input.isKeyJustPressed(KeyCode::R))
 	{
 		m_sceneCamera->setPosition(Vector3(15.0f, 10.0f, -15.0f));
 		m_sceneCamera->lookAt(Vector3(0.0f, 2.0f, 0.0f));
 	}
 
+	// Exit application
 	if (input.isKeyPressed(KeyCode::Escape))
 	{
 		m_isRunning = false;
@@ -497,6 +550,15 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
 						materialConstants.specularPower = mesh->getMaterial()->getSpecularPower();
 						materialConstants.opacity = mesh->getMaterial()->getOpacity();
 						materialConstants.hasTexture = mesh->getMaterial()->hasDiffuseTexture();
+
+						// Debug output for teapot
+						if (model->getName() == "Teapot")
+						{
+							printf("Teapot hasTexture: %s\n", materialConstants.hasTexture ? "true" : "false");
+							printf("Teapot diffuseColor: (%.2f, %.2f, %.2f, %.2f)\n",
+								materialConstants.diffuseColor.x, materialConstants.diffuseColor.y,
+								materialConstants.diffuseColor.z, materialConstants.diffuseColor.w);
+						}
 					}
 					else
 					{
@@ -513,6 +575,22 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
 					m_modelMaterialConstantBuffer->update(deviceContext, &materialConstants);
 					ID3D11Buffer* materialCb = m_modelMaterialConstantBuffer->getBuffer();
 					d3dContext->PSSetConstantBuffers(1, 1, &materialCb);
+
+					// Bind texture if available
+					if (mesh->getMaterial() && mesh->getMaterial()->hasDiffuseTexture())
+					{
+						auto texture = mesh->getMaterial()->getDiffuseTexture();
+						ID3D11ShaderResourceView* srv = texture->getShaderResourceView();
+						ID3D11SamplerState* sampler = texture->getSamplerState();
+						d3dContext->PSSetShaderResources(0, 1, &srv);
+						d3dContext->PSSetSamplers(0, 1, &sampler);
+					}
+					else
+					{
+						// Clear texture binding if no texture
+						ID3D11ShaderResourceView* nullSRV = nullptr;
+						d3dContext->PSSetShaderResources(0, 1, &nullSRV);
+					}
 
 					// Set vertex and index buffers
 					deviceContext.setVertexBuffer(*mesh->getVertexBuffer());
@@ -554,13 +632,7 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
 		bool bufferSet = false;
 		ui32 indexCount = 0;
 
-		if (auto cube = std::dynamic_pointer_cast<Cube>(gameObject)) {
-			deviceContext.setVertexBuffer(*m_cubeVertexBuffer);
-			deviceContext.setIndexBuffer(*m_cubeIndexBuffer);
-			indexCount = Cube::GetIndexCount();
-			bufferSet = true;
-		}
-		else if (auto sphere = std::dynamic_pointer_cast<Sphere>(gameObject)) {
+		if (auto sphere = std::dynamic_pointer_cast<Sphere>(gameObject)) {
 			deviceContext.setVertexBuffer(*m_sphereVertexBuffer);
 			deviceContext.setIndexBuffer(*m_sphereIndexBuffer);
 			indexCount = Sphere::GetIndexCount();
