@@ -213,7 +213,7 @@ void dx3d::Game::createRenderingResources()
 			DX3DLogError("Failed to load bunny model");
 		}
 
-		// 3. Armadillo with scale 0.01
+		// 3. Armadillo with scale 0.01 - let it use its MTL file
 		auto armadilloModel = Model::LoadFromFile("armadillo.obj", resourceDesc);
 		if (armadilloModel && armadilloModel->isReadyForRendering())
 		{
@@ -222,15 +222,8 @@ void dx3d::Game::createRenderingResources()
 			armadilloModel->setRotation(Vector3(0.0f, 0.0f, 0.0f));
 			armadilloModel->setName("Armadillo");
 
-			// Set a nice color for the armadillo
-			if (armadilloModel->getMeshCount() > 0)
-			{
-				auto mesh = armadilloModel->getMesh(0);
-				if (mesh && mesh->getMaterial())
-				{
-					mesh->getMaterial()->setDiffuseColor(Vector4(0.7f, 0.5f, 0.3f, 1.0f)); // Brownish color
-				}
-			}
+			// Don't override material - let it use the MTL file materials
+			// The enhanced ModelLoader will load the armadillo.mtl file automatically
 
 			m_gameObjects.push_back(armadilloModel);
 			DX3DLogInfo("Armadillo model loaded successfully!");
@@ -356,7 +349,7 @@ void dx3d::Game::processInput(float deltaTime)
 		m_selectionSystem->setSelectedObject(picked);
 	}
 
-	// NEW: Delete selected object with Delete key
+	// Delete selected object with Delete key
 	if (input.isKeyJustPressed(KeyCode::Delete))
 	{
 		auto selectedObject = m_selectionSystem->getSelectedObject();
@@ -372,7 +365,7 @@ void dx3d::Game::processInput(float deltaTime)
 		}
 	}
 
-	// NEW: Duplicate selected object with Ctrl+D
+	// Duplicate selected object with Ctrl+D
 	if (input.isKeyPressed(KeyCode::Control) && input.isKeyJustPressed(KeyCode::D))
 	{
 		auto selectedObject = m_selectionSystem->getSelectedObject();
@@ -434,8 +427,6 @@ void dx3d::Game::debugRenderInfo()
 	printf("==========================\n");
 }
 
-// Add this renderScene method to your Game.cpp file
-
 void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, RenderTexture* renderTarget)
 {
 	auto& renderSystem = m_graphicsEngine->getRenderSystem();
@@ -476,15 +467,9 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
 		if (!isSceneView && isCamera)
 			continue;
 
-		// Handle Model objects (like the bunny)
+		// Handle Model objects
 		if (auto model = std::dynamic_pointer_cast<Model>(gameObject))
 		{
-			if (model->getName() == "BunnyModel")
-			{
-				const auto& pos = model->getPosition();
-				printf("Rendering Bunny at position: (%.2f, %.2f, %.2f)\n", pos.x, pos.y, pos.z);
-			}
-
 			// Set model shaders
 			deviceContext.setVertexShader(m_modelVertexShader->getShader());
 			deviceContext.setPixelShader(m_modelPixelShader->getShader());
@@ -514,15 +499,6 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
 						materialConstants.specularPower = mesh->getMaterial()->getSpecularPower();
 						materialConstants.opacity = mesh->getMaterial()->getOpacity();
 						materialConstants.hasTexture = mesh->getMaterial()->hasDiffuseTexture();
-
-						// Debug output for teapot
-						if (model->getName() == "Teapot")
-						{
-							printf("Teapot hasTexture: %s\n", materialConstants.hasTexture ? "true" : "false");
-							printf("Teapot diffuseColor: (%.2f, %.2f, %.2f, %.2f)\n",
-								materialConstants.diffuseColor.x, materialConstants.diffuseColor.y,
-								materialConstants.diffuseColor.z, materialConstants.diffuseColor.w);
-						}
 					}
 					else
 					{
@@ -708,8 +684,6 @@ void dx3d::Game::updateSnowEmitter()
 	ParticleSystem::getInstance().removeEmitter("snow");
 	ParticleSystem::getInstance().createEmitter("snow", newConfig, createSnowParticle);
 }
-
-// Updated Game.cpp with Scene Hierarchy and new UI layout
 
 void dx3d::Game::renderUI()
 {
@@ -976,7 +950,8 @@ void dx3d::Game::renderInspector()
 		}
 
 		Vector3 scale = selectedObject->getScale();
-		if (ImGui::DragFloat3("Scale", &scale.x, 0.1f, 0.1f, 10.0f))
+		// FIXED: Remove scale limits - allow unlimited scaling
+		if (ImGui::DragFloat3("Scale", &scale.x, 0.01f))
 		{
 			selectedObject->setScale(scale);
 		}

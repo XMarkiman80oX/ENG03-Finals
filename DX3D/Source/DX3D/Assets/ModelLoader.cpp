@@ -1,3 +1,5 @@
+// Enhanced ModelLoader.cpp implementation
+
 #include <DX3D/Assets/ModelLoader.h>
 #include <DX3D/Graphics/Texture2D.h>
 #include <fstream>
@@ -35,6 +37,113 @@ std::string ModelLoader::getAssetPath(const std::string& relativePath)
     }
 
     return "DX3D/Assets/Models/" + relativePath;
+}
+
+std::shared_ptr<Material> ModelLoader::loadMaterial(
+    const std::string& materialName,
+    const std::string& materialFile,
+    const std::string& baseDirectory,
+    const GraphicsResourceDesc& resourceDesc)
+{
+    // Check cache first
+    std::string cacheKey = baseDirectory + materialName;
+    auto it = s_materialCache.find(cacheKey);
+    if (it != s_materialCache.end()) {
+        return it->second;
+    }
+
+    auto material = std::make_shared<Material>(materialName);
+
+    // Try to load material file if it exists
+    std::string mtlPath = baseDirectory + materialFile;
+    std::ifstream mtlFile(mtlPath);
+
+    if (mtlFile.is_open()) {
+        printf("Loading MTL file: %s\n", mtlPath.c_str());
+
+        std::string line;
+        bool foundMaterial = false;
+
+        while (std::getline(mtlFile, line)) {
+            if (line.empty() || line[0] == '#') continue;
+
+            std::istringstream iss(line);
+            std::string command;
+            iss >> command;
+
+            if (command == "newmtl") {
+                std::string name;
+                iss >> name;
+                foundMaterial = (name == materialName);
+            }
+            else if (foundMaterial) {
+                if (command == "Ka") {
+                    float r, g, b;
+                    iss >> r >> g >> b;
+                    material->setAmbientColor(Vector4(r, g, b, 1.0f));
+                }
+                else if (command == "Kd") {
+                    float r, g, b;
+                    iss >> r >> g >> b;
+                    material->setDiffuseColor(Vector4(r, g, b, 1.0f));
+                }
+                else if (command == "Ks") {
+                    float r, g, b;
+                    iss >> r >> g >> b;
+                    material->setSpecularColor(Vector4(r, g, b, 1.0f));
+                }
+                else if (command == "Ke") {
+                    float r, g, b;
+                    iss >> r >> g >> b;
+                    material->setEmissiveColor(Vector4(r, g, b, 1.0f));
+                }
+                else if (command == "Ns") {
+                    float shininess;
+                    iss >> shininess;
+                    material->setSpecularPower(shininess);
+                }
+                else if (command == "d" || command == "Tr") {
+                    float opacity;
+                    iss >> opacity;
+                    if (command == "Tr") opacity = 1.0f - opacity; // Tr is transparency, d is opacity
+                    material->setOpacity(opacity);
+                }
+                else if (command == "map_Kd") {
+                    std::string texturePath;
+                    iss >> texturePath;
+
+                    // Try different texture paths
+                    std::vector<std::string> texturePaths = {
+                        baseDirectory + texturePath,
+                        baseDirectory + "../Textures/" + texturePath,
+                        "DX3D/Assets/Textures/" + texturePath,
+                        "DX3D/Assets/Models/Textures/" + texturePath
+                    };
+
+                    for (const auto& path : texturePaths) {
+                        try {
+                            auto texture = std::make_shared<Texture2D>(path, resourceDesc);
+                            material->setDiffuseTexture(texture);
+                            printf("Loaded texture for %s: %s\n", materialName.c_str(), path.c_str());
+                            break;
+                        }
+                        catch (const std::exception& e) {
+                            // Try next path
+                            continue;
+                        }
+                    }
+                }
+            }
+        }
+        mtlFile.close();
+    }
+    else {
+        printf("Could not open MTL file: %s\n", mtlPath.c_str());
+    }
+
+    // Cache the material
+    s_materialCache[cacheKey] = material;
+    return material;
 }
 
 std::shared_ptr<Model> ModelLoader::createDefaultModel(const GraphicsResourceDesc& resourceDesc)
@@ -114,6 +223,7 @@ bool ModelLoader::loadOBJ(
 {
     try {
         std::string fullPath = getAssetPath(filePath);
+        std::string baseDirectory = getDirectory(fullPath);
 
         std::ifstream testFile(fullPath);
         if (!testFile.good()) {
@@ -145,23 +255,62 @@ bool ModelLoader::loadOBJ(
             return false;
         }
 
+        // Load materials properly
         std::vector<std::shared_ptr<Material>> loadedMaterials;
 
         for (const auto& mat : materials) {
             try {
                 auto material = std::make_shared<Material>(mat.name);
+
+                // Set basic material properties from tinyobj data
                 material->setDiffuseColor(Vector4(mat.diffuse[0], mat.diffuse[1], mat.diffuse[2], 1.0f));
+                material->setAmbientColor(Vector4(mat.ambient[0], mat.ambient[1], mat.ambient[2], 1.0f));
+                material->setSpecularColor(Vector4(mat.specular[0], mat.specular[1], mat.specular[2], 1.0f));
+                material->setEmissiveColor(Vector4(mat.emission[0], mat.emission[1], mat.emission[2], 1.0f));
+                material->setSpecularPower(mat.shininess);
+                material->setOpacity(mat.dissolve);
+
+                // Try to load diffuse texture if specified
+                if (!mat.diffuse_texname.empty()) {
+                    std::vector<std::string> texturePaths = {
+                        baseDirectory + mat.diffuse_texname,
+                        baseDirectory + "../Textures/" + mat.diffuse_texname,
+                        "DX3D/Assets/Textures/" + mat.diffuse_texname,
+                        "DX3D/Assets/Models/Textures/" + mat.diffuse_texname
+                    };
+
+                    for (const auto& path : texturePaths) {
+                        try {
+                            auto texture = std::make_shared<Texture2D>(path, resourceDesc);
+                            material->setDiffuseTexture(texture);
+                            printf("Loaded texture for %s: %s\n", mat.name.c_str(), path.c_str());
+                            break;
+                        }
+                        catch (const std::exception& e) {
+                            continue; // Try next path
+                        }
+                    }
+                }
+
                 loadedMaterials.push_back(material);
+                printf("Loaded material: %s\n", mat.name.c_str());
             }
-            catch (...) {
-                printf("Error loading material, skipping\n");
+            catch (const std::exception& e) {
+                printf("Error loading material %s: %s\n", mat.name.c_str(), e.what());
+                // Create a default material
+                auto defaultMat = std::make_shared<Material>(mat.name);
+                defaultMat->setDiffuseColor(Vector4(0.7f, 0.7f, 0.7f, 1.0f));
+                loadedMaterials.push_back(defaultMat);
             }
         }
 
         if (loadedMaterials.empty()) {
-            loadedMaterials.push_back(std::make_shared<Material>("Default"));
+            auto defaultMat = std::make_shared<Material>("Default");
+            defaultMat->setDiffuseColor(Vector4(0.7f, 0.7f, 0.7f, 1.0f));
+            loadedMaterials.push_back(defaultMat);
         }
 
+        // Process shapes
         for (size_t s = 0; s < shapes.size(); s++) {
             try {
                 const auto& shape = shapes[s];
@@ -176,7 +325,6 @@ bool ModelLoader::loadOBJ(
 
                     for (int v = 0; v < fv; v++) {
                         if (index_offset + v >= shape.mesh.indices.size()) {
-                            printf("Index out of bounds, skipping face\n");
                             continue;
                         }
 
@@ -213,17 +361,22 @@ bool ModelLoader::loadOBJ(
                 if (!vertices.empty() && !indices.empty()) {
                     auto mesh = std::make_shared<Mesh>("Mesh_" + std::to_string(s));
                     mesh->createRenderingResources(vertices, indices, resourceDesc);
-                    mesh->setMaterial(loadedMaterials[0]);
+
+                    // Assign material if available
+                    if (!shape.mesh.material_ids.empty() && shape.mesh.material_ids[0] >= 0 &&
+                        shape.mesh.material_ids[0] < loadedMaterials.size()) {
+                        mesh->setMaterial(loadedMaterials[shape.mesh.material_ids[0]]);
+                    }
+                    else {
+                        mesh->setMaterial(loadedMaterials[0]);
+                    }
+
                     model->addMesh(mesh);
                     printf("Created mesh %zu with %zu vertices\n", s, vertices.size());
                 }
             }
             catch (const std::exception& e) {
                 printf("Error processing shape %zu: %s\n", s, e.what());
-                continue;
-            }
-            catch (...) {
-                printf("Unknown error processing shape %zu\n", s);
                 continue;
             }
         }
