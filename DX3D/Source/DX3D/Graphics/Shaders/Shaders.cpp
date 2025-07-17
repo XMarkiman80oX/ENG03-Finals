@@ -63,17 +63,19 @@ dx3d::VertexShader::VertexShader(const GraphicsResourceDesc& desc, const char* s
         );
         DX3DLogInfo("Vertex shader created successfully.");
 
-        // Define input layout
+        // Define input layout - UPDATED to include all 4 fields
         D3D11_INPUT_ELEMENT_DESC layout[] = {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+            { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 28, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 40, D3D11_INPUT_PER_VERTEX_DATA, 0 }
         };
 
-        // Create input layout
+        // Create input layout - UPDATED element count to 4
         DX3DGraphicsLogErrorAndThrow(
             m_device.CreateInputLayout(
                 layout,
-                2,
+                4,  // Changed from 2 to 4
                 m_blob->GetBufferPointer(),
                 m_blob->GetBufferSize(),
                 &m_inputLayout

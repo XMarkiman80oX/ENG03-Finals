@@ -77,6 +77,7 @@ namespace dx3d
         void update();
         void processInput(float deltaTime);
         void updateSnowEmitter();
+        void debugRenderInfo();
 
     private:
         std::unique_ptr<Logger> m_loggerPtr{};
