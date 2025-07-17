@@ -114,6 +114,7 @@ void dx3d::Game::createRenderingResources()
 	m_fogPixelShader = std::make_shared<PixelShader>(resourceDesc, FogShader::GetPixelShaderCode());
 	m_fogConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(FogShaderConstants), resourceDesc);
 	m_materialConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(FogMaterialConstants), resourceDesc);
+	m_modelMaterialConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(ModelMaterialConstants), resourceDesc);
 
 	m_transformConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(TransformationMatrices), resourceDesc);
 
@@ -153,16 +154,14 @@ void dx3d::Game::createRenderingResources()
 
 	try
 	{
-		auto bunnyModel = Model::LoadFromFile("bunnynew.obj", resourceDesc);
+		auto bunnyModel = Model::LoadFromFile("armadillo.obj", resourceDesc);
 		if (bunnyModel && bunnyModel->isReadyForRendering())
 		{
 			// Position the bunny in the middle of the plane, slightly above it
 			bunnyModel->setPosition(Vector3(0.0f, 1.0f, 0.0f));
-			bunnyModel->setScale(Vector3(10.0f, 10.0f, 10.0f)); // Scale it up to make it more visible
+			bunnyModel->setScale(Vector3(1.0f, 1.0f, 1.0f)); // Scale it up to make it more visible
 			bunnyModel->setRotation(Vector3(0.0f, 0.0f, 0.0f));
 			bunnyModel->setName("BunnyModel");
-
-
 
 			m_gameObjects.push_back(bunnyModel);
 
@@ -428,14 +427,14 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
 
 	if (renderTarget)
 	{
-		// Clear with a distinctive color for debugging
-		renderTarget->clear(deviceContext, 0.1f, 0.8f, 0.1f, 1.0f); // Green background
+		// Clear with a neutral color for debugging
+		renderTarget->clear(deviceContext, 0.2f, 0.2f, 0.2f, 1.0f); // Dark gray background
 		renderTarget->setAsRenderTarget(deviceContext);
 	}
 	else
 	{
 		auto& swapChain = m_display->getSwapChain();
-		deviceContext.clearRenderTargetColor(swapChain, 0.8f, 0.1f, 0.1f, 1.0f); // Red background
+		deviceContext.clearRenderTargetColor(swapChain, 0.2f, 0.2f, 0.2f, 1.0f); // Dark gray background
 		deviceContext.clearDepthBuffer(*m_depthBuffer);
 		deviceContext.setRenderTargetsWithDepth(swapChain, *m_depthBuffer);
 	}
@@ -449,24 +448,6 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
 	ID3D11Buffer* transformCb = m_transformConstantBuffer->getBuffer();
 	d3dContext->VSSetConstantBuffers(0, 1, &transformCb);
 
-	// Use fog shader for all objects first to debug
-	deviceContext.setVertexShader(m_fogVertexShader->getShader());
-	deviceContext.setPixelShader(m_fogPixelShader->getShader());
-	deviceContext.setInputLayout(m_fogVertexShader->getInputLayout());
-
-	FogShaderConstants fsc = {};
-	fsc.fogColor = Vector4(0.2f, 0.3f, 0.4f, 1.0f); // Fixed fog color
-	fsc.cameraPosition = camera.getPosition();
-	fsc.fogStart = 5.0f;
-	fsc.fogEnd = 25.0f;
-	fsc.fogEnabled = false; // Disable fog for debugging
-	m_fogConstantBuffer->update(deviceContext, &fsc);
-
-	ID3D11Buffer* fogCb = m_fogConstantBuffer->getBuffer();
-	d3dContext->PSSetConstantBuffers(1, 1, &fogCb);
-	ID3D11Buffer* materialCb = m_materialConstantBuffer->getBuffer();
-	d3dContext->PSSetConstantBuffers(2, 1, &materialCb);
-
 	d3dContext->OMSetDepthStencilState(m_solidDepthState, 0);
 
 	bool isSceneView = (&camera == m_sceneCamera.get());
@@ -478,22 +459,96 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
 		if (!isSceneView && isCamera)
 			continue;
 
+		// Handle Model objects (like the bunny)
 		if (auto model = std::dynamic_pointer_cast<Model>(gameObject))
 		{
 			if (model->getName() == "BunnyModel")
 			{
 				const auto& pos = model->getPosition();
-				printf("Bunny position: (%.2f, %.2f, %.2f)\n", pos.x, pos.y, pos.z);
+				printf("Rendering Bunny at position: (%.2f, %.2f, %.2f)\n", pos.x, pos.y, pos.z);
 			}
-			continue;
+
+			// Set model shaders
+			deviceContext.setVertexShader(m_modelVertexShader->getShader());
+			deviceContext.setPixelShader(m_modelPixelShader->getShader());
+			deviceContext.setInputLayout(m_modelVertexShader->getInputLayout());
+
+			// Set up transformation matrices
+			TransformationMatrices transformMatrices;
+			transformMatrices.world = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(gameObject->getWorldMatrix().toXMMatrix()));
+			transformMatrices.view = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(camera.getViewMatrix().toXMMatrix()));
+			transformMatrices.projection = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(projMatrix.toXMMatrix()));
+			m_transformConstantBuffer->update(deviceContext, &transformMatrices);
+
+			// Render each mesh in the model
+			for (size_t i = 0; i < model->getMeshCount(); ++i)
+			{
+				auto mesh = model->getMesh(i);
+				if (mesh && mesh->isReadyForRendering())
+				{
+					// Set material constants
+					ModelMaterialConstants materialConstants = {};
+					if (mesh->getMaterial())
+					{
+						materialConstants.diffuseColor = mesh->getMaterial()->getDiffuseColor();
+						materialConstants.ambientColor = mesh->getMaterial()->getAmbientColor();
+						materialConstants.specularColor = mesh->getMaterial()->getSpecularColor();
+						materialConstants.emissiveColor = mesh->getMaterial()->getEmissiveColor();
+						materialConstants.specularPower = mesh->getMaterial()->getSpecularPower();
+						materialConstants.opacity = mesh->getMaterial()->getOpacity();
+						materialConstants.hasTexture = mesh->getMaterial()->hasDiffuseTexture();
+					}
+					else
+					{
+						// Default material
+						materialConstants.diffuseColor = Vector4(0.7f, 0.7f, 0.7f, 1.0f);
+						materialConstants.ambientColor = Vector4(0.2f, 0.2f, 0.2f, 1.0f);
+						materialConstants.specularColor = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+						materialConstants.emissiveColor = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
+						materialConstants.specularPower = 32.0f;
+						materialConstants.opacity = 1.0f;
+						materialConstants.hasTexture = false;
+					}
+
+					m_modelMaterialConstantBuffer->update(deviceContext, &materialConstants);
+					ID3D11Buffer* materialCb = m_modelMaterialConstantBuffer->getBuffer();
+					d3dContext->PSSetConstantBuffers(1, 1, &materialCb);
+
+					// Set vertex and index buffers
+					deviceContext.setVertexBuffer(*mesh->getVertexBuffer());
+					deviceContext.setIndexBuffer(*mesh->getIndexBuffer());
+
+					// Draw the mesh
+					deviceContext.drawIndexed(mesh->getIndexCount(), 0, 0);
+					objectsRendered++;
+				}
+			}
+			continue; // Move to next game object
 		}
 
+		// Handle primitive objects (cubes, spheres, etc.)
+		// Use fog shader for primitives
+		deviceContext.setVertexShader(m_fogVertexShader->getShader());
+		deviceContext.setPixelShader(m_fogPixelShader->getShader());
+		deviceContext.setInputLayout(m_fogVertexShader->getInputLayout());
 
-		// Handle primitive objects
+		FogShaderConstants fsc = {};
+		fsc.fogColor = Vector4(0.2f, 0.3f, 0.4f, 1.0f);
+		fsc.cameraPosition = camera.getPosition();
+		fsc.fogStart = 5.0f;
+		fsc.fogEnd = 25.0f;
+		fsc.fogEnabled = false; // Disable fog for debugging
+		m_fogConstantBuffer->update(deviceContext, &fsc);
+
+		ID3D11Buffer* fogCb = m_fogConstantBuffer->getBuffer();
+		d3dContext->PSSetConstantBuffers(1, 1, &fogCb);
+
 		FogMaterialConstants fmc = {};
-		fmc.useVertexColor = true; // Always use vertex color for debugging
-		fmc.baseColor = { 1.0f, 0.0f, 0.0f, 1.0f }; // Red color
+		fmc.useVertexColor = true; // Use vertex colors for primitives
+		fmc.baseColor = { 1.0f, 1.0f, 1.0f, 1.0f }; // White base color
 		m_materialConstantBuffer->update(deviceContext, &fmc);
+		ID3D11Buffer* materialCb = m_materialConstantBuffer->getBuffer();
+		d3dContext->PSSetConstantBuffers(2, 1, &materialCb);
 
 		// Set vertex and index buffers
 		bool bufferSet = false;
@@ -520,7 +575,7 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
 
 		if (bufferSet)
 		{
-			// Set up transformation matrices with debugging
+			// Set up transformation matrices
 			TransformationMatrices transformMatrices;
 			transformMatrices.world = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(gameObject->getWorldMatrix().toXMMatrix()));
 			transformMatrices.view = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(camera.getViewMatrix().toXMMatrix()));

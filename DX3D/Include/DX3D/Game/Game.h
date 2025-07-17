@@ -118,6 +118,7 @@ namespace dx3d
         std::shared_ptr<PixelShader> m_fogPixelShader;
         std::shared_ptr<ConstantBuffer> m_fogConstantBuffer;
         std::shared_ptr<ConstantBuffer> m_materialConstantBuffer;
+        std::shared_ptr<ConstantBuffer> m_modelMaterialConstantBuffer;
 
         std::shared_ptr<VertexShader> m_modelVertexShader;
         std::shared_ptr<PixelShader> m_modelPixelShader;
