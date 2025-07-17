@@ -78,6 +78,12 @@ namespace dx3d
         void processInput(float deltaTime);
         void updateSnowEmitter();
         void debugRenderInfo();
+        void renderSceneHierarchy();        
+        void renderInspector();
+
+        std::string getObjectDisplayName(std::shared_ptr<AGameObject> object, int index);
+        std::string getObjectIcon(std::shared_ptr<AGameObject> object);
+        std::shared_ptr<AGameObject> createObjectCopy(std::shared_ptr<AGameObject> original);
 
     private:
         std::unique_ptr<Logger> m_loggerPtr{};

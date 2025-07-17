@@ -26,6 +26,7 @@ namespace dx3d
         Shift = VK_SHIFT,
         Control = VK_CONTROL,
         Alt = VK_MENU,
+        Delete = VK_DELETE,   
 
         // Arrow keys
         Left = VK_LEFT,

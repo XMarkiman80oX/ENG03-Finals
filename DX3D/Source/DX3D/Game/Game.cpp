@@ -356,6 +356,40 @@ void dx3d::Game::processInput(float deltaTime)
 		m_selectionSystem->setSelectedObject(picked);
 	}
 
+	// NEW: Delete selected object with Delete key
+	if (input.isKeyJustPressed(KeyCode::Delete))
+	{
+		auto selectedObject = m_selectionSystem->getSelectedObject();
+		if (selectedObject)
+		{
+			// Find and remove the selected object
+			auto it = std::find(m_gameObjects.begin(), m_gameObjects.end(), selectedObject);
+			if (it != m_gameObjects.end())
+			{
+				m_gameObjects.erase(it);
+				m_selectionSystem->setSelectedObject(nullptr);
+			}
+		}
+	}
+
+	// NEW: Duplicate selected object with Ctrl+D
+	if (input.isKeyPressed(KeyCode::Control) && input.isKeyJustPressed(KeyCode::D))
+	{
+		auto selectedObject = m_selectionSystem->getSelectedObject();
+		if (selectedObject)
+		{
+			auto newObject = createObjectCopy(selectedObject);
+			if (newObject)
+			{
+				Vector3 pos = selectedObject->getPosition();
+				pos.x += 1.0f; // Offset the duplicate
+				newObject->setPosition(pos);
+				m_gameObjects.push_back(newObject);
+				m_selectionSystem->setSelectedObject(newObject); // Select the new object
+			}
+		}
+	}
+
 	// Reset scene camera
 	if (input.isKeyJustPressed(KeyCode::R))
 	{
@@ -400,77 +434,7 @@ void dx3d::Game::debugRenderInfo()
 	printf("==========================\n");
 }
 
-void dx3d::Game::update()
-{
-	auto currentTime = std::chrono::steady_clock::now();
-	m_deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - m_previousTime).count() / 1000000.0f;
-	m_previousTime = currentTime;
-
-	// Add debug info (call only once)
-	static bool debugPrinted = false;
-	if (!debugPrinted)
-	{
-		debugRenderInfo();
-		debugPrinted = true;
-	}
-
-	ImGui_ImplDX11_NewFrame();
-	ImGui_ImplWin32_NewFrame();
-	ImGui::NewFrame();
-
-	processInput(m_deltaTime);
-	m_sceneCamera->update();
-
-	for (auto& gameObject : m_gameObjects)
-	{
-		gameObject->update(m_deltaTime);
-	}
-
-	ParticleSystem::getInstance().update(m_deltaTime);
-
-	if (auto snowEmitter = ParticleSystem::getInstance().getEmitter("snow"))
-	{
-		snowEmitter->setPosition(m_snowConfig.position);
-	}
-}
-
-void dx3d::Game::updateSnowEmitter()
-{
-	auto snowEmitter = ParticleSystem::getInstance().getEmitter("snow");
-	if (!snowEmitter)
-		return;
-
-	if (m_snowConfig.active)
-	{
-		snowEmitter->start();
-	}
-	else
-	{
-		snowEmitter->stop();
-		return;
-	}
-
-	snowEmitter->setEmissionRate(m_snowConfig.emissionRate);
-
-	ParticleEmitter::EmitterConfig newConfig;
-	newConfig.position = m_snowConfig.position;
-	newConfig.positionVariance = m_snowConfig.positionVariance;
-	newConfig.velocity = m_snowConfig.velocity;
-	newConfig.velocityVariance = m_snowConfig.velocityVariance;
-	newConfig.acceleration = m_snowConfig.acceleration;
-	newConfig.startColor = m_snowConfig.startColor;
-	newConfig.endColor = m_snowConfig.endColor;
-	newConfig.startSize = m_snowConfig.startSize;
-	newConfig.endSize = m_snowConfig.endSize;
-	newConfig.lifetime = m_snowConfig.lifetime;
-	newConfig.lifetimeVariance = m_snowConfig.lifetimeVariance;
-	newConfig.emissionRate = m_snowConfig.emissionRate;
-	newConfig.maxParticles = 2000;
-	newConfig.loop = true;
-
-	ParticleSystem::getInstance().removeEmitter("snow");
-	ParticleSystem::getInstance().createEmitter("snow", newConfig, createSnowParticle);
-}
+// Add this renderScene method to your Game.cpp file
 
 void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, RenderTexture* renderTarget)
 {
@@ -644,6 +608,18 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
 			indexCount = Plane::GetIndexCount();
 			bufferSet = true;
 		}
+		else if (auto cylinder = std::dynamic_pointer_cast<Cylinder>(gameObject)) {
+			deviceContext.setVertexBuffer(*m_cylinderVertexBuffer);
+			deviceContext.setIndexBuffer(*m_cylinderIndexBuffer);
+			indexCount = Cylinder::GetIndexCount();
+			bufferSet = true;
+		}
+		else if (auto capsule = std::dynamic_pointer_cast<Capsule>(gameObject)) {
+			deviceContext.setVertexBuffer(*m_capsuleVertexBuffer);
+			deviceContext.setIndexBuffer(*m_capsuleIndexBuffer);
+			indexCount = Capsule::GetIndexCount();
+			bufferSet = true;
+		}
 
 		if (bufferSet)
 		{
@@ -661,19 +637,115 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
 	}
 }
 
+void dx3d::Game::update()
+{
+	auto currentTime = std::chrono::steady_clock::now();
+	m_deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - m_previousTime).count() / 1000000.0f;
+	m_previousTime = currentTime;
+
+	// Add debug info (call only once)
+	static bool debugPrinted = false;
+	if (!debugPrinted)
+	{
+		debugRenderInfo();
+		debugPrinted = true;
+	}
+
+	ImGui_ImplDX11_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+
+	processInput(m_deltaTime);
+	m_sceneCamera->update();
+
+	for (auto& gameObject : m_gameObjects)
+	{
+		gameObject->update(m_deltaTime);
+	}
+
+	ParticleSystem::getInstance().update(m_deltaTime);
+
+	if (auto snowEmitter = ParticleSystem::getInstance().getEmitter("snow"))
+	{
+		snowEmitter->setPosition(m_snowConfig.position);
+	}
+}
+
+void dx3d::Game::updateSnowEmitter()
+{
+	auto snowEmitter = ParticleSystem::getInstance().getEmitter("snow");
+	if (!snowEmitter)
+		return;
+
+	if (m_snowConfig.active)
+	{
+		snowEmitter->start();
+	}
+	else
+	{
+		snowEmitter->stop();
+		return;
+	}
+
+	snowEmitter->setEmissionRate(m_snowConfig.emissionRate);
+
+	ParticleEmitter::EmitterConfig newConfig;
+	newConfig.position = m_snowConfig.position;
+	newConfig.positionVariance = m_snowConfig.positionVariance;
+	newConfig.velocity = m_snowConfig.velocity;
+	newConfig.velocityVariance = m_snowConfig.velocityVariance;
+	newConfig.acceleration = m_snowConfig.acceleration;
+	newConfig.startColor = m_snowConfig.startColor;
+	newConfig.endColor = m_snowConfig.endColor;
+	newConfig.startSize = m_snowConfig.startSize;
+	newConfig.endSize = m_snowConfig.endSize;
+	newConfig.lifetime = m_snowConfig.lifetime;
+	newConfig.lifetimeVariance = m_snowConfig.lifetimeVariance;
+	newConfig.emissionRate = m_snowConfig.emissionRate;
+	newConfig.maxParticles = 2000;
+	newConfig.loop = true;
+
+	ParticleSystem::getInstance().removeEmitter("snow");
+	ParticleSystem::getInstance().createEmitter("snow", newConfig, createSnowParticle);
+}
+
+// Updated Game.cpp with Scene Hierarchy and new UI layout
+
 void dx3d::Game::renderUI()
 {
 	ImGuiIO& io = ImGui::GetIO();
-	float windowWidth = io.DisplaySize.x;
-	float windowHeight = io.DisplaySize.y;
+	float windowWidth = io.DisplaySize.x;   // Should be 1280
+	float windowHeight = io.DisplaySize.y;  // Should be 720
 
-	float viewportHeight = windowHeight * 0.85f; // 85% for viewports
-	float settingsHeight = windowHeight * 0.15f; // 15% for settings
-	float halfWidth = windowWidth * 0.5f;
+	float halfWidth = windowWidth * 0.5f;   // 640px each side
+	float halfHeight = windowHeight * 0.5f; // 360px each half
 
-	// Scene View - Left Half
+	// =============================================================================
+	// LEFT SIDE - Game View (Top) and Scene View (Bottom)
+	// =============================================================================
+
+	// Game View - Top Left
 	ImGui::SetNextWindowPos(ImVec2(0, 0));
-	ImGui::SetNextWindowSize(ImVec2(halfWidth, viewportHeight));
+	ImGui::SetNextWindowSize(ImVec2(halfWidth, halfHeight));
+	ImGui::Begin("Game View", nullptr,
+		ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+		ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
+
+	ImVec2 gameViewportSize = ImGui::GetContentRegionAvail();
+	if (gameViewportSize.x > 0 && gameViewportSize.y > 0)
+	{
+		m_viewportManager->resize(ViewportType::Game,
+			static_cast<ui32>(gameViewportSize.x),
+			static_cast<ui32>(gameViewportSize.y));
+
+		auto& gameViewport = m_viewportManager->getViewport(ViewportType::Game);
+		ImGui::Image((void*)gameViewport.renderTexture->getShaderResourceView(), gameViewportSize);
+	}
+	ImGui::End();
+
+	// Scene View - Bottom Left  
+	ImGui::SetNextWindowPos(ImVec2(0, halfHeight));
+	ImGui::SetNextWindowSize(ImVec2(halfWidth, halfHeight));
 	ImGui::Begin("Scene View", nullptr,
 		ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
 		ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
@@ -703,64 +775,218 @@ void dx3d::Game::renderUI()
 	}
 	ImGui::End();
 
-	// Game View - Right Half
+	// =============================================================================
+	// RIGHT SIDE - Scene Hierarchy (Top) and Inspector (Bottom)  
+	// =============================================================================
+
+	// Scene Hierarchy - Top Right
 	ImGui::SetNextWindowPos(ImVec2(halfWidth, 0));
-	ImGui::SetNextWindowSize(ImVec2(halfWidth, viewportHeight));
-	ImGui::Begin("Game View", nullptr,
+	ImGui::SetNextWindowSize(ImVec2(halfWidth, halfHeight));
+	ImGui::Begin("Scene Hierarchy", nullptr,
 		ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
 		ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
 
-	ImVec2 gameViewportSize = ImGui::GetContentRegionAvail();
-	if (gameViewportSize.x > 0 && gameViewportSize.y > 0)
-	{
-		m_viewportManager->resize(ViewportType::Game,
-			static_cast<ui32>(gameViewportSize.x),
-			static_cast<ui32>(gameViewportSize.y));
+	renderSceneHierarchy();
 
-		auto& gameViewport = m_viewportManager->getViewport(ViewportType::Game);
-		ImGui::Image((void*)gameViewport.renderTexture->getShaderResourceView(), gameViewportSize);
-	}
 	ImGui::End();
 
-	// Settings Panel - Bottom Full Width
-	ImGui::SetNextWindowPos(ImVec2(0, viewportHeight));
-	ImGui::SetNextWindowSize(ImVec2(windowWidth, settingsHeight));
-	ImGui::Begin("Settings", nullptr,
+	// Inspector - Bottom Right
+	ImGui::SetNextWindowPos(ImVec2(halfWidth, halfHeight));
+	ImGui::SetNextWindowSize(ImVec2(halfWidth, halfHeight));
+	ImGui::Begin("Inspector", nullptr,
 		ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
 		ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
 
-	// Create columns for organized settings layout
-	ImGui::Columns(3, "SettingsColumns", true);
+	renderInspector();
 
-	// Column 1: Inspector
-	ImGui::Text("Inspector");
+	ImGui::End();
+}
+
+void dx3d::Game::renderSceneHierarchy()
+{
+	ImGui::Text("Scene Objects (%zu)", m_gameObjects.size());
 	ImGui::Separator();
-	if (auto selected = m_selectionSystem->getSelectedObject())
-	{
-		ImGui::Text("Selected: %s", typeid(*selected).name());
 
-		Vector3 pos = selected->getPosition();
+	// Create a scrollable region for the hierarchy
+	if (ImGui::BeginChild("HierarchyScroll", ImVec2(0, -60), true))
+	{
+		auto selectedObject = m_selectionSystem->getSelectedObject();
+		int objectToDelete = -1; // Track which object to delete
+
+		for (size_t i = 0; i < m_gameObjects.size(); ++i)
+		{
+			auto& gameObject = m_gameObjects[i];
+
+			// Generate a display name for the object
+			std::string objectName = getObjectDisplayName(gameObject, i);
+
+			// Check if this object is currently selected
+			bool isSelected = (selectedObject == gameObject);
+
+			// Add icon based on object type
+			std::string icon = getObjectIcon(gameObject);
+			std::string displayText = icon + " " + objectName;
+
+			// Create selectable item with highlighting for selection
+			if (ImGui::Selectable(displayText.c_str(), isSelected))
+			{
+				m_selectionSystem->setSelectedObject(gameObject);
+			}
+
+			// Right-click context menu
+			if (ImGui::BeginPopupContextItem())
+			{
+				ImGui::Text("Object: %s", objectName.c_str());
+				ImGui::Separator();
+
+				if (ImGui::MenuItem("Focus in Scene View"))
+				{
+					// Center scene camera on this object
+					Vector3 objectPos = gameObject->getPosition();
+					Vector3 offset = Vector3(5.0f, 5.0f, -5.0f);
+					m_sceneCamera->setPosition(objectPos + offset);
+					m_sceneCamera->lookAt(objectPos);
+				}
+
+				if (ImGui::MenuItem("Duplicate"))
+				{
+					// Create a copy of the object with slight offset
+					auto newObject = createObjectCopy(gameObject);
+					if (newObject)
+					{
+						Vector3 pos = gameObject->getPosition();
+						pos.x += 1.0f; // Offset the duplicate
+						newObject->setPosition(pos);
+						m_gameObjects.push_back(newObject);
+					}
+				}
+
+				ImGui::Separator();
+
+				if (ImGui::MenuItem("Delete", "Del"))
+				{
+					objectToDelete = static_cast<int>(i);
+				}
+
+				ImGui::EndPopup();
+			}
+
+			// Show object position and other info as secondary text
+			Vector3 pos = gameObject->getPosition();
+			ImGui::SameLine();
+			ImGui::TextDisabled("(%.1f, %.1f, %.1f)", pos.x, pos.y, pos.z);
+		}
+
+		// Handle deletion outside the loop to avoid iterator invalidation
+		if (objectToDelete >= 0)
+		{
+			// If we're deleting the selected object, clear selection
+			if (selectedObject == m_gameObjects[objectToDelete])
+			{
+				m_selectionSystem->setSelectedObject(nullptr);
+			}
+
+			m_gameObjects.erase(m_gameObjects.begin() + objectToDelete);
+		}
+	}
+	ImGui::EndChild();
+
+	// Add object creation buttons
+	ImGui::Separator();
+	ImGui::Text("Create Objects:");
+
+	if (ImGui::Button("Cube"))
+	{
+		auto cube = std::make_shared<Cube>(Vector3(0, 1, 0));
+		m_gameObjects.push_back(cube);
+		m_selectionSystem->setSelectedObject(cube);
+	}
+	ImGui::SameLine();
+
+	if (ImGui::Button("Sphere"))
+	{
+		auto sphere = std::make_shared<Sphere>(Vector3(2, 1, 0));
+		m_gameObjects.push_back(sphere);
+		m_selectionSystem->setSelectedObject(sphere);
+	}
+	ImGui::SameLine();
+
+	if (ImGui::Button("Plane"))
+	{
+		auto plane = std::make_shared<Plane>(Vector3(0, 0, 2));
+		m_gameObjects.push_back(plane);
+		m_selectionSystem->setSelectedObject(plane);
+	}
+
+	if (ImGui::Button("Cylinder"))
+	{
+		auto cylinder = std::make_shared<Cylinder>(Vector3(-2, 1, 0));
+		m_gameObjects.push_back(cylinder);
+		m_selectionSystem->setSelectedObject(cylinder);
+	}
+	ImGui::SameLine();
+
+	if (ImGui::Button("Capsule"))
+	{
+		auto capsule = std::make_shared<Capsule>(Vector3(0, 1, -2));
+		m_gameObjects.push_back(capsule);
+		m_selectionSystem->setSelectedObject(capsule);
+	}
+}
+
+void dx3d::Game::renderInspector()
+{
+	auto selectedObject = m_selectionSystem->getSelectedObject();
+
+	if (selectedObject)
+	{
+		// Object Inspector Section
+		ImGui::Text("Selected Object");
+		ImGui::Separator();
+
+		std::string objectName = getObjectDisplayName(selectedObject, -1);
+		ImGui::Text("Type: %s", objectName.c_str());
+
+		ImGui::Spacing();
+
+		// Transform manipulation
+		ImGui::Text("Transform");
+		ImGui::Separator();
+
+		Vector3 pos = selectedObject->getPosition();
 		if (ImGui::DragFloat3("Position", &pos.x, 0.1f))
 		{
-			selected->setPosition(pos);
+			selectedObject->setPosition(pos);
 		}
 
-		Vector3 rot = selected->getRotation();
-		if (ImGui::DragFloat3("Rotation", &rot.x, 0.01f))
+		Vector3 rot = selectedObject->getRotation();
+		Vector3 rotDeg = Vector3(
+			rot.x * 180.0f / 3.14159265f,
+			rot.y * 180.0f / 3.14159265f,
+			rot.z * 180.0f / 3.14159265f
+		);
+		if (ImGui::DragFloat3("Rotation", &rotDeg.x, 1.0f))
 		{
-			selected->setRotation(rot);
+			Vector3 newRotRad = Vector3(
+				rotDeg.x * 3.14159265f / 180.0f,
+				rotDeg.y * 3.14159265f / 180.0f,
+				rotDeg.z * 3.14159265f / 180.0f
+			);
+			selectedObject->setRotation(newRotRad);
 		}
 
-		Vector3 scale = selected->getScale();
-		if (ImGui::DragFloat3("Scale", &scale.x, 0.1f))
+		Vector3 scale = selectedObject->getScale();
+		if (ImGui::DragFloat3("Scale", &scale.x, 0.1f, 0.1f, 10.0f))
 		{
-			selected->setScale(scale);
+			selectedObject->setScale(scale);
 		}
 
-		if (auto camera = std::dynamic_pointer_cast<CameraObject>(selected))
+		// Object-specific properties
+		if (auto camera = std::dynamic_pointer_cast<CameraObject>(selectedObject))
 		{
-			ImGui::Separator();
+			ImGui::Spacing();
 			ImGui::Text("Camera Settings");
+			ImGui::Separator();
 
 			float fov = camera->getFOV() * 180.0f / 3.14159265f;
 			if (ImGui::SliderFloat("FOV", &fov, 30.0f, 120.0f))
@@ -780,20 +1006,23 @@ void dx3d::Game::renderUI()
 				camera->setFarPlane(farPlane);
 			}
 
-			if (ImGui::Button("Align with View"))
+			if (ImGui::Button("Align with Scene View"))
 			{
 				camera->alignWithView(*m_sceneCamera);
 			}
 		}
+
+		ImGui::Spacing();
+		ImGui::Separator();
 	}
 	else
 	{
 		ImGui::Text("No object selected");
+		ImGui::Text("Select an object in the Scene Hierarchy");
+		ImGui::Separator();
 	}
 
-	ImGui::NextColumn();
-
-	// Column 2: Effects Settings
+	// Effects Settings Section
 	ImGui::Text("Effects Settings");
 	ImGui::Separator();
 
@@ -804,7 +1033,7 @@ void dx3d::Game::renderUI()
 	ImGui::SliderFloat("Fog End", &m_fogDesc.end, 1.0f, 100.0f);
 	ImGui::ColorEdit3("Fog Color", &m_fogDesc.color.x);
 
-	ImGui::Separator();
+	ImGui::Spacing();
 
 	// Snow Particle Settings
 	ImGui::Text("Snow Particles");
@@ -819,19 +1048,7 @@ void dx3d::Game::renderUI()
 	if (ImGui::ColorEdit4("Start Color##Snow", &m_snowConfig.startColor.x))
 		snowSettingsChanged = true;
 
-	if (ImGui::ColorEdit4("End Color##Snow", &m_snowConfig.endColor.x))
-		snowSettingsChanged = true;
-
 	if (ImGui::SliderFloat("Emission Rate##Snow", &m_snowConfig.emissionRate, 1.0f, 200.0f))
-		snowSettingsChanged = true;
-
-	if (ImGui::SliderFloat("Start Size##Snow", &m_snowConfig.startSize, 0.1f, 2.0f))
-		snowSettingsChanged = true;
-
-	if (ImGui::SliderFloat("End Size##Snow", &m_snowConfig.endSize, 0.05f, 1.0f))
-		snowSettingsChanged = true;
-
-	if (ImGui::SliderFloat("Lifetime##Snow", &m_snowConfig.lifetime, 1.0f, 20.0f))
 		snowSettingsChanged = true;
 
 	if (snowSettingsChanged)
@@ -839,76 +1056,113 @@ void dx3d::Game::renderUI()
 		updateSnowEmitter();
 	}
 
-	ImGui::NextColumn();
+	ImGui::Spacing();
 
-	// Column 3: Camera Controls
-	ImGui::Text("Camera Controls");
+	// Camera Controls Section
+	ImGui::Text("Scene Camera Controls");
 	ImGui::Separator();
 
-	// Scene Camera Controls
-	ImGui::Text("Scene Camera");
 	ImGui::Text("Speed: %.1f", m_cameraSpeed);
-	if (ImGui::SliderFloat("##CameraSpeed", &m_cameraSpeed, 1.0f, 20.0f))
-	{
-		// Camera speed updated
-	}
+	ImGui::SliderFloat("##CameraSpeed", &m_cameraSpeed, 1.0f, 20.0f);
 
 	ImGui::Text("Mouse Sens: %.2f", m_mouseSensitivity);
-	if (ImGui::SliderFloat("##MouseSens", &m_mouseSensitivity, 0.1f, 2.0f))
-	{
-		// Mouse sensitivity updated
-	}
+	ImGui::SliderFloat("##MouseSens", &m_mouseSensitivity, 0.1f, 2.0f);
 
 	if (ImGui::Button("Reset Scene Camera"))
 	{
 		m_sceneCamera->setPosition(Vector3(15.0f, 10.0f, -15.0f));
 		m_sceneCamera->lookAt(Vector3(0.0f, 2.0f, 0.0f));
 	}
+}
 
-	//
-	//m_gameCamera->setPosition(m_sceneCamera->getPosition());
-	//m_gameCamera->lookAt(m_sceneCamera->getPosition());
+std::string dx3d::Game::getObjectIcon(std::shared_ptr<AGameObject> object)
+{
+	if (!object) return "[?]";
 
-	ImGui::Separator();
+	if (std::dynamic_pointer_cast<Model>(object))
+		return "[M]";
+	else if (std::dynamic_pointer_cast<CameraObject>(object))
+		return "[C]";
+	else if (std::dynamic_pointer_cast<Cube>(object))
+		return "[■]";
+	else if (std::dynamic_pointer_cast<Sphere>(object))
+		return "[●]";
+	else if (std::dynamic_pointer_cast<Plane>(object))
+		return "[▬]";
+	else if (std::dynamic_pointer_cast<Cylinder>(object))
+		return "[⬢]";
+	else if (std::dynamic_pointer_cast<Capsule>(object))
+		return "[◉]";
 
-	// Game Camera Controls
-	ImGui::Text("Game Camera");
-	Vector3 gameCamPos = m_gameCamera->getPosition();
-	if (ImGui::DragFloat3("Position##GameCam", &gameCamPos.x, 0.1f))
+	return "[O]";
+}
+
+std::shared_ptr<dx3d::AGameObject> dx3d::Game::createObjectCopy(std::shared_ptr<AGameObject> original)
+{
+	if (!original) return nullptr;
+
+	Vector3 pos = original->getPosition();
+	Vector3 rot = original->getRotation();
+	Vector3 scale = original->getScale();
+
+	if (auto cube = std::dynamic_pointer_cast<Cube>(original))
+		return std::make_shared<Cube>(pos, rot, scale);
+	else if (auto sphere = std::dynamic_pointer_cast<Sphere>(original))
+		return std::make_shared<Sphere>(pos, rot, scale);
+	else if (auto plane = std::dynamic_pointer_cast<Plane>(original))
+		return std::make_shared<Plane>(pos, rot, scale);
+	else if (auto cylinder = std::dynamic_pointer_cast<Cylinder>(original))
+		return std::make_shared<Cylinder>(pos, rot, scale);
+	else if (auto capsule = std::dynamic_pointer_cast<Capsule>(original))
+		return std::make_shared<Capsule>(pos, rot, scale);
+	else if (auto camera = std::dynamic_pointer_cast<CameraObject>(original))
+		return std::make_shared<CameraObject>(pos, rot);
+
+	// For models and other complex objects, we'd need more sophisticated copying
+	return nullptr;
+}
+
+std::string dx3d::Game::getObjectDisplayName(std::shared_ptr<AGameObject> object, int index)
+{
+	if (!object) return "Null Object";
+
+	// Try to identify the object type
+	if (auto model = std::dynamic_pointer_cast<Model>(object))
 	{
-		m_gameCamera->setPosition(gameCamPos);
+		if (!model->getName().empty())
+			return model->getName();
+		return "Model";
+	}
+	else if (auto camera = std::dynamic_pointer_cast<CameraObject>(object))
+	{
+		return "Camera";
+	}
+	else if (auto cube = std::dynamic_pointer_cast<Cube>(object))
+	{
+		return "Cube";
+	}
+	else if (auto sphere = std::dynamic_pointer_cast<Sphere>(object))
+	{
+		return "Sphere";
+	}
+	else if (auto plane = std::dynamic_pointer_cast<Plane>(object))
+	{
+		return "Plane";
+	}
+	else if (auto cylinder = std::dynamic_pointer_cast<Cylinder>(object))
+	{
+		return "Cylinder";
+	}
+	else if (auto capsule = std::dynamic_pointer_cast<Capsule>(object))
+	{
+		return "Capsule";
 	}
 
-	Vector3 gameCamRot = m_gameCamera->getRotation();
-	Vector3 gameCamRotDeg = Vector3(
-		gameCamRot.x * 180.0f / 3.14159265f,
-		gameCamRot.y * 180.0f / 3.14159265f,
-		gameCamRot.z * 180.0f / 3.14159265f
-	);
-	if (ImGui::DragFloat3("Rotation##GameCam", &gameCamRotDeg.x, 1.0f))
-	{
-		Vector3 newRotRad = Vector3(
-			gameCamRotDeg.x * 3.14159265f / 180.0f,
-			gameCamRotDeg.y * 3.14159265f / 180.0f,
-			gameCamRotDeg.z * 3.14159265f / 180.0f
-		);
-		m_gameCamera->setRotation(newRotRad);
-	}
+	// Fallback to generic name with index
+	if (index >= 0)
+		return "GameObject_" + std::to_string(index);
 
-	if (ImGui::Button("Reset Game Camera"))
-	{
-		m_gameCamera->setPosition(Vector3(12.0f, 8.0f, -12.0f));
-		m_gameCamera->setRotation(Vector3(0.0f, 0.0f, 0.0f));
-		m_gameCamera->getCamera().lookAt(Vector3(0.0f, 2.0f, 0.0f));
-	}
-
-	if (ImGui::Button("Align Game Camera To View"))
-	{
-		m_gameCamera->alignWithView(*m_sceneCamera.get());
-	}
-
-	ImGui::Columns(1);
-	ImGui::End();
+	return "GameObject";
 }
 
 void dx3d::Game::render()
