@@ -24,5 +24,11 @@ namespace dx3d
 
         // Override virtual methods from base class if needed
         virtual void update(float deltaTime) override;
+
+    protected:
+        virtual CollisionShapeType getCollisionShapeType() const override
+        {
+            return CollisionShapeType::Box;
+        }
     };
 }

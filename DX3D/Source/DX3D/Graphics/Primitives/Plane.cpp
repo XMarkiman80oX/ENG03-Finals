@@ -35,13 +35,13 @@ std::shared_ptr<VertexBuffer> Plane::CreateVertexBuffer(const GraphicsResourceDe
     // Define plane vertices (quad in XY plane, facing positive Z direction)
     std::vector<Vertex> vertices = {
         // Bottom-left (red)
-        { {-halfWidth, -halfHeight, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f} },
+        { {-halfWidth, -halfHeight, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f} },
         // Bottom-right (green)
-        { { halfWidth, -halfHeight, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f} },
+        { { halfWidth, -halfHeight, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f} },
         // Top-right (blue)
-        { { halfWidth,  halfHeight, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f} },
+        { { halfWidth,  halfHeight, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f} },
         // Top-left (yellow)
-        { {-halfWidth,  halfHeight, 0.0f}, {1.0f, 1.0f, 0.0f, 1.0f} }
+        { {-halfWidth,  halfHeight, 0.0f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f} }
     };
 
     return std::make_shared<VertexBuffer>(
@@ -61,10 +61,10 @@ std::shared_ptr<VertexBuffer> Plane::CreateWhiteVertexBuffer(const GraphicsResou
     std::vector<Vertex> vertices = {
         // Make it in XY plane first (vertical) to test visibility
         // Front face vertices with BRIGHT colors
-        { {-halfWidth, -halfHeight, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f} }, // Bottom-left RED
-        { { halfWidth, -halfHeight, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f} }, // Bottom-right GREEN  
-        { { halfWidth,  halfHeight, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f} }, // Top-right BLUE
-        { {-halfWidth,  halfHeight, 0.0f}, {1.0f, 1.0f, 0.0f, 1.0f} }  // Top-left YELLOW
+        { {-halfWidth, -halfHeight, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f} }, // Bottom-left RED
+        { { halfWidth, -halfHeight, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f} }, // Bottom-right GREEN  
+        { { halfWidth,  halfHeight, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f} }, // Top-right BLUE
+        { {-halfWidth,  halfHeight, 0.0f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f} }  // Top-left YELLOW
     };
 
     return std::make_shared<VertexBuffer>(
@@ -74,6 +74,7 @@ std::shared_ptr<VertexBuffer> Plane::CreateWhiteVertexBuffer(const GraphicsResou
         resourceDesc
     );
 }
+
 std::shared_ptr<IndexBuffer> Plane::CreateIndexBuffer(const GraphicsResourceDesc& resourceDesc)
 {
     // Define plane indices (2 triangles making a quad)
