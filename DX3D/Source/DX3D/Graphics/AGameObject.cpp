@@ -207,8 +207,15 @@ void AGameObject::applyImpulse(const Vector3& impulse)
 
     if (physicsComp && physicsComp->rigidBody)
     {
+        rp3d::Vector3 currentVelocity = physicsComp->rigidBody->getLinearVelocity();
+
         rp3d::Vector3 reactImpulse = PhysicsSystem::toReactVector(impulse);
-        physicsComp->rigidBody->applyWorldImpulseAtCenterOfMass(reactImpulse);
+        float mass = physicsComp->rigidBody->getMass();
+
+        rp3d::Vector3 velocityChange = reactImpulse / mass;
+        rp3d::Vector3 newVelocity = currentVelocity + velocityChange;
+
+        physicsComp->rigidBody->setLinearVelocity(newVelocity);
     }
 }
 

@@ -46,5 +46,10 @@ namespace dx3d
         std::string m_name;
         std::string m_filePath;
         std::vector<std::shared_ptr<Mesh>> m_meshes;
+
+    protected:
+        virtual CollisionShapeType getCollisionShapeType() const override;
     };
+
+    
 }

@@ -81,7 +81,7 @@ void dx3d::Game::createRenderingResources()
     componentManager.registerComponent<PhysicsComponent>();
 
     // Initialize physics system
-    PhysicsSystem::getInstance().initialize({ m_logger });
+    PhysicsSystem::getInstance().initialize();
 
     DX3DLogInfo("ECS and Physics systems initialized successfully.");
 

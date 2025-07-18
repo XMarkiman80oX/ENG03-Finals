@@ -28,6 +28,12 @@ namespace dx3d
         Matrix4x4 getProjectionMatrix(float aspectRatio) const;
         void alignWithView(const Camera& viewCamera);
 
+    protected:
+        virtual CollisionShapeType getCollisionShapeType() const override
+        {
+            return CollisionShapeType::Box;
+        }
+
     private:
         void syncCameraTransform();
 

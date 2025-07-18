@@ -1,5 +1,4 @@
 #pragma once
-#include <DX3D/Core/Base.h>
 #include <DX3D/ECS/Entity.h>
 #include <DX3D/ECS/Components/PhysicsComponent.h>
 #include <reactphysics3d/reactphysics3d.h>
@@ -7,7 +6,7 @@
 
 namespace dx3d
 {
-    class PhysicsSystem : public Base
+    class PhysicsSystem
     {
     public:
         static PhysicsSystem& getInstance()
@@ -16,7 +15,7 @@ namespace dx3d
             return instance;
         }
 
-        void initialize(const BaseDesc& desc);
+        void initialize();
         void shutdown();
 
         // Physics world management

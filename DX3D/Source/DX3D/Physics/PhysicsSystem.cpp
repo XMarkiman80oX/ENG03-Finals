@@ -2,19 +2,15 @@
 #include <DX3D/ECS/ComponentManager.h>
 #include <DX3D/ECS/Components/TransformComponent.h>
 #include <DX3D/ECS/Components/PhysicsComponent.h>
-#include <DX3D/Core/Logger.h>
 #include <cmath>
+#include <cstdio>
 
 using namespace dx3d;
 
-void PhysicsSystem::initialize(const BaseDesc& desc)
+void PhysicsSystem::initialize()
 {
     if (m_initialized)
         return;
-
-    // Initialize base class
-    static_cast<Base*>(this)->~Base();
-    new (this) Base(desc);
 
     // Create physics world
     rp3d::PhysicsWorld::WorldSettings settings;
@@ -27,12 +23,12 @@ void PhysicsSystem::initialize(const BaseDesc& desc)
 
     if (!m_physicsWorld)
     {
-        DX3DLogError("Failed to create ReactPhysics3D world");
+        printf("Failed to create ReactPhysics3D world\n");
         return;
     }
 
     m_initialized = true;
-    DX3DLogInfo("PhysicsSystem initialized successfully");
+    printf("PhysicsSystem initialized successfully\n");
 }
 
 void PhysicsSystem::shutdown()
@@ -47,14 +43,14 @@ void PhysicsSystem::shutdown()
     }
 
     m_initialized = false;
-    DX3DLogInfo("PhysicsSystem shutdown complete");
+    printf("PhysicsSystem shutdown complete\n");
 }
 
 void PhysicsSystem::addPhysicsComponent(EntityID entity, const PhysicsComponent& component)
 {
     if (!m_initialized)
     {
-        DX3DLogError("PhysicsSystem not initialized");
+        printf("PhysicsSystem not initialized\n");
         return;
     }
 
@@ -109,7 +105,7 @@ rp3d::CollisionShape* PhysicsSystem::createCollisionShape(CollisionShapeType typ
 
     case CollisionShapeType::Cylinder:
     {
-        return m_physicsCommon.createCylinderShape(component.cylinderRadius, component.cylinderHeight);
+        return m_physicsCommon.createCapsuleShape(component.cylinderRadius, component.cylinderHeight);
     }
 
     case CollisionShapeType::Capsule:
@@ -126,7 +122,7 @@ rp3d::CollisionShape* PhysicsSystem::createCollisionShape(CollisionShapeType typ
     }
 
     default:
-        DX3DLogError("Unknown collision shape type");
+        printf("Unknown collision shape type\n");
         return m_physicsCommon.createBoxShape(rp3d::Vector3(0.5f, 0.5f, 0.5f));
     }
 }
@@ -147,10 +143,12 @@ void PhysicsSystem::update(float deltaTime)
 
     // Sync transforms from physics to ECS
     auto& componentManager = ComponentManager::getInstance();
+
     auto* physicsArray = componentManager.getComponentArray<PhysicsComponent>();
 
     if (physicsArray)
     {
+        // FIX: Use range-based for loop with non-const references
         for (auto& pair : *physicsArray)
         {
             EntityID entity = pair.first;
@@ -171,7 +169,7 @@ void PhysicsSystem::initializePhysicsBody(EntityID entity, PhysicsComponent& com
 
     if (!transformComp)
     {
-        DX3DLogError("Entity missing TransformComponent for physics initialization");
+        printf("Entity missing TransformComponent for physics initialization\n");
         return;
     }
 
@@ -179,7 +177,7 @@ void PhysicsSystem::initializePhysicsBody(EntityID entity, PhysicsComponent& com
     rp3d::CollisionShape* shape = createCollisionShape(component.shapeType, component);
     if (!shape)
     {
-        DX3DLogError("Failed to create collision shape");
+        printf("Failed to create collision shape\n");
         return;
     }
 
@@ -192,7 +190,7 @@ void PhysicsSystem::initializePhysicsBody(EntityID entity, PhysicsComponent& com
 
     if (!component.rigidBody)
     {
-        DX3DLogError("Failed to create rigid body");
+        printf("Failed to create rigid body\n");
         return;
     }
 
@@ -215,7 +213,7 @@ void PhysicsSystem::initializePhysicsBody(EntityID entity, PhysicsComponent& com
 
     if (!component.collider)
     {
-        DX3DLogError("Failed to add collider to rigid body");
+        printf("Failed to add collider to rigid body\n");
         return;
     }
 

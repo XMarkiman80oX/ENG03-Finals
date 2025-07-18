@@ -1,3 +1,5 @@
+// In Model.cpp - Add the missing implementation
+
 #include <DX3D/Graphics/Primitives/Model.h>
 #include <DX3D/Assets/ModelLoader.h>
 #include <algorithm>
@@ -62,6 +64,12 @@ void Model::update(float deltaTime)
     AGameObject::update(deltaTime);
 
     // Add any model-specific update logic here if needed
+}
+
+CollisionShapeType Model::getCollisionShapeType() const
+{
+   
+    return CollisionShapeType::Box;
 }
 
 std::shared_ptr<Model> Model::LoadFromFile(
