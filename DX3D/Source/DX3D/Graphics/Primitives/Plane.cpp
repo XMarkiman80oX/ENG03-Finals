@@ -16,8 +16,6 @@ Plane::Plane(const Vector3& position, const Vector3& rotation, const Vector3& sc
 
 void Plane::update(float deltaTime)
 {
-    // Override this method to add plane-specific update logic if needed
-    // Call base class update if needed
     AGameObject::update(deltaTime);
 }
 
@@ -30,41 +28,15 @@ std::shared_ptr<VertexBuffer> Plane::CreateVertexBuffer(const GraphicsResourceDe
 std::shared_ptr<VertexBuffer> Plane::CreateVertexBuffer(const GraphicsResourceDesc& resourceDesc, float width, float height)
 {
     float halfWidth = width * 0.5f;
-    float halfHeight = height * 0.5f;
+    float halfHeight = height * 0.5f; // This now represents depth on the Z-axis
 
-    // Define plane vertices (quad in XY plane, facing positive Z direction)
+    // Define plane vertices in the XZ plane, with normals pointing up (in the +Y direction)
     std::vector<Vertex> vertices = {
-        // Bottom-left (red)
-        { {-halfWidth, -halfHeight, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f} },
-        // Bottom-right (green)
-        { { halfWidth, -halfHeight, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f} },
-        // Top-right (blue)
-        { { halfWidth,  halfHeight, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f} },
-        // Top-left (yellow)
-        { {-halfWidth,  halfHeight, 0.0f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f} }
-    };
-
-    return std::make_shared<VertexBuffer>(
-        vertices.data(),
-        sizeof(Vertex),
-        static_cast<ui32>(vertices.size()),
-        resourceDesc
-    );
-}
-
-std::shared_ptr<VertexBuffer> Plane::CreateWhiteVertexBuffer(const GraphicsResourceDesc& resourceDesc, float width, float height)
-{
-    float halfWidth = width * 0.5f;
-    float halfHeight = height * 0.5f;
-
-    // Create a LARGE, BRIGHT colored plane that's impossible to miss
-    std::vector<Vertex> vertices = {
-        // Make it in XY plane first (vertical) to test visibility
-        // Front face vertices with BRIGHT colors
-        { {-halfWidth, -halfHeight, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f} }, // Bottom-left RED
-        { { halfWidth, -halfHeight, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f} }, // Bottom-right GREEN  
-        { { halfWidth,  halfHeight, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f} }, // Top-right BLUE
-        { {-halfWidth,  halfHeight, 0.0f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f} }  // Top-left YELLOW
+        //                       Position                  Color                  Normal              TexCoords
+        { {-halfWidth, 0.0f, -halfHeight}, {1.0f, 1.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f} }, // Bottom-left
+        { { halfWidth, 0.0f, -halfHeight}, {1.0f, 1.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f} }, // Bottom-right
+        { { halfWidth, 0.0f,  halfHeight}, {1.0f, 1.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f} }, // Top-right
+        { {-halfWidth, 0.0f,  halfHeight}, {1.0f, 1.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f} }  // Top-left
     };
 
     return std::make_shared<VertexBuffer>(
@@ -77,12 +49,9 @@ std::shared_ptr<VertexBuffer> Plane::CreateWhiteVertexBuffer(const GraphicsResou
 
 std::shared_ptr<IndexBuffer> Plane::CreateIndexBuffer(const GraphicsResourceDesc& resourceDesc)
 {
-    // Define plane indices (2 triangles making a quad)
-    // Triangle 1: bottom-left, bottom-right, top-right
-    // Triangle 2: bottom-left, top-right, top-left
     std::vector<ui32> indices = {
-        0, 1, 2,    // First triangle
-        0, 2, 3     // Second triangle
+        0, 2, 1,    // First triangle (Counter-Clockwise)
+        0, 3, 2     // Second triangle (Counter-Clockwise)
     };
 
     return std::make_shared<IndexBuffer>(

@@ -80,6 +80,7 @@ namespace dx3d
         void debugRenderInfo();
         void renderSceneHierarchy();        
         void renderInspector();
+        void spawnCubeDemo();
 
         std::string getObjectDisplayName(std::shared_ptr<AGameObject> object, int index);
         std::string getObjectIcon(std::shared_ptr<AGameObject> object);

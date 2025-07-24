@@ -140,56 +140,24 @@ void dx3d::Game::createRenderingResources()
 
     // Clear game objects
     m_gameObjects.clear();
-    m_gameObjects.reserve(20); // Reserve space for ground plane + cubes + camera
+    m_gameObjects.reserve(100); // Reserve space for ground plane + cubes + camera
 
     // Create ground plane (static physics body)
     auto groundPlane = std::make_shared<Plane>(
-        Vector3(0.0f, -1.0f, 0.0f),      // Position slightly below origin
-        Vector3(-1.5708f, 0.0f, 0.0f),   // 90 degrees rotation to make it horizontal
-        Vector3(20.0f, 1.0f, 20.0f)      // Large scale for ground
+        Vector3(0.0f, 0.0f, 0.0f),      // Position slightly below origin
+        Vector3(0.0f, 90.0f, 0.0f),   // 90 degrees rotation to make it horizontal
+        Vector3(50.0f, 1.0f, 50.0f)      // Large scale for ground
     );
     groundPlane->enablePhysics(PhysicsBodyType::Static);
-    groundPlane->setPhysicsRestitution(0.3f);  // Some bounciness
+    groundPlane->setPhysicsRestitution(0.0f);  // Some bounciness
     groundPlane->setPhysicsFriction(0.7f);     // Good friction to stop sliding
     m_gameObjects.push_back(groundPlane);
 
     DX3DLogInfo("Created ground plane with static physics");
 
-    // Create falling cubes with physics
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> posX(-8.0f, 8.0f);
-    std::uniform_real_distribution<float> posZ(-8.0f, 8.0f);
-    std::uniform_real_distribution<float> posY(5.0f, 15.0f);
-    std::uniform_real_distribution<float> scale(0.5f, 2.0f);
-    std::uniform_real_distribution<float> mass(0.5f, 3.0f);
-    std::uniform_real_distribution<float> restitution(0.1f, 0.8f);
+    spawnCubeDemo();
 
-    const int numCubes = 15;
-    for (int i = 0; i < numCubes; ++i)
-    {
-        Vector3 position(posX(gen), posY(gen), posZ(gen));
-        Vector3 cubeScale(scale(gen), scale(gen), scale(gen));
-
-        auto cube = std::make_shared<Cube>(position, Vector3(0, 0, 0), cubeScale);
-
-        // Enable physics with random properties
-        cube->enablePhysics(PhysicsBodyType::Dynamic);
-        cube->setPhysicsMass(mass(gen));
-        cube->setPhysicsRestitution(restitution(gen));
-        cube->setPhysicsFriction(0.5f);
-
-        // Give some random initial velocity for more interesting motion
-        std::uniform_real_distribution<float> vel(-2.0f, 2.0f);
-        cube->setLinearVelocity(Vector3(vel(gen), 0.0f, vel(gen)));
-
-        m_gameObjects.push_back(cube);
-
-        DX3DLogInfo(("Created physics cube " + std::to_string(i + 1) + " at position (" +
-            std::to_string(position.x) + ", " + std::to_string(position.y) + ", " + std::to_string(position.z) + ")").c_str());
-    }
-
-    DX3DLogInfo(("Created " + std::to_string(numCubes) + " physics-enabled cubes").c_str());
+    DX3DLogInfo(("Created " + std::to_string(15) + " physics-enabled cubes").c_str());
 
     // Add game camera
     m_gameCamera = std::make_shared<CameraObject>(
@@ -480,6 +448,20 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
 
 void dx3d::Game::renderUI()
 {
+    
+    if (ImGui::BeginMainMenuBar())
+    {
+        if (ImGui::BeginMenu("GameObjects"))
+        {
+            if (ImGui::MenuItem("Cube Demo"))
+            {
+                spawnCubeDemo(); // Spawn 15 new cubes
+            }
+            ImGui::EndMenu();
+        }
+        ImGui::EndMainMenuBar();
+    }
+
     ImGuiIO& io = ImGui::GetIO();
     float windowWidth = io.DisplaySize.x;
     float windowHeight = io.DisplaySize.y;
@@ -487,8 +469,8 @@ void dx3d::Game::renderUI()
     float halfHeight = windowHeight * 0.5f;
 
     // Game View - Top Left
-    ImGui::SetNextWindowPos(ImVec2(0, 0));
-    ImGui::SetNextWindowSize(ImVec2(halfWidth, halfHeight));
+    ImGui::SetNextWindowPos(ImVec2(0, 20)); // Y offset for the menu bar
+    ImGui::SetNextWindowSize(ImVec2(halfWidth, halfHeight - 20));
     ImGui::Begin("Game View", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
     ImVec2 gameViewportSize = ImGui::GetContentRegionAvail();
@@ -521,9 +503,9 @@ void dx3d::Game::renderUI()
     }
     ImGui::End();
 
-    // Physics Controls - Top Right
-    ImGui::SetNextWindowPos(ImVec2(halfWidth, 0));
-    ImGui::SetNextWindowSize(ImVec2(halfWidth, halfHeight));
+    // Physics Controls & Scene Outliner - Top Right
+    ImGui::SetNextWindowPos(ImVec2(halfWidth, 20)); // Y offset for the menu bar
+    ImGui::SetNextWindowSize(ImVec2(halfWidth, halfHeight - 20));
     ImGui::Begin("Physics Controls", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
     ImGui::Text("Physics Demo Controls");
@@ -533,40 +515,28 @@ void dx3d::Game::renderUI()
     ImGui::Text("Delta Time: %.3f ms", m_deltaTime * 1000.0f);
     ImGui::Text("FPS: %.1f", 1.0f / m_deltaTime);
 
+    
     ImGui::Separator();
-    ImGui::Text("Controls:");
-    ImGui::BulletText("SPACE - Add new cube");
-    ImGui::BulletText("F - Apply upward impulse to selected");
-    ImGui::BulletText("DEL - Delete selected object");
-    ImGui::BulletText("R - Reset camera");
-    ImGui::BulletText("Right Mouse + WASD - Move camera");
+    ImGui::Text("Scene Outliner");
+    ImGui::BeginChild("Outliner", ImVec2(0, 0), true); // Scrollable region
 
-    ImGui::Separator();
-
-    if (ImGui::Button("Add Physics Cube"))
+    int objectId = 0;
+    for (const auto& gameObject : m_gameObjects)
     {
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_real_distribution<float> pos(-5.0f, 5.0f);
+        std::string objectName = "Object";
+        if (std::dynamic_pointer_cast<Cube>(gameObject)) objectName = "Cube";
+        else if (std::dynamic_pointer_cast<Plane>(gameObject)) objectName = "Plane";
+        else if (std::dynamic_pointer_cast<CameraObject>(gameObject)) objectName = "Game Camera";
 
-        auto cube = std::make_shared<Cube>(Vector3(pos(gen), 15.0f, pos(gen)));
-        cube->enablePhysics(PhysicsBodyType::Dynamic);
-        cube->setPhysicsMass(1.0f);
-        cube->setPhysicsRestitution(0.5f);
-        m_gameObjects.push_back(cube);
+        std::string label = objectName + " " + std::to_string(objectId++);
+
+        bool isSelected = (gameObject == m_selectionSystem->getSelectedObject());
+        if (ImGui::Selectable(label.c_str(), isSelected))
+        {
+            m_selectionSystem->setSelectedObject(gameObject);
+        }
     }
-
-    ImGui::SameLine();
-
-    if (ImGui::Button("Reset Scene"))
-    {
-        // Keep only the ground plane and camera
-        auto groundPlane = m_gameObjects[0];
-        auto camera = m_gameObjects.back();
-        m_gameObjects.clear();
-        m_gameObjects.push_back(groundPlane);
-        m_gameObjects.push_back(camera);
-    }
+    ImGui::EndChild();
 
     ImGui::End();
 
@@ -594,7 +564,7 @@ void dx3d::Game::renderUI()
     else
     {
         ImGui::Text("No object selected");
-        ImGui::Text("Click on an object in the Scene View to select it");
+        ImGui::Text("Click on an object in the Scene View or Outliner to select it");
     }
 
     ImGui::End();
@@ -630,6 +600,35 @@ void dx3d::Game::render()
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
     deviceContext.present(swapChain);
+}
+
+void dx3d::Game::spawnCubeDemo()
+{
+    // Create falling cubes with physics
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> posX(1.0f, 5.0f);
+    std::uniform_real_distribution<float> posZ(1.0f, 5.0f);
+    std::uniform_real_distribution<float> posY(13.0f, 15.0f);
+
+    const int numCubes = 25;
+    for (int i = 0; i < numCubes; ++i)
+    {
+        Vector3 position(posX(gen), posY(gen), posZ(gen));
+        Vector3 cubeScale(2.0f, 2.0f, 2.0f);
+
+        auto cube = std::make_shared<Cube>(position, Vector3(0, 0, 0), cubeScale);
+
+        // Enable physics with random properties
+        cube->enablePhysics(PhysicsBodyType::Dynamic);
+        cube->setPhysicsMass(2.0f);
+        cube->setPhysicsRestitution(0.8f);
+        cube->setPhysicsFriction(0.8f);
+
+        m_gameObjects.push_back(cube);
+    }
+
+    DX3DLogInfo(("Spawned a new Cube Demo with " + std::to_string(numCubes) + " cubes").c_str());
 }
 
 void dx3d::Game::run()

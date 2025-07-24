@@ -22,43 +22,42 @@ void Cube::update(float deltaTime)
 
 std::shared_ptr<VertexBuffer> Cube::CreateVertexBuffer(const GraphicsResourceDesc& resourceDesc)
 {
-    // Define cube vertices with positions, colors, normals, and texture coordinates
     std::vector<Vertex> vertices = {
-        // Front face
+        // Front face (Correct)
         Vertex({-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f}),
         Vertex({-0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}),
         Vertex({ 0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}),
         Vertex({ 0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f}),
 
-        // Back face
-        Vertex({ 0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}),
-        Vertex({ 0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}),
-        Vertex({-0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}),
+        // Back face (Correct)
         Vertex({-0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}),
+        Vertex({-0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}),
+        Vertex({ 0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}),
+        Vertex({ 0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}),
 
-        // Top face
+        // Top face (Correct)
         Vertex({-0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}),
         Vertex({-0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}),
         Vertex({ 0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}),
         Vertex({ 0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}),
 
-        // Bottom face
+        // Bottom face (VERTEX ORDER CORRECTED)
         Vertex({-0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f}),
         Vertex({-0.5f, -0.5f,  0.5f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}),
         Vertex({ 0.5f, -0.5f,  0.5f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f}),
         Vertex({ 0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f}),
 
-        // Right face
+        // Right face (Correct)
         Vertex({ 0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}),
         Vertex({ 0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}),
         Vertex({ 0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}),
         Vertex({ 0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}),
 
-        // Left face
-        Vertex({-0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}),
-        Vertex({-0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}),
+        // Left face (Correct)
+        Vertex({-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}),
         Vertex({-0.5f,  0.5f, -0.5f}, {0.0f, 1.0f, 1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}),
-        Vertex({-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f})
+        Vertex({-0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}),
+        Vertex({-0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f})
     };
 
     return std::make_shared<VertexBuffer>(
@@ -68,22 +67,27 @@ std::shared_ptr<VertexBuffer> Cube::CreateVertexBuffer(const GraphicsResourceDes
         resourceDesc
     );
 }
-
 std::shared_ptr<IndexBuffer> Cube::CreateIndexBuffer(const GraphicsResourceDesc& resourceDesc)
 {
+    // Winding order for all faces is now corrected to be counter-clockwise (CCW).
     std::vector<ui32> indices = {
-        // Front face
+        // Front face (Correct)
         0, 1, 2,    0, 2, 3,
-        // Back face
-        4, 5, 6,    4, 6, 7,
-        // Top face
+
+        // Back face (Corrected)
+        7, 6, 5,    7, 5, 4,
+
+        // Top face (Correct)
         8, 9, 10,   8, 10, 11,
-        // Bottom face
-        12, 13, 14, 12, 14, 15,
-        // Right face
+
+        // Bottom face (Corrected)
+        15, 14, 13, 15, 13, 12,
+
+        // Right face (Correct)
         16, 17, 18, 16, 18, 19,
-        // Left face
-        20, 21, 22, 20, 22, 23
+
+        // Left face (Corrected)
+        23, 22, 21, 23, 21, 20
     };
 
     return std::make_shared<IndexBuffer>(
