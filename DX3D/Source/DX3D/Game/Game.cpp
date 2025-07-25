@@ -377,7 +377,7 @@ void dx3d::Game::onSceneStateChanged(SceneState oldState, SceneState newState)
         m_fpsController->enable();
         m_fpsController->lockCursor(true);
         m_physicsUpdateEnabled = true;
-        ShowCursor(FALSE);
+        ShowCursor(TRUE); // Changed from FALSE to TRUE - keep cursor visible
         break;
 
     case SceneState::Pause:
@@ -493,44 +493,9 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
 
 void dx3d::Game::renderUI()
 {
+    // Simplified main menu bar - removed scene controls
     if (ImGui::BeginMainMenuBar())
     {
-        if (ImGui::BeginMenu("Scene"))
-        {
-            const char* stateText = "";
-            switch (m_sceneStateManager->getCurrentState())
-            {
-            case SceneState::Edit: stateText = "Edit Mode"; break;
-            case SceneState::Play: stateText = "Play Mode"; break;
-            case SceneState::Pause: stateText = "Pause Mode"; break;
-            }
-
-            ImGui::Text("State: %s", stateText);
-            ImGui::Separator();
-
-            if (ImGui::MenuItem("Play (F5)", nullptr, false, m_sceneStateManager->isEditMode()))
-            {
-                m_sceneStateManager->transitionToPlay();
-            }
-
-            if (ImGui::MenuItem("Pause (Space)", nullptr, false, m_sceneStateManager->isPlayMode()))
-            {
-                m_sceneStateManager->transitionToPause();
-            }
-
-            if (ImGui::MenuItem("Stop (F5)", nullptr, false, !m_sceneStateManager->isEditMode()))
-            {
-                m_sceneStateManager->transitionToEdit();
-            }
-
-            if (ImGui::MenuItem("Frame Step (F10)", nullptr, false, m_sceneStateManager->isPauseMode()))
-            {
-                m_sceneStateManager->frameStep();
-            }
-
-            ImGui::EndMenu();
-        }
-
         if (ImGui::BeginMenu("GameObjects"))
         {
             if (ImGui::MenuItem("Cube Demo"))
@@ -581,11 +546,54 @@ void dx3d::Game::renderUI()
     }
     ImGui::End();
 
+    // NEW: Scene Controls Window
     ImGui::SetNextWindowPos(ImVec2(halfWidth, 20));
-    ImGui::SetNextWindowSize(ImVec2(halfWidth, halfHeight - 20));
-    ImGui::Begin("Physics Controls", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+    ImGui::SetNextWindowSize(ImVec2(halfWidth, 80));
+    ImGui::Begin("Scene Controls", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
-    ImGui::Text("Physics Demo Controls");
+    const char* stateText = "";
+    switch (m_sceneStateManager->getCurrentState())
+    {
+    case SceneState::Edit: stateText = "Edit Mode"; break;
+    case SceneState::Play: stateText = "Play Mode"; break;
+    case SceneState::Pause: stateText = "Pause Mode"; break;
+    }
+
+    ImGui::Text("Current State: %s", stateText);
+    ImGui::Separator();
+
+    // Scene control buttons
+    if (ImGui::Button("Play (F5)") && m_sceneStateManager->isEditMode())
+    {
+        m_sceneStateManager->transitionToPlay();
+    }
+    ImGui::SameLine();
+
+    if (ImGui::Button("Pause (Space)") && m_sceneStateManager->isPlayMode())
+    {
+        m_sceneStateManager->transitionToPause();
+    }
+    ImGui::SameLine();
+
+    if (ImGui::Button("Stop (F5)") && !m_sceneStateManager->isEditMode())
+    {
+        m_sceneStateManager->transitionToEdit();
+    }
+    ImGui::SameLine();
+
+    if (ImGui::Button("Frame Step (F10)") && m_sceneStateManager->isPauseMode())
+    {
+        m_sceneStateManager->frameStep();
+    }
+
+    ImGui::End();
+
+    // Scene Outliner Window (moved up to make room for Scene Controls)
+    ImGui::SetNextWindowPos(ImVec2(halfWidth, 100));
+    ImGui::SetNextWindowSize(ImVec2(halfWidth, halfHeight - 100));
+    ImGui::Begin("Scene Outliner", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+
+    ImGui::Text("Physics Demo");
     ImGui::Separator();
 
     ImGui::Text("Objects: %zu", m_gameObjects.size());
@@ -593,7 +601,7 @@ void dx3d::Game::renderUI()
     ImGui::Text("FPS: %.1f", 1.0f / m_deltaTime);
 
     ImGui::Separator();
-    ImGui::Text("Scene Outliner");
+    ImGui::Text("Scene Hierarchy");
     ImGui::BeginChild("Outliner", ImVec2(0, 0), true);
 
     int objectId = 0;
@@ -616,6 +624,7 @@ void dx3d::Game::renderUI()
 
     ImGui::End();
 
+    // ENHANCED: Inspector with editable transform controls
     ImGui::SetNextWindowPos(ImVec2(halfWidth, halfHeight));
     ImGui::SetNextWindowSize(ImVec2(halfWidth, halfHeight));
     ImGui::Begin("Inspector", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
@@ -626,14 +635,101 @@ void dx3d::Game::renderUI()
         ImGui::Text("Selected Object");
         ImGui::Separator();
 
-        Vector3 pos = selectedObject->getPosition();
-        ImGui::Text("Position: (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
+        // Transform Component - Editable
+        if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            Vector3 pos = selectedObject->getPosition();
+            Vector3 rot = selectedObject->getRotation();
+            Vector3 scale = selectedObject->getScale();
 
+            // Convert rotation from radians to degrees for display
+            Vector3 rotDegrees = Vector3(
+                rot.x * 180.0f / 3.14159f,
+                rot.y * 180.0f / 3.14159f,
+                rot.z * 180.0f / 3.14159f
+            );
+
+            bool transformChanged = false;
+
+            // Position controls
+            if (ImGui::DragFloat3("Position", &pos.x, 0.1f))
+            {
+                selectedObject->setPosition(pos);
+                transformChanged = true;
+            }
+
+            // Rotation controls (in degrees)
+            if (ImGui::DragFloat3("Rotation", &rotDegrees.x, 1.0f))
+            {
+                // Convert back to radians
+                Vector3 rotRadians = Vector3(
+                    rotDegrees.x * 3.14159f / 180.0f,
+                    rotDegrees.y * 3.14159f / 180.0f,
+                    rotDegrees.z * 3.14159f / 180.0f
+                );
+                selectedObject->setRotation(rotRadians);
+                transformChanged = true;
+            }
+
+            // Scale controls
+            if (ImGui::DragFloat3("Scale", &scale.x, 0.01f, 0.01f, 10.0f))
+            {
+                selectedObject->setScale(scale);
+                transformChanged = true;
+            }
+
+            if (transformChanged)
+            {
+                // If the object has physics and we're in edit mode, update the physics body
+                if (selectedObject->hasPhysics() && m_sceneStateManager->isEditMode())
+                {
+                    // Disable and re-enable physics to update the collision shape with new scale
+                    PhysicsBodyType bodyType = PhysicsBodyType::Dynamic; // Default, will be overridden
+                    auto& componentManager = ComponentManager::getInstance();
+                    auto* physicsComp = componentManager.getComponent<PhysicsComponent>(selectedObject->getEntity().getID());
+                    if (physicsComp)
+                    {
+                        bodyType = physicsComp->bodyType;
+                    }
+
+                    selectedObject->disablePhysics();
+                    selectedObject->enablePhysics(bodyType);
+                }
+            }
+        }
+
+        // Physics Component - Read-only info
         if (selectedObject->hasPhysics())
         {
-            Vector3 vel = selectedObject->getLinearVelocity();
-            ImGui::Text("Velocity: (%.2f, %.2f, %.2f)", vel.x, vel.y, vel.z);
-            ImGui::Text("Speed: %.2f", std::sqrt(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z));
+            if (ImGui::CollapsingHeader("Physics"))
+            {
+                Vector3 vel = selectedObject->getLinearVelocity();
+                ImGui::Text("Linear Velocity: (%.2f, %.2f, %.2f)", vel.x, vel.y, vel.z);
+                ImGui::Text("Speed: %.2f", std::sqrt(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z));
+
+                // Add physics controls
+                if (m_sceneStateManager->isEditMode())
+                {
+                    if (ImGui::Button("Apply Upward Impulse"))
+                    {
+                        selectedObject->applyImpulse(Vector3(0.0f, 10.0f, 0.0f));
+                    }
+                }
+            }
+        }
+
+        // Additional object info
+        if (ImGui::CollapsingHeader("Object Info"))
+        {
+            ImGui::Text("Entity ID: %u", selectedObject->getEntity().getID());
+
+            std::string objectType = "Unknown";
+            if (std::dynamic_pointer_cast<Cube>(selectedObject)) objectType = "Cube";
+            else if (std::dynamic_pointer_cast<Plane>(selectedObject)) objectType = "Plane";
+            else if (std::dynamic_pointer_cast<CameraObject>(selectedObject)) objectType = "Camera";
+
+            ImGui::Text("Type: %s", objectType.c_str());
+            ImGui::Text("Has Physics: %s", selectedObject->hasPhysics() ? "Yes" : "No");
         }
     }
     else
