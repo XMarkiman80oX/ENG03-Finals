@@ -25,6 +25,8 @@
 #include <DX3D/Math/Math.h>
 #include <DX3D/Game/ViewportManager.h>
 #include <DX3D/Game/SelectionSystem.h>
+#include <DX3D/Scene/SceneStateManager.h>
+#include <DX3D/Game/FPSCameraController.h>
 
 #include <DX3D/ECS/ComponentManager.h>
 #include <DX3D/ECS/Components/TransformComponent.h>
@@ -46,16 +48,23 @@ dx3d::Game::Game(const GameDesc& desc) :
 
     m_previousTime = std::chrono::steady_clock::now();
 
+    m_sceneStateManager = std::make_unique<SceneStateManager>();
+    m_fpsController = std::make_unique<FPSCameraController>();
+
     createRenderingResources();
 
-    DX3DLogInfo("Game initialized with ECS and Physics systems.");
+    m_fpsController->setCamera(m_sceneCamera.get());
+    m_sceneStateManager->addStateChangeCallback([this](SceneState oldState, SceneState newState) {
+        onSceneStateChanged(oldState, newState);
+        });
+
+    DX3DLogInfo("Game initialized with ECS, Physics, and Scene State systems.");
 }
 
 dx3d::Game::~Game()
 {
     DX3DLogInfo("Game deallocation started.");
 
-    // Shutdown physics system
     PhysicsSystem::getInstance().shutdown();
 
     if (m_particleDepthState) m_particleDepthState->Release();
@@ -71,31 +80,19 @@ void dx3d::Game::createRenderingResources()
     ID3D11Device* device = nullptr;
     d3dContext->GetDevice(&device);
 
-    // =========================================================================
-    // INITIALIZE ECS AND PHYSICS SYSTEMS
-    // =========================================================================
-
-    // Register ECS components
     auto& componentManager = ComponentManager::getInstance();
     componentManager.registerComponent<TransformComponent>();
     componentManager.registerComponent<PhysicsComponent>();
 
-    // Initialize physics system
     PhysicsSystem::getInstance().initialize();
 
     DX3DLogInfo("ECS and Physics systems initialized successfully.");
 
-    // =========================================================================
-    // CREATE RENDERING RESOURCES
-    // =========================================================================
-
-    // Create vertex/index buffers for primitives
     m_cubeVertexBuffer = Cube::CreateVertexBuffer(resourceDesc);
     m_cubeIndexBuffer = Cube::CreateIndexBuffer(resourceDesc);
     m_planeVertexBuffer = Plane::CreateVertexBuffer(resourceDesc);
     m_planeIndexBuffer = Plane::CreateIndexBuffer(resourceDesc);
 
-    // Create shaders
     m_modelVertexShader = createModelVertexShader(resourceDesc);
     m_modelPixelShader = std::make_shared<PixelShader>(resourceDesc, ModelShader::GetPixelShaderCode());
     m_rainbowVertexShader = std::make_shared<VertexShader>(resourceDesc, Rainbow3DShader::GetVertexShaderCode());
@@ -105,13 +102,11 @@ void dx3d::Game::createRenderingResources()
     m_fogVertexShader = std::make_shared<VertexShader>(resourceDesc, FogShader::GetVertexShaderCode());
     m_fogPixelShader = std::make_shared<PixelShader>(resourceDesc, FogShader::GetPixelShaderCode());
 
-    // Create constant buffers
     m_fogConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(FogShaderConstants), resourceDesc);
     m_materialConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(FogMaterialConstants), resourceDesc);
     m_modelMaterialConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(ModelMaterialConstants), resourceDesc);
     m_transformConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(TransformationMatrices), resourceDesc);
 
-    // Create depth buffer
     const auto& windowSize = m_display->getSize();
     m_depthBuffer = std::make_shared<DepthBuffer>(
         windowSize.width,
@@ -119,7 +114,6 @@ void dx3d::Game::createRenderingResources()
         resourceDesc
     );
 
-    // Create depth states
     D3D11_DEPTH_STENCIL_DESC solidDesc = {};
     solidDesc.DepthEnable = TRUE;
     solidDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
@@ -134,23 +128,17 @@ void dx3d::Game::createRenderingResources()
     particleDesc.StencilEnable = FALSE;
     device->CreateDepthStencilState(&particleDesc, &m_particleDepthState);
 
-    // =========================================================================
-    // CREATE PHYSICS DEMO SCENE
-    // =========================================================================
-
-    // Clear game objects
     m_gameObjects.clear();
-    m_gameObjects.reserve(100); // Reserve space for ground plane + cubes + camera
+    m_gameObjects.reserve(100);
 
-    // Create ground plane (static physics body)
     auto groundPlane = std::make_shared<Plane>(
-        Vector3(0.0f, 0.0f, 0.0f),      // Position slightly below origin
-        Vector3(0.0f, 90.0f, 0.0f),   // 90 degrees rotation to make it horizontal
-        Vector3(50.0f, 1.0f, 50.0f)      // Large scale for ground
+        Vector3(0.0f, 0.0f, 0.0f),
+        Vector3(0.0f, 90.0f, 0.0f),
+        Vector3(50.0f, 1.0f, 50.0f)
     );
     groundPlane->enablePhysics(PhysicsBodyType::Static);
-    groundPlane->setPhysicsRestitution(0.0f);  // Some bounciness
-    groundPlane->setPhysicsFriction(0.7f);     // Good friction to stop sliding
+    groundPlane->setPhysicsRestitution(0.0f);
+    groundPlane->setPhysicsFriction(0.7f);
     m_gameObjects.push_back(groundPlane);
 
     DX3DLogInfo("Created ground plane with static physics");
@@ -159,7 +147,6 @@ void dx3d::Game::createRenderingResources()
 
     DX3DLogInfo(("Created " + std::to_string(15) + " physics-enabled cubes").c_str());
 
-    // Add game camera
     m_gameCamera = std::make_shared<CameraObject>(
         Vector3(15.0f, 10.0f, -15.0f),
         Vector3(0.0f, 0.0f, 0.0f)
@@ -167,13 +154,11 @@ void dx3d::Game::createRenderingResources()
     m_gameCamera->getCamera().lookAt(Vector3(0.0f, 2.0f, 0.0f));
     m_gameObjects.push_back(m_gameCamera);
 
-    // Set up scene camera
     m_sceneCamera = std::make_unique<Camera>(
         Vector3(20.0f, 15.0f, -20.0f),
         Vector3(0.0f, 2.0f, 0.0f)
     );
 
-    // Create projection matrix
     float aspectRatio = static_cast<float>(windowSize.width) / static_cast<float>(windowSize.height);
     m_projectionMatrix = Matrix4x4::CreatePerspectiveFovLH(
         1.0472f,
@@ -182,18 +167,15 @@ void dx3d::Game::createRenderingResources()
         100.0f
     );
 
-    // Initialize viewport manager and selection system
     m_viewportManager = std::make_unique<ViewportManager>();
     m_viewportManager->initialize(*m_graphicsEngine, 640, 480);
     m_selectionSystem = std::make_unique<SelectionSystem>();
 
-    // Initialize fog settings
-    m_fogDesc.enabled = false;  // Disable fog for physics demo
+    m_fogDesc.enabled = false;
     m_fogDesc.color = Vector4(0.2f, 0.3f, 0.4f, 1.0f);
     m_fogDesc.start = 10.0f;
     m_fogDesc.end = 50.0f;
 
-    // Initialize ImGui
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
@@ -212,46 +194,73 @@ void dx3d::Game::createRenderingResources()
 void dx3d::Game::processInput(float deltaTime)
 {
     auto& input = Input::getInstance();
-    auto& sceneViewport = m_viewportManager->getViewport(ViewportType::Scene);
 
-    // Scene camera controls (when right mouse button is held and scene viewport is focused)
-    if (sceneViewport.isFocused && input.isMouseButtonPressed(MouseButton::Right))
+    if (input.isKeyJustPressed(KeyCode::F5))
     {
-        float moveSpeed = m_cameraSpeed * deltaTime;
-        if (input.isKeyPressed(KeyCode::W)) m_sceneCamera->moveForward(moveSpeed);
-        if (input.isKeyPressed(KeyCode::S)) m_sceneCamera->moveBackward(moveSpeed);
-        if (input.isKeyPressed(KeyCode::A)) m_sceneCamera->moveLeft(moveSpeed);
-        if (input.isKeyPressed(KeyCode::D)) m_sceneCamera->moveRight(moveSpeed);
-        if (input.isKeyPressed(KeyCode::Q)) m_sceneCamera->moveDown(moveSpeed);
-        if (input.isKeyPressed(KeyCode::E)) m_sceneCamera->moveUp(moveSpeed);
-
-        float mouseDeltaX = static_cast<float>(input.getMouseDeltaX());
-        float mouseDeltaY = static_cast<float>(input.getMouseDeltaY());
-
-        if (mouseDeltaX != 0.0f || mouseDeltaY != 0.0f)
+        if (m_sceneStateManager->isEditMode())
         {
-            m_sceneCamera->onMouseMove(mouseDeltaX, mouseDeltaY, m_mouseSensitivity * 0.01f);
+            m_sceneStateManager->transitionToPlay();
+        }
+        else if (m_sceneStateManager->isPlayMode() || m_sceneStateManager->isPauseMode())
+        {
+            m_sceneStateManager->transitionToEdit();
         }
     }
 
-    // Object selection in scene viewport
-    if (sceneViewport.isHovered && input.isMouseButtonJustPressed(MouseButton::Left))
+    if (input.isKeyJustPressed(KeyCode::Space) && m_sceneStateManager->isPlayMode())
     {
-        auto picked = m_selectionSystem->pickObject(
-            m_gameObjects,
-            *m_sceneCamera,
-            sceneViewport.mousePos.x,
-            sceneViewport.mousePos.y,
-            sceneViewport.width,
-            sceneViewport.height
-        );
-        m_selectionSystem->setSelectedObject(picked);
+        m_sceneStateManager->transitionToPause();
     }
 
-    // Physics interaction controls
-    if (input.isKeyJustPressed(KeyCode::Space))
+    if (input.isKeyJustPressed(KeyCode::F10) && m_sceneStateManager->isPauseMode())
     {
-        // Add a new cube at a random position
+        m_sceneStateManager->frameStep();
+    }
+
+    if (input.isKeyJustPressed(KeyCode::F5) && m_sceneStateManager->isPauseMode())
+    {
+        m_sceneStateManager->transitionToPlay();
+    }
+
+    auto& sceneViewport = m_viewportManager->getViewport(ViewportType::Scene);
+
+    if (m_sceneStateManager->isEditMode())
+    {
+        if (sceneViewport.isFocused && input.isMouseButtonPressed(MouseButton::Right))
+        {
+            float moveSpeed = m_cameraSpeed * deltaTime;
+            if (input.isKeyPressed(KeyCode::W)) m_sceneCamera->moveForward(moveSpeed);
+            if (input.isKeyPressed(KeyCode::S)) m_sceneCamera->moveBackward(moveSpeed);
+            if (input.isKeyPressed(KeyCode::A)) m_sceneCamera->moveLeft(moveSpeed);
+            if (input.isKeyPressed(KeyCode::D)) m_sceneCamera->moveRight(moveSpeed);
+            if (input.isKeyPressed(KeyCode::Q)) m_sceneCamera->moveDown(moveSpeed);
+            if (input.isKeyPressed(KeyCode::E)) m_sceneCamera->moveUp(moveSpeed);
+
+            float mouseDeltaX = static_cast<float>(input.getMouseDeltaX());
+            float mouseDeltaY = static_cast<float>(input.getMouseDeltaY());
+
+            if (mouseDeltaX != 0.0f || mouseDeltaY != 0.0f)
+            {
+                m_sceneCamera->onMouseMove(mouseDeltaX, mouseDeltaY, m_mouseSensitivity * 0.01f);
+            }
+        }
+
+        if (sceneViewport.isHovered && input.isMouseButtonJustPressed(MouseButton::Left))
+        {
+            auto picked = m_selectionSystem->pickObject(
+                m_gameObjects,
+                *m_sceneCamera,
+                sceneViewport.mousePos.x,
+                sceneViewport.mousePos.y,
+                sceneViewport.width,
+                sceneViewport.height
+            );
+            m_selectionSystem->setSelectedObject(picked);
+        }
+    }
+
+    if (input.isKeyJustPressed(KeyCode::Space) && m_sceneStateManager->isEditMode())
+    {
         std::random_device rd;
         std::mt19937 gen(rd());
         std::uniform_real_distribution<float> posX(-5.0f, 5.0f);
@@ -271,18 +280,16 @@ void dx3d::Game::processInput(float deltaTime)
         DX3DLogInfo("Added new physics cube!");
     }
 
-    // Apply impulse to selected object
     if (input.isKeyJustPressed(KeyCode::F))
     {
         auto selectedObject = m_selectionSystem->getSelectedObject();
         if (selectedObject && selectedObject->hasPhysics())
         {
-            selectedObject->applyImpulse(Vector3(0.0f, 10.0f, 0.0f)); // Upward impulse
+            selectedObject->applyImpulse(Vector3(0.0f, 10.0f, 0.0f));
             DX3DLogInfo("Applied upward impulse to selected object!");
         }
     }
 
-    // Delete selected object with Delete key
     if (input.isKeyJustPressed(KeyCode::Delete))
     {
         auto selectedObject = m_selectionSystem->getSelectedObject();
@@ -298,14 +305,12 @@ void dx3d::Game::processInput(float deltaTime)
         }
     }
 
-    // Reset scene camera
     if (input.isKeyJustPressed(KeyCode::R))
     {
         m_sceneCamera->setPosition(Vector3(20.0f, 15.0f, -20.0f));
         m_sceneCamera->lookAt(Vector3(0.0f, 2.0f, 0.0f));
     }
 
-    // Exit application
     if (input.isKeyPressed(KeyCode::Escape))
     {
         m_isRunning = false;
@@ -318,33 +323,83 @@ void dx3d::Game::update()
     m_deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - m_previousTime).count() / 1000000.0f;
     m_previousTime = currentTime;
 
-    // Initialize ImGui frame
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
-    // Process input
+    m_sceneStateManager->update(m_deltaTime);
+
     processInput(m_deltaTime);
 
-    // Update camera
     m_sceneCamera->update();
 
-    // UPDATE PHYSICS SYSTEM (This is the key!)
-    PhysicsSystem::getInstance().update(m_deltaTime);
+    if (m_sceneStateManager->isPlayMode())
+    {
+        m_fpsController->update(m_deltaTime);
+    }
 
-    // Update game objects (transforms are now automatically synced from physics)
+    updatePhysics(m_deltaTime);
+
     for (auto& gameObject : m_gameObjects)
     {
         gameObject->update(m_deltaTime);
     }
 
-    // Debug output (only occasionally)
     static float debugTimer = 0.0f;
     debugTimer += m_deltaTime;
-    if (debugTimer >= 5.0f) // Print debug info every 5 seconds
+    if (debugTimer >= 5.0f)
     {
         DX3DLogInfo(("Physics demo running - " + std::to_string(m_gameObjects.size()) + " objects").c_str());
         debugTimer = 0.0f;
+    }
+}
+
+void dx3d::Game::onSceneStateChanged(SceneState oldState, SceneState newState)
+{
+    switch (newState)
+    {
+    case SceneState::Edit:
+        if (oldState == SceneState::Play || oldState == SceneState::Pause)
+        {
+            m_sceneStateManager->restoreObjectStates(m_gameObjects);
+        }
+        m_fpsController->disable();
+        m_fpsController->lockCursor(false);
+        m_physicsUpdateEnabled = false;
+        ShowCursor(TRUE);
+        break;
+
+    case SceneState::Play:
+        if (oldState == SceneState::Edit)
+        {
+            m_sceneStateManager->saveObjectStates(m_gameObjects);
+        }
+        m_fpsController->enable();
+        m_fpsController->lockCursor(true);
+        m_physicsUpdateEnabled = true;
+        ShowCursor(FALSE);
+        break;
+
+    case SceneState::Pause:
+        m_fpsController->lockCursor(false);
+        m_physicsUpdateEnabled = false;
+        ShowCursor(TRUE);
+        break;
+    }
+}
+
+void dx3d::Game::updatePhysics(float deltaTime)
+{
+    if (!m_physicsUpdateEnabled)
+        return;
+
+    if (m_sceneStateManager->isPauseMode() && m_sceneStateManager->isFrameStepRequested())
+    {
+        PhysicsSystem::getInstance().update(1.0f / 60.0f);
+    }
+    else if (m_sceneStateManager->isPlayMode())
+    {
+        PhysicsSystem::getInstance().update(deltaTime);
     }
 }
 
@@ -354,10 +409,9 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
     auto& deviceContext = renderSystem.getDeviceContext();
     auto d3dContext = deviceContext.getDeviceContext();
 
-    // Set up render target
     if (renderTarget)
     {
-        renderTarget->clear(deviceContext, 0.1f, 0.1f, 0.2f, 1.0f); // Dark blue background
+        renderTarget->clear(deviceContext, 0.1f, 0.1f, 0.2f, 1.0f);
         renderTarget->setAsRenderTarget(deviceContext);
     }
     else
@@ -372,27 +426,22 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
     ui32 viewportHeight = renderTarget ? 480 : m_display->getSize().height;
     deviceContext.setViewportSize(viewportWidth, viewportHeight);
 
-    // Set up constant buffers
     ID3D11Buffer* transformCb = m_transformConstantBuffer->getBuffer();
     d3dContext->VSSetConstantBuffers(0, 1, &transformCb);
     d3dContext->OMSetDepthStencilState(m_solidDepthState, 0);
 
     bool isSceneView = (&camera == m_sceneCamera.get());
 
-    // Render all game objects
     for (const auto& gameObject : m_gameObjects)
     {
-        // Skip camera in scene view
         bool isCamera = std::dynamic_pointer_cast<CameraObject>(gameObject) != nullptr;
         if (!isSceneView && isCamera)
             continue;
 
-        // Use fog shader for all objects
         deviceContext.setVertexShader(m_fogVertexShader->getShader());
         deviceContext.setPixelShader(m_fogPixelShader->getShader());
         deviceContext.setInputLayout(m_fogVertexShader->getInputLayout());
 
-        // Set up fog constants
         FogShaderConstants fsc = {};
         fsc.fogColor = m_fogDesc.color;
         fsc.cameraPosition = camera.getPosition();
@@ -404,7 +453,6 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
         ID3D11Buffer* fogCb = m_fogConstantBuffer->getBuffer();
         d3dContext->PSSetConstantBuffers(1, 1, &fogCb);
 
-        // Set up material constants
         FogMaterialConstants fmc = {};
         fmc.useVertexColor = true;
         fmc.baseColor = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -412,7 +460,6 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
         ID3D11Buffer* materialCb = m_materialConstantBuffer->getBuffer();
         d3dContext->PSSetConstantBuffers(2, 1, &materialCb);
 
-        // Set vertex and index buffers based on object type
         bool bufferSet = false;
         ui32 indexCount = 0;
 
@@ -433,14 +480,12 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
 
         if (bufferSet)
         {
-            // Set up transformation matrices
             TransformationMatrices transformMatrices;
             transformMatrices.world = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(gameObject->getWorldMatrix().toXMMatrix()));
             transformMatrices.view = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(camera.getViewMatrix().toXMMatrix()));
             transformMatrices.projection = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(projMatrix.toXMMatrix()));
             m_transformConstantBuffer->update(deviceContext, &transformMatrices);
 
-            // Draw the object
             deviceContext.drawIndexed(indexCount, 0, 0);
         }
     }
@@ -448,14 +493,49 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
 
 void dx3d::Game::renderUI()
 {
-    
     if (ImGui::BeginMainMenuBar())
     {
+        if (ImGui::BeginMenu("Scene"))
+        {
+            const char* stateText = "";
+            switch (m_sceneStateManager->getCurrentState())
+            {
+            case SceneState::Edit: stateText = "Edit Mode"; break;
+            case SceneState::Play: stateText = "Play Mode"; break;
+            case SceneState::Pause: stateText = "Pause Mode"; break;
+            }
+
+            ImGui::Text("State: %s", stateText);
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Play (F5)", nullptr, false, m_sceneStateManager->isEditMode()))
+            {
+                m_sceneStateManager->transitionToPlay();
+            }
+
+            if (ImGui::MenuItem("Pause (Space)", nullptr, false, m_sceneStateManager->isPlayMode()))
+            {
+                m_sceneStateManager->transitionToPause();
+            }
+
+            if (ImGui::MenuItem("Stop (F5)", nullptr, false, !m_sceneStateManager->isEditMode()))
+            {
+                m_sceneStateManager->transitionToEdit();
+            }
+
+            if (ImGui::MenuItem("Frame Step (F10)", nullptr, false, m_sceneStateManager->isPauseMode()))
+            {
+                m_sceneStateManager->frameStep();
+            }
+
+            ImGui::EndMenu();
+        }
+
         if (ImGui::BeginMenu("GameObjects"))
         {
             if (ImGui::MenuItem("Cube Demo"))
             {
-                spawnCubeDemo(); // Spawn 15 new cubes
+                spawnCubeDemo();
             }
             ImGui::EndMenu();
         }
@@ -468,8 +548,7 @@ void dx3d::Game::renderUI()
     float halfWidth = windowWidth * 0.5f;
     float halfHeight = windowHeight * 0.5f;
 
-    // Game View - Top Left
-    ImGui::SetNextWindowPos(ImVec2(0, 20)); // Y offset for the menu bar
+    ImGui::SetNextWindowPos(ImVec2(0, 20));
     ImGui::SetNextWindowSize(ImVec2(halfWidth, halfHeight - 20));
     ImGui::Begin("Game View", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
@@ -482,7 +561,6 @@ void dx3d::Game::renderUI()
     }
     ImGui::End();
 
-    // Scene View - Bottom Left
     ImGui::SetNextWindowPos(ImVec2(0, halfHeight));
     ImGui::SetNextWindowSize(ImVec2(halfWidth, halfHeight));
     ImGui::Begin("Scene View", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
@@ -503,8 +581,7 @@ void dx3d::Game::renderUI()
     }
     ImGui::End();
 
-    // Physics Controls & Scene Outliner - Top Right
-    ImGui::SetNextWindowPos(ImVec2(halfWidth, 20)); // Y offset for the menu bar
+    ImGui::SetNextWindowPos(ImVec2(halfWidth, 20));
     ImGui::SetNextWindowSize(ImVec2(halfWidth, halfHeight - 20));
     ImGui::Begin("Physics Controls", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
@@ -515,10 +592,9 @@ void dx3d::Game::renderUI()
     ImGui::Text("Delta Time: %.3f ms", m_deltaTime * 1000.0f);
     ImGui::Text("FPS: %.1f", 1.0f / m_deltaTime);
 
-    
     ImGui::Separator();
     ImGui::Text("Scene Outliner");
-    ImGui::BeginChild("Outliner", ImVec2(0, 0), true); // Scrollable region
+    ImGui::BeginChild("Outliner", ImVec2(0, 0), true);
 
     int objectId = 0;
     for (const auto& gameObject : m_gameObjects)
@@ -540,7 +616,6 @@ void dx3d::Game::renderUI()
 
     ImGui::End();
 
-    // Inspector - Bottom Right
     ImGui::SetNextWindowPos(ImVec2(halfWidth, halfHeight));
     ImGui::SetNextWindowSize(ImVec2(halfWidth, halfHeight));
     ImGui::Begin("Inspector", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
@@ -576,7 +651,6 @@ void dx3d::Game::render()
     auto& deviceContext = renderSystem.getDeviceContext();
     auto& swapChain = m_display->getSwapChain();
 
-    // Render to viewports
     auto& sceneViewport = m_viewportManager->getViewport(ViewportType::Scene);
     auto& gameViewport = m_viewportManager->getViewport(ViewportType::Game);
 
@@ -588,7 +662,6 @@ void dx3d::Game::render()
     Matrix4x4 gameProjMatrix = m_gameCamera->getProjectionMatrix(aspectRatio);
     renderScene(m_gameCamera->getCamera(), gameProjMatrix, gameViewport.renderTexture.get());
 
-    // Render UI
     deviceContext.clearRenderTargetColor(swapChain, 0.1f, 0.1f, 0.1f, 1.0f);
     deviceContext.clearDepthBuffer(*m_depthBuffer);
     deviceContext.setRenderTargetsWithDepth(swapChain, *m_depthBuffer);
@@ -604,7 +677,6 @@ void dx3d::Game::render()
 
 void dx3d::Game::spawnCubeDemo()
 {
-    // Create falling cubes with physics
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<float> posX(1.0f, 5.0f);
@@ -619,7 +691,6 @@ void dx3d::Game::spawnCubeDemo()
 
         auto cube = std::make_shared<Cube>(position, Vector3(0, 0, 0), cubeScale);
 
-        // Enable physics with random properties
         cube->enablePhysics(PhysicsBodyType::Dynamic);
         cube->setPhysicsMass(2.0f);
         cube->setPhysicsRestitution(0.8f);

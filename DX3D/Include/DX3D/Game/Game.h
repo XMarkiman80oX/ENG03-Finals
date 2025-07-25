@@ -2,6 +2,7 @@
 #include <DX3D/Core/Base.h>
 #include <DX3D/Core/Core.h>
 #include <DX3D/Math/Math.h>
+#include <DX3D/Scene/Scene.h>
 #include <chrono>
 #include <memory>
 #include <vector>
@@ -10,7 +11,6 @@
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
 #include <DX3D/Graphics/Shaders/ModelVertexShader.h>
-
 
 namespace dx3d
 {
@@ -31,6 +31,14 @@ namespace dx3d
     class CameraObject;
     class ViewportManager;
     class SelectionSystem;
+    class SceneStateManager;
+    class FPSCameraController;
+    class RenderTexture;
+    class GraphicsEngine;
+    class Display;
+    class Logger;
+
+    enum class SceneState;
 }
 
 namespace dx3d {
@@ -69,6 +77,7 @@ namespace dx3d
         virtual ~Game() override;
 
         virtual void run() final;
+
     private:
         void render();
         void renderScene(Camera& camera, const Matrix4x4& projMatrix, RenderTexture* renderTarget = nullptr);
@@ -78,9 +87,13 @@ namespace dx3d
         void processInput(float deltaTime);
         void updateSnowEmitter();
         void debugRenderInfo();
-        void renderSceneHierarchy();        
+        void renderSceneHierarchy();
         void renderInspector();
         void spawnCubeDemo();
+
+        // Scene State Management Methods
+        void onSceneStateChanged(SceneState oldState, SceneState newState);
+        void updatePhysics(float deltaTime);
 
         std::string getObjectDisplayName(std::shared_ptr<AGameObject> object, int index);
         std::string getObjectIcon(std::shared_ptr<AGameObject> object);
@@ -96,6 +109,12 @@ namespace dx3d
         std::shared_ptr<CameraObject> m_gameCamera{};
         std::unique_ptr<ViewportManager> m_viewportManager{};
         std::unique_ptr<SelectionSystem> m_selectionSystem{};
+
+        // Scene State Management
+        std::unique_ptr<SceneStateManager> m_sceneStateManager{};
+        std::unique_ptr<FPSCameraController> m_fpsController{};
+        bool m_physicsUpdateEnabled{ true };
+        float m_pausedPhysicsTimeStep{ 0.0f };
 
         float m_cameraSpeed{ 5.0f };
         float m_mouseSensitivity{ 0.3f };

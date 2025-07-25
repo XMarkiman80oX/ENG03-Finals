@@ -136,6 +136,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DX3D\Source\DX3D\Game\FPSCameraController.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\Material.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Physics\PhysicsSystem.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Assets\AssetManager.cpp" />
@@ -170,6 +171,7 @@
     <ClCompile Include="DX3D\Source\DX3D\Particles\ParticleEffects\SnowParticle.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Particles\ParticleEmitter.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Particles\ParticleSystem.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Scene\SceneStateManager.cpp" />
     <ClCompile Include="Game\main.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Window\Win32\Win32Window.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\GraphicsEngine.cpp" />
@@ -196,6 +198,7 @@
     <ClInclude Include="DX3D\Include\DX3D\Assets\tiny_obj_loader.h" />
     <ClInclude Include="DX3D\Include\DX3D\ECS\Entity.h" />
     <ClInclude Include="DX3D\Include\DX3D\Game\Camera.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Game\FPSCameraController.h" />
     <ClInclude Include="DX3D\Include\DX3D\Game\SelectionSystem.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Material.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Mesh.h" />
