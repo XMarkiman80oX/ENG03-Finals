@@ -1,0 +1,223 @@
+#include <DX3D/Game/UndoRedoSystem.h>
+#include <DX3D/Graphics/Primitives/AGameObject.h>
+#include <algorithm>
+
+using namespace dx3d;
+
+// TransformAction Implementation
+TransformAction::TransformAction(std::shared_ptr<AGameObject> object,
+    const Vector3& oldPos, const Vector3& newPos,
+    const Vector3& oldRot, const Vector3& newRot,
+    const Vector3& oldScale, const Vector3& newScale)
+    : m_object(object)
+    , m_oldPosition(oldPos), m_newPosition(newPos)
+    , m_oldRotation(oldRot), m_newRotation(newRot)
+    , m_oldScale(oldScale), m_newScale(newScale)
+{
+}
+
+void TransformAction::execute()
+{
+    if (auto obj = m_object.lock())
+    {
+        obj->setPosition(m_newPosition);
+        obj->setRotation(m_newRotation);
+        obj->setScale(m_newScale);
+    }
+}
+
+void TransformAction::undo()
+{
+    if (auto obj = m_object.lock())
+    {
+        obj->setPosition(m_oldPosition);
+        obj->setRotation(m_oldRotation);
+        obj->setScale(m_oldScale);
+    }
+}
+
+std::string TransformAction::getDescription() const
+{
+    return "Transform Object";
+}
+
+// DeleteAction Implementation
+DeleteAction::DeleteAction(std::shared_ptr<AGameObject> object,
+    std::vector<std::shared_ptr<AGameObject>>& objectList)
+    : m_object(object)
+    , m_objectList(&objectList)
+    , m_originalIndex(0)
+{
+    // Find the index of the object in the list
+    auto it = std::find(objectList.begin(), objectList.end(), object);
+    if (it != objectList.end())
+    {
+        m_originalIndex = std::distance(objectList.begin(), it);
+    }
+}
+
+void DeleteAction::execute()
+{
+    if (m_object && m_objectList)
+    {
+        auto it = std::find(m_objectList->begin(), m_objectList->end(), m_object);
+        if (it != m_objectList->end())
+        {
+            m_objectList->erase(it);
+        }
+    }
+}
+
+void DeleteAction::undo()
+{
+    if (m_object && m_objectList)
+    {
+        // Insert back at original position or at end if index is out of bounds
+        if (m_originalIndex <= m_objectList->size())
+        {
+            m_objectList->insert(m_objectList->begin() + m_originalIndex, m_object);
+        }
+        else
+        {
+            m_objectList->push_back(m_object);
+        }
+    }
+}
+
+std::string DeleteAction::getDescription() const
+{
+    return "Delete Object";
+}
+
+// CreateAction Implementation
+CreateAction::CreateAction(std::shared_ptr<AGameObject> object,
+    std::vector<std::shared_ptr<AGameObject>>& objectList)
+    : m_object(object)
+    , m_objectList(&objectList)
+{
+}
+
+void CreateAction::execute()
+{
+    if (m_object && m_objectList)
+    {
+        m_objectList->push_back(m_object);
+    }
+}
+
+void CreateAction::undo()
+{
+    if (m_object && m_objectList)
+    {
+        auto it = std::find(m_objectList->begin(), m_objectList->end(), m_object);
+        if (it != m_objectList->end())
+        {
+            m_objectList->erase(it);
+        }
+    }
+}
+
+std::string CreateAction::getDescription() const
+{
+    return "Create Object";
+}
+
+// UndoRedoSystem Implementation
+UndoRedoSystem::UndoRedoSystem(ui32 maxActions)
+    : m_maxActions(maxActions)
+{
+    m_undoStack.reserve(maxActions);
+    m_redoStack.reserve(maxActions);
+}
+
+void UndoRedoSystem::executeAction(std::unique_ptr<IAction> action)
+{
+    if (!action)
+        return;
+
+    // Execute the action
+    action->execute();
+
+    // Add to undo stack
+    m_undoStack.push_back(std::move(action));
+
+    // Clear redo stack since we performed a new action
+    m_redoStack.clear();
+
+    // Trim undo stack if it exceeds maximum
+    trimUndoStack();
+}
+
+bool UndoRedoSystem::canUndo() const
+{
+    return !m_undoStack.empty();
+}
+
+bool UndoRedoSystem::canRedo() const
+{
+    return !m_redoStack.empty();
+}
+
+void UndoRedoSystem::undo()
+{
+    if (!canUndo())
+        return;
+
+    // Get the last action from undo stack
+    auto action = std::move(m_undoStack.back());
+    m_undoStack.pop_back();
+
+    // Undo the action
+    action->undo();
+
+    // Move to redo stack
+    m_redoStack.push_back(std::move(action));
+}
+
+void UndoRedoSystem::redo()
+{
+    if (!canRedo())
+        return;
+
+    // Get the last action from redo stack
+    auto action = std::move(m_redoStack.back());
+    m_redoStack.pop_back();
+
+    // Execute the action again
+    action->execute();
+
+    // Move back to undo stack
+    m_undoStack.push_back(std::move(action));
+}
+
+void UndoRedoSystem::clear()
+{
+    m_undoStack.clear();
+    m_redoStack.clear();
+}
+
+std::string UndoRedoSystem::getUndoDescription() const
+{
+    if (canUndo())
+    {
+        return "Undo " + m_undoStack.back()->getDescription();
+    }
+    return "Nothing to Undo";
+}
+
+std::string UndoRedoSystem::getRedoDescription() const
+{
+    if (canRedo())
+    {
+        return "Redo " + m_redoStack.back()->getDescription();
+    }
+    return "Nothing to Redo";
+}
+
+void UndoRedoSystem::trimUndoStack()
+{
+    while (m_undoStack.size() > m_maxActions)
+    {
+        m_undoStack.erase(m_undoStack.begin());
+    }
+}

@@ -27,6 +27,7 @@
 #include <DX3D/Game/SelectionSystem.h>
 #include <DX3D/Scene/SceneStateManager.h>
 #include <DX3D/Game/FPSCameraController.h>
+#include <DX3D/Game/UndoRedoSystem.h>
 
 #include <DX3D/ECS/ComponentManager.h>
 #include <DX3D/ECS/Components/TransformComponent.h>
@@ -50,6 +51,8 @@ dx3d::Game::Game(const GameDesc& desc) :
 
     m_sceneStateManager = std::make_unique<SceneStateManager>();
     m_fpsController = std::make_unique<FPSCameraController>();
+
+    m_undoRedoSystem = std::make_unique<UndoRedoSystem>(10);
 
     createRenderingResources();
 
@@ -195,6 +198,45 @@ void dx3d::Game::processInput(float deltaTime)
 {
     auto& input = Input::getInstance();
 
+    // Undo/Redo shortcuts (only in edit mode)
+    if (m_sceneStateManager->isEditMode())
+    {
+        if (input.isKeyJustPressedWithShiftCtrl(KeyCode::Z))
+        {
+            // Redo: Shift + Ctrl + Z
+            if (m_undoRedoSystem->canRedo())
+            {
+                m_undoRedoSystem->redo();
+                DX3DLogInfo("Redo action performed");
+            }
+        }
+        else if (input.isKeyJustPressedWithCtrl(KeyCode::Z))
+        {
+            // Undo: Ctrl + Z
+            if (m_undoRedoSystem->canUndo())
+            {
+                m_undoRedoSystem->undo();
+                DX3DLogInfo("Undo action performed");
+            }
+        }
+
+        // Delete selected object
+        if (input.isKeyJustPressed(KeyCode::Delete))
+        {
+            auto selectedObject = m_selectionSystem->getSelectedObject();
+            if (selectedObject)
+            {
+                // Create delete action and execute it through undo system
+                auto deleteAction = std::make_unique<DeleteAction>(selectedObject, m_gameObjects);
+                m_undoRedoSystem->executeAction(std::move(deleteAction));
+
+                // Clear selection since object is deleted
+                m_selectionSystem->setSelectedObject(nullptr);
+                DX3DLogInfo("Deleted selected object");
+            }
+        }
+    }
+
     if (input.isKeyJustPressed(KeyCode::F5))
     {
         if (m_sceneStateManager->isEditMode())
@@ -261,6 +303,7 @@ void dx3d::Game::processInput(float deltaTime)
         }
     }
 
+    // Create new cube (only in edit mode)
     if (input.isKeyJustPressed(KeyCode::Space) && m_sceneStateManager->isEditMode())
     {
         std::random_device rd;
@@ -278,7 +321,9 @@ void dx3d::Game::processInput(float deltaTime)
         cube->setPhysicsRestitution(0.5f);
         cube->setPhysicsFriction(0.5f);
 
-        m_gameObjects.push_back(cube);
+        // Create through undo system
+        auto createAction = std::make_unique<CreateAction>(cube, m_gameObjects);
+        m_undoRedoSystem->executeAction(std::move(createAction));
         DX3DLogInfo("Added new physics cube!");
     }
 
@@ -289,21 +334,6 @@ void dx3d::Game::processInput(float deltaTime)
         {
             selectedObject->applyImpulse(Vector3(0.0f, 10.0f, 0.0f));
             DX3DLogInfo("Applied upward impulse to selected object!");
-        }
-    }
-
-    if (input.isKeyJustPressed(KeyCode::Delete))
-    {
-        auto selectedObject = m_selectionSystem->getSelectedObject();
-        if (selectedObject)
-        {
-            auto it = std::find(m_gameObjects.begin(), m_gameObjects.end(), selectedObject);
-            if (it != m_gameObjects.end())
-            {
-                m_gameObjects.erase(it);
-                m_selectionSystem->setSelectedObject(nullptr);
-                DX3DLogInfo("Deleted selected object!");
-            }
         }
     }
 

@@ -37,6 +37,7 @@ namespace dx3d
     class GraphicsEngine;
     class Display;
     class Logger;
+    class UndoRedoSystem;
 
     enum class SceneState;
 }
@@ -113,6 +114,7 @@ namespace dx3d
         // Scene State Management
         std::unique_ptr<SceneStateManager> m_sceneStateManager{};
         std::unique_ptr<FPSCameraController> m_fpsController{};
+        std::unique_ptr<UndoRedoSystem> m_undoRedoSystem{};
         bool m_physicsUpdateEnabled{ true };
         float m_pausedPhysicsTimeStep{ 0.0f };
 

@@ -99,6 +99,31 @@ void Input::onMouseWheel(i32 delta)
     m_mouseWheelDelta = delta;
 }
 
+bool Input::isCtrlPressed() const
+{
+    return (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
+}
+
+bool Input::isShiftPressed() const
+{
+    return (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
+}
+
+bool Input::isAltPressed() const
+{
+    return (GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
+}
+
+bool Input::isKeyJustPressedWithCtrl(KeyCode key) const
+{
+    return isKeyJustPressed(key) && isCtrlPressed();
+}
+
+bool Input::isKeyJustPressedWithShiftCtrl(KeyCode key) const
+{
+    return isKeyJustPressed(key) && isCtrlPressed() && isShiftPressed();
+}
+
 void Input::update()
 {
     // Clear "just pressed" and "just released" states

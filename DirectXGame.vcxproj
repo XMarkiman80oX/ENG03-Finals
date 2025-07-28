@@ -137,6 +137,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="DX3D\Source\DX3D\Game\FPSCameraController.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Game\UndoRedoSystem.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\Material.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Physics\PhysicsSystem.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Assets\AssetManager.cpp" />
@@ -200,6 +201,7 @@
     <ClInclude Include="DX3D\Include\DX3D\Game\Camera.h" />
     <ClInclude Include="DX3D\Include\DX3D\Game\FPSCameraController.h" />
     <ClInclude Include="DX3D\Include\DX3D\Game\SelectionSystem.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Game\UndoRedoSystem.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Material.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Mesh.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\Model.h" />

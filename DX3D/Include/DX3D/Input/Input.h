@@ -26,7 +26,7 @@ namespace dx3d
         Shift = VK_SHIFT,
         Control = VK_CONTROL,
         Alt = VK_MENU,
-        Delete = VK_DELETE,   
+        Delete = VK_DELETE,
 
         // Arrow keys
         Left = VK_LEFT,
@@ -60,6 +60,15 @@ namespace dx3d
         bool isKeyPressed(KeyCode key) const;
         bool isKeyJustPressed(KeyCode key) const;
         bool isKeyJustReleased(KeyCode key) const;
+
+        // Modifier key methods
+        bool isCtrlPressed() const;
+        bool isShiftPressed() const;
+        bool isAltPressed() const;
+
+        // Combination key methods
+        bool isKeyJustPressedWithCtrl(KeyCode key) const;
+        bool isKeyJustPressedWithShiftCtrl(KeyCode key) const;
 
         // Mouse methods
         bool isMouseButtonPressed(MouseButton button) const;
