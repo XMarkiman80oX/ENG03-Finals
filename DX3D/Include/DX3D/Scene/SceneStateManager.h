@@ -50,6 +50,7 @@ namespace dx3d
         bool isEditMode() const { return m_stateInfo.currentState == SceneState::Edit; }
         bool isPlayMode() const { return m_stateInfo.currentState == SceneState::Play; }
         bool isPauseMode() const { return m_stateInfo.currentState == SceneState::Pause; }
+        void clearFrameStepRequest() { m_stateInfo.frameStepRequested = false; }
 
     private:
         void setState(SceneState newState);

@@ -113,10 +113,10 @@ void SceneStateManager::addStateChangeCallback(const StateChangeCallback& callba
 
 void SceneStateManager::update(float deltaTime)
 {
-    if (m_stateInfo.frameStepRequested)
+    /*if (m_stateInfo.frameStepRequested)
     {
         m_stateInfo.frameStepRequested = false;
-    }
+    }*/
 }
 
 void SceneStateManager::setState(SceneState newState)
