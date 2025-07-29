@@ -24,17 +24,18 @@ void CameraObject::update(float deltaTime)
 
 void CameraObject::syncCameraTransform()
 {
-    m_camera->setPosition(m_transform.position);
+    m_camera->setPosition(getPosition());
 
-    float yaw = m_transform.rotation.y;
-    float pitch = m_transform.rotation.x;
+    Vector3 rotation = getRotation();
+    float yaw = rotation.y;
+    float pitch = rotation.x;
 
     Vector3 forward;
     forward.x = std::sin(yaw) * std::cos(pitch);
     forward.y = std::sin(pitch);
     forward.z = std::cos(yaw) * std::cos(pitch);
 
-    Vector3 target = m_transform.position + forward;
+    Vector3 target = getPosition() + forward;
     m_camera->lookAt(target);
 }
 
@@ -45,8 +46,10 @@ Matrix4x4 CameraObject::getProjectionMatrix(float aspectRatio) const
 
 void CameraObject::alignWithView(const Camera& viewCamera)
 {
-    m_transform.position = viewCamera.getPosition();
-    m_transform.rotation.y = viewCamera.getYaw();
-    m_transform.rotation.x = viewCamera.getPitch();
-    syncCameraTransform();
+    setPosition(viewCamera.getPosition());
+
+    Vector3 newRotation = getRotation();
+    newRotation.y = viewCamera.getYaw();
+    newRotation.x = viewCamera.getPitch();
+    setRotation(newRotation);
 }

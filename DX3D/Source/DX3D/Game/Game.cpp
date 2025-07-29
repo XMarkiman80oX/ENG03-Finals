@@ -263,7 +263,6 @@ void dx3d::Game::processInput(float deltaTime)
 
     auto& sceneViewport = m_viewportManager->getViewport(ViewportType::Scene);
 
-    // Camera movement works in ALL modes (Edit, Play, Pause) - like Unity
     if (sceneViewport.isFocused && input.isMouseButtonPressed(MouseButton::Right))
     {
         float moveSpeed = m_cameraSpeed * deltaTime;
@@ -299,6 +298,7 @@ void dx3d::Game::processInput(float deltaTime)
             m_selectionSystem->setSelectedObject(picked);
         }
     }
+
 
     // Create new cube (only in edit mode)
     if (input.isKeyJustPressed(KeyCode::Space) && m_sceneStateManager->isEditMode())
@@ -719,7 +719,22 @@ void dx3d::Game::renderUI()
     {
         m_viewportManager->resize(ViewportType::Game, static_cast<ui32>(gameViewportSize.x), static_cast<ui32>(gameViewportSize.y));
         auto& gameViewport = m_viewportManager->getViewport(ViewportType::Game);
+
+        ImVec2 imagePos = ImGui::GetCursorScreenPos();
         ImGui::Image((void*)gameViewport.renderTexture->getShaderResourceView(), gameViewportSize);
+
+        bool isImageHovered = ImGui::IsItemHovered();
+        ImVec2 mousePos = ImGui::GetMousePos();
+        float localX = mousePos.x - imagePos.x;
+        float localY = mousePos.y - imagePos.y;
+
+        bool isMouseInImageBounds = (localX >= 0 && localY >= 0 &&
+            localX < gameViewportSize.x && localY < gameViewportSize.y);
+
+        m_viewportManager->updateViewportStates(ViewportType::Game,
+            isImageHovered && isMouseInImageBounds,
+            ImGui::IsWindowFocused(),
+            localX, localY);
     }
     ImGui::End();
 
@@ -732,14 +747,22 @@ void dx3d::Game::renderUI()
     {
         m_viewportManager->resize(ViewportType::Scene, static_cast<ui32>(sceneViewportSize.x), static_cast<ui32>(sceneViewportSize.y));
         auto& sceneViewport = m_viewportManager->getViewport(ViewportType::Scene);
+
+        ImVec2 imagePos = ImGui::GetCursorScreenPos();
         ImGui::Image((void*)sceneViewport.renderTexture->getShaderResourceView(), sceneViewportSize);
 
+        bool isImageHovered = ImGui::IsItemHovered();
         ImVec2 mousePos = ImGui::GetMousePos();
-        ImVec2 windowPos = ImGui::GetWindowPos();
-        float localX = mousePos.x - windowPos.x - 8;
-        float localY = mousePos.y - windowPos.y - ImGui::GetFrameHeight() - 4;
+        float localX = mousePos.x - imagePos.x;
+        float localY = mousePos.y - imagePos.y;
 
-        m_viewportManager->updateViewportStates(ViewportType::Scene, ImGui::IsWindowHovered(), ImGui::IsWindowFocused(), localX, localY);
+        bool isMouseInImageBounds = (localX >= 0 && localY >= 0 &&
+            localX < sceneViewportSize.x && localY < sceneViewportSize.y);
+
+        m_viewportManager->updateViewportStates(ViewportType::Scene,
+            isImageHovered && isMouseInImageBounds,
+            ImGui::IsWindowFocused(),
+            localX, localY);
     }
     ImGui::End();
 
@@ -928,6 +951,8 @@ void dx3d::Game::renderUI()
     auto selectedObject = m_selectionSystem->getSelectedObject();
     if (selectedObject)
     {
+        auto cameraObject = std::dynamic_pointer_cast<CameraObject>(selectedObject);
+
         ImGui::Text("Selected Object");
         ImGui::Separator();
 
@@ -959,7 +984,6 @@ void dx3d::Game::renderUI()
                     m_transformTracking.originalRotation = selectedObject->getRotation();
                     m_transformTracking.originalScale = selectedObject->getScale();
                     m_transformTracking.isDragging = true;
-                    printf("*** Position drag STARTED ***\n");
                 }
 
                 selectedObject->setPosition(pos);
@@ -976,7 +1000,6 @@ void dx3d::Game::renderUI()
                     m_transformTracking.originalRotation = selectedObject->getRotation();
                     m_transformTracking.originalScale = selectedObject->getScale();
                     m_transformTracking.isDragging = true;
-                    printf("*** Rotation drag STARTED ***\n");
                 }
 
                 Vector3 rotRadians = Vector3(
@@ -998,7 +1021,6 @@ void dx3d::Game::renderUI()
                     m_transformTracking.originalRotation = selectedObject->getRotation();
                     m_transformTracking.originalScale = selectedObject->getScale();
                     m_transformTracking.isDragging = true;
-                    printf("*** Scale drag STARTED ***\n");
                 }
 
                 selectedObject->setScale(scale);
@@ -1006,13 +1028,10 @@ void dx3d::Game::renderUI()
             }
 
             bool scaleActive = ImGui::IsItemActive();
-
             bool anyControlActive = positionActive || rotationActive || scaleActive;
 
             if (m_transformTracking.isDragging && !anyControlActive)
             {
-                printf("*** Drag ENDED - creating undo action ***\n");
-
                 if (m_sceneStateManager->isEditMode())
                 {
                     Vector3 newPos = selectedObject->getPosition();
@@ -1021,10 +1040,6 @@ void dx3d::Game::renderUI()
 
                     const float epsilon = 0.001f;
                     auto isChanged = [epsilon](float a, float b) { return std::abs(a - b) > epsilon; };
-
-                    printf("*** Checking for changes - Old pos:(%.3f,%.3f,%.3f) New pos:(%.3f,%.3f,%.3f) ***\n",
-                        m_transformTracking.originalPosition.x, m_transformTracking.originalPosition.y, m_transformTracking.originalPosition.z,
-                        newPos.x, newPos.y, newPos.z);
 
                     if (isChanged(m_transformTracking.originalPosition.x, newPos.x) ||
                         isChanged(m_transformTracking.originalPosition.y, newPos.y) ||
@@ -1044,12 +1059,7 @@ void dx3d::Game::renderUI()
                         );
 
                         m_undoRedoSystem->recordAction(std::move(transformAction));
-                        printf("*** Transform action recorded! Undo count: %d ***\n", m_undoRedoSystem->getUndoCount());
                         DX3DLogInfo("Transform change recorded for undo/redo");
-                    }
-                    else
-                    {
-                        printf("*** No significant change detected for undo recording ***\n");
                     }
                 }
 
@@ -1070,6 +1080,49 @@ void dx3d::Game::renderUI()
 
                     selectedObject->disablePhysics();
                     selectedObject->enablePhysics(bodyType);
+                }
+            }
+        }
+
+        if (cameraObject)
+        {
+            if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                float fov = cameraObject->getFOV() * 180.0f / 3.14159f;
+                float nearPlane = cameraObject->getNearPlane();
+                float farPlane = cameraObject->getFarPlane();
+
+                bool cameraChanged = false;
+
+                if (ImGui::SliderFloat("Field of View", &fov, 10.0f, 120.0f, "%.1f°"))
+                {
+                    cameraObject->setFOV(fov * 3.14159f / 180.0f);
+                    cameraChanged = true;
+                }
+
+                if (ImGui::DragFloat("Near Plane", &nearPlane, 0.01f, 0.01f, 10.0f, "%.3f"))
+                {
+                    cameraObject->setNearPlane(nearPlane);
+                    cameraChanged = true;
+                }
+
+                if (ImGui::DragFloat("Far Plane", &farPlane, 1.0f, 1.0f, 1000.0f, "%.1f"))
+                {
+                    cameraObject->setFarPlane(farPlane);
+                    cameraChanged = true;
+                }
+
+                ImGui::Separator();
+
+                if (ImGui::Button("Align with View", ImVec2(-1, 0)))
+                {
+                    cameraObject->alignWithView(*m_sceneCamera);
+                    DX3DLogInfo("Game camera aligned with scene view");
+                }
+
+                if (ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("Align the game camera with the current scene view camera");
                 }
             }
         }
@@ -1099,6 +1152,9 @@ void dx3d::Game::renderUI()
             std::string objectType = "Unknown";
             if (std::dynamic_pointer_cast<Cube>(selectedObject)) objectType = "Cube";
             else if (std::dynamic_pointer_cast<Plane>(selectedObject)) objectType = "Plane";
+            else if (std::dynamic_pointer_cast<Sphere>(selectedObject)) objectType = "Sphere";
+            else if (std::dynamic_pointer_cast<Cylinder>(selectedObject)) objectType = "Cylinder";
+            else if (std::dynamic_pointer_cast<Capsule>(selectedObject)) objectType = "Capsule";
             else if (std::dynamic_pointer_cast<CameraObject>(selectedObject)) objectType = "Camera";
 
             ImGui::Text("Type: %s", objectType.c_str());
