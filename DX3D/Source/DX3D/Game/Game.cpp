@@ -1192,13 +1192,85 @@ void dx3d::Game::renderUI()
     static int debugCounter = 0;
     if (++debugCounter % 60 == 0)
     {
-        printf("Debug: canUndo=%s, canRedo=%s, isEditMode=%s, undoCount=%d, redoCount=%d\n",
+        printf("Debug: canUndo=%s, canRedo=%s, isEditMode=%s, undoCount=%d, redoCount=%d\n",    
             canUndo ? "true" : "false",
             canRedo ? "true" : "false",
             isEditMode ? "true" : "false",
             m_undoRedoSystem->getUndoCount(),
             m_undoRedoSystem->getRedoCount());
     }
+}
+
+void dx3d::Game::renderDebugWindow()
+{
+    ImGuiIO& io = ImGui::GetIO();
+    float windowWidth = io.DisplaySize.x;
+    float windowHeight = io.DisplaySize.y;
+    float halfWidth = windowWidth * 0.5f;
+    float halfHeight = windowHeight * 0.5f;
+    float debugHeight = halfHeight * 0.4f;
+
+    // Position the debug window at the bottom right
+    ImGui::SetNextWindowPos(ImVec2(halfWidth, windowHeight - debugHeight));
+    ImGui::SetNextWindowSize(ImVec2(halfWidth, debugHeight));
+
+    ImGui::Begin("Debug Console", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+
+    // Get recent log entries
+    auto logEntries = m_logger.getRecentLogs(100);
+
+    // Add a clear button
+    if (ImGui::Button("Clear Logs"))
+    {
+        m_logger.clearLogs();
+    }
+
+    ImGui::SameLine();
+    ImGui::Text("Log Entries: %zu", logEntries.size());
+
+    ImGui::Separator();
+
+    // Create a scrollable region for log entries
+    ImGui::BeginChild("LogScrollRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
+
+    // Display log entries with different colors based on level
+    for (const auto& entry : logEntries)
+    {
+        ImVec4 color;
+        const char* levelText;
+
+        switch (entry.level)
+        {
+        case LogEntry::Level::Error:
+            color = ImVec4(1.0f, 0.4f, 0.4f, 1.0f); // Red
+            levelText = "[ERROR]";
+            break;
+        case LogEntry::Level::Warning:
+            color = ImVec4(1.0f, 1.0f, 0.4f, 1.0f); // Yellow
+            levelText = "[WARN]";
+            break;
+        case LogEntry::Level::Info:
+            color = ImVec4(0.4f, 1.0f, 0.4f, 1.0f); // Green
+            levelText = "[INFO]";
+            break;
+        default:
+            color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f); // White
+            levelText = "[LOG]";
+            break;
+        }
+
+        ImGui::PushStyleColor(ImGuiCol_Text, color);
+        ImGui::Text("%s %s %s", entry.timestamp.c_str(), levelText, entry.message.c_str());
+        ImGui::PopStyleColor();
+    }
+
+    // Auto-scroll to bottom if we have new content
+    if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+        ImGui::SetScrollHereY(1.0f);
+
+    ImGui::EndChild();
+
+    ImGui::End();
 }
 
 void dx3d::Game::render()
