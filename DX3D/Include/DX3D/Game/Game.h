@@ -67,6 +67,15 @@ namespace dx3d {
         float emissionRate = 50.0f;
         bool active = true;
     };
+
+    struct TransformTracking
+    {
+        bool isDragging = false;
+        Vector3 originalPosition{ 0, 0, 0 };
+        Vector3 originalRotation{ 0, 0, 0 };
+        Vector3 originalScale{ 1, 1, 1 };
+        std::weak_ptr<AGameObject> trackedObject;
+    };
 }
 
 namespace dx3d
@@ -117,6 +126,7 @@ namespace dx3d
         std::unique_ptr<UndoRedoSystem> m_undoRedoSystem{};
         bool m_physicsUpdateEnabled{ true };
         float m_pausedPhysicsTimeStep{ 0.0f };
+        TransformTracking m_transformTracking;
 
         float m_cameraSpeed{ 5.0f };
         float m_mouseSensitivity{ 0.3f };

@@ -80,6 +80,7 @@ namespace dx3d
         ~UndoRedoSystem() = default;
 
         // Execute and record an action
+        void recordAction(std::unique_ptr<IAction> action);
         void executeAction(std::unique_ptr<IAction> action);
 
         // Undo/Redo operations

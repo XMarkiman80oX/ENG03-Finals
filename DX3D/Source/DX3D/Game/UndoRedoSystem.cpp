@@ -17,6 +17,21 @@ TransformAction::TransformAction(std::shared_ptr<AGameObject> object,
 {
 }
 
+void UndoRedoSystem::recordAction(std::unique_ptr<IAction> action)
+{
+    if (!action)
+        return;
+
+    // Add to undo stack WITHOUT executing (since the action has already been applied)
+    m_undoStack.push_back(std::move(action));
+
+    // Clear redo stack since we performed a new action
+    m_redoStack.clear();
+
+    // Trim undo stack if it exceeds maximum
+    trimUndoStack();
+}
+
 void TransformAction::execute()
 {
     if (auto obj = m_object.lock())
