@@ -709,6 +709,8 @@ void dx3d::Game::renderUI()
     float windowHeight = io.DisplaySize.y;
     float halfWidth = windowWidth * 0.5f;
     float halfHeight = windowHeight * 0.5f;
+    float inspectorHeight = halfHeight * 0.6f;
+    float debugHeight = halfHeight * 0.4f;
 
     ImGui::SetNextWindowPos(ImVec2(0, 20));
     ImGui::SetNextWindowSize(ImVec2(halfWidth, halfHeight - 20));
@@ -945,7 +947,7 @@ void dx3d::Game::renderUI()
     ImGui::End();
 
     ImGui::SetNextWindowPos(ImVec2(halfWidth, halfHeight));
-    ImGui::SetNextWindowSize(ImVec2(halfWidth, halfHeight));
+    ImGui::SetNextWindowSize(ImVec2(halfWidth, inspectorHeight));
     ImGui::Begin("Inspector", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
     auto selectedObject = m_selectionSystem->getSelectedObject();
@@ -1181,13 +1183,14 @@ void dx3d::Game::renderUI()
 
     ImGui::End();
 
+    renderDebugWindow();
+
     bool canUndo = m_undoRedoSystem->canUndo();
     bool canRedo = m_undoRedoSystem->canRedo();
     bool isEditMode = m_sceneStateManager->isEditMode();
 
-    // Debug output
     static int debugCounter = 0;
-    if (++debugCounter % 60 == 0) // Print every 60 frames
+    if (++debugCounter % 60 == 0)
     {
         printf("Debug: canUndo=%s, canRedo=%s, isEditMode=%s, undoCount=%d, redoCount=%d\n",
             canUndo ? "true" : "false",

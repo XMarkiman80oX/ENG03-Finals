@@ -1,31 +1,11 @@
-/*MIT License
-
-C++ 3D Game Tutorial Series (https://github.com/PardCode/CPP-3D-Game-Tutorial-Series)
-
-Copyright (c) 2019-2025, PardCode
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.*/
-
 #include <DX3D/Core/Logger.h>
 #include <iostream>
+#include <iomanip>
+#include <sstream>
+#include <chrono>
+#include <ctime>
 
-dx3d::Logger::Logger(LogLevel logLevel): m_logLevel(logLevel)
+dx3d::Logger::Logger(LogLevel logLevel) : m_logLevel(logLevel)
 {
 	std::clog << "PardCode | C++ 3D Game Tutorial Series" << "\n";
 	std::clog << "--------------------------------------" << "\n";
@@ -41,8 +21,67 @@ void dx3d::Logger::log(LogLevel level, const char* message) const
 		case LogLevel::Error: return "Error";
 		default: return "Unknown";
 		}
-	};
+		};
 
 	if (level > m_logLevel) return;
-	std::clog << "[DX3D " << logLevelToString(level) << "]: " << message << "\n";
+
+	std::string logMessage = "[DX3D " + std::string(logLevelToString(level)) + "]: " + message;
+	std::clog << logMessage << "\n";
+
+	{
+		std::lock_guard<std::mutex> lock(m_logMutex);
+
+		LogEntry entry;
+		entry.level = static_cast<LogEntry::Level>(level);
+		entry.message = message;
+		entry.timestamp = getCurrentTimestamp();
+
+		m_logEntries.push_back(entry);
+
+		if (m_logEntries.size() > MAX_LOG_ENTRIES)
+		{
+			m_logEntries.erase(m_logEntries.begin());
+		}
+	}
+}
+
+std::vector<dx3d::LogEntry> dx3d::Logger::getRecentLogs(size_t maxCount) const
+{
+	std::lock_guard<std::mutex> lock(m_logMutex);
+
+	if (m_logEntries.size() <= maxCount)
+	{
+		return m_logEntries;
+	}
+
+	return std::vector<LogEntry>(
+		m_logEntries.end() - maxCount,
+		m_logEntries.end()
+	);
+}
+
+void dx3d::Logger::clearLogs()
+{
+	std::lock_guard<std::mutex> lock(m_logMutex);
+	m_logEntries.clear();
+}
+
+std::string dx3d::Logger::getCurrentTimestamp() const
+{
+	auto now = std::chrono::system_clock::now();
+	auto time_t = std::chrono::system_clock::to_time_t(now);
+	auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+		now.time_since_epoch()) % 1000;
+
+	// Create a tm struct to safely hold the time components
+	std::tm tm_buf;
+	// Use the thread-safe localtime_s instead of localtime
+	localtime_s(&tm_buf, &time_t);
+
+	std::stringstream ss;
+	// Pass the address of your local tm struct to std::put_time
+	ss << std::put_time(&tm_buf, "%H:%M:%S");
+	ss << '.' << std::setfill('0') << std::setw(3) << ms.count();
+
+	return ss.str();
 }

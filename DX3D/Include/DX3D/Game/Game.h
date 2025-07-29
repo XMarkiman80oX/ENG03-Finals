@@ -99,6 +99,7 @@ namespace dx3d
         void debugRenderInfo();
         void renderSceneHierarchy();
         void renderInspector();
+        void renderDebugWindow();
 
         //Spawners
         void spawnCubeDemo();
