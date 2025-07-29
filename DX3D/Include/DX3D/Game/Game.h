@@ -99,7 +99,15 @@ namespace dx3d
         void debugRenderInfo();
         void renderSceneHierarchy();
         void renderInspector();
+
+        //Spawners
         void spawnCubeDemo();
+        void spawnCube();
+        void spawnSphere();
+        void spawnCapsule();
+        void spawnCylinder();
+        void spawnPlane();
+        void spawnModel(const std::string& filename);
 
         // Scene State Management Methods
         void onSceneStateChanged(SceneState oldState, SceneState newState);
@@ -137,24 +145,32 @@ namespace dx3d
 
         std::shared_ptr<VertexBuffer> m_cubeVertexBuffer;
         std::shared_ptr<IndexBuffer> m_cubeIndexBuffer;
+
         std::shared_ptr<VertexBuffer> m_planeVertexBuffer;
         std::shared_ptr<IndexBuffer> m_planeIndexBuffer;
+
         std::shared_ptr<VertexBuffer> m_sphereVertexBuffer;
         std::shared_ptr<IndexBuffer> m_sphereIndexBuffer;
+
         std::shared_ptr<VertexBuffer> m_cylinderVertexBuffer;
         std::shared_ptr<IndexBuffer> m_cylinderIndexBuffer;
+
         std::shared_ptr<VertexBuffer> m_capsuleVertexBuffer;
         std::shared_ptr<IndexBuffer> m_capsuleIndexBuffer;
+
         std::shared_ptr<VertexBuffer> m_cameraGizmoVertexBuffer;
         std::shared_ptr<IndexBuffer> m_cameraGizmoIndexBuffer;
 
         std::shared_ptr<VertexShader> m_rainbowVertexShader;
         std::shared_ptr<PixelShader> m_rainbowPixelShader;
+
         std::shared_ptr<VertexShader> m_whiteVertexShader;
         std::shared_ptr<PixelShader> m_whitePixelShader;
+
         std::shared_ptr<VertexShader> m_fogVertexShader;
         std::shared_ptr<PixelShader> m_fogPixelShader;
         std::shared_ptr<ConstantBuffer> m_fogConstantBuffer;
+
         std::shared_ptr<ConstantBuffer> m_materialConstantBuffer;
         std::shared_ptr<ConstantBuffer> m_modelMaterialConstantBuffer;
 

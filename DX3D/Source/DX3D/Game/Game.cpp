@@ -13,9 +13,7 @@
 #include <DX3D/Graphics/ConstantBuffer.h>
 #include <DX3D/Graphics/DepthBuffer.h>
 #include <DX3D/Graphics/RenderTexture.h>
-#include <DX3D/Graphics/Primitives/AGameObject.h>
-#include <DX3D/Graphics/Primitives/Cube.h>
-#include <DX3D/Graphics/Primitives/Plane.h>
+
 #include <DX3D/Graphics/Primitives/CameraObject.h>
 #include <DX3D/Graphics/Shaders/Rainbow3DShader.h>
 #include <DX3D/Graphics/Shaders/WhiteShader.h>
@@ -28,6 +26,15 @@
 #include <DX3D/Scene/SceneStateManager.h>
 #include <DX3D/Game/FPSCameraController.h>
 #include <DX3D/Game/UndoRedoSystem.h>
+
+#include <DX3D/Graphics/Primitives/AGameObject.h>
+#include <DX3D/Graphics/Primitives/Cube.h>
+#include <DX3D/Graphics/Primitives/Plane.h>
+#include <DX3D/Graphics/Primitives/Sphere.h>
+#include <DX3D/Graphics/Primitives/Capsule.h>
+#include <DX3D/Graphics/Primitives/Cylinder.h>
+#include <DX3D/Graphics/Primitives/Model.h>
+#include <DX3D/Assets/ModelLoader.h>
 
 #include <DX3D/ECS/ComponentManager.h>
 #include <DX3D/ECS/Components/TransformComponent.h>
@@ -95,6 +102,12 @@ void dx3d::Game::createRenderingResources()
     m_cubeIndexBuffer = Cube::CreateIndexBuffer(resourceDesc);
     m_planeVertexBuffer = Plane::CreateVertexBuffer(resourceDesc);
     m_planeIndexBuffer = Plane::CreateIndexBuffer(resourceDesc);
+    m_sphereVertexBuffer = Sphere::CreateVertexBuffer(resourceDesc);
+    m_sphereIndexBuffer = Sphere::CreateIndexBuffer(resourceDesc);
+    m_cylinderVertexBuffer = Cylinder::CreateVertexBuffer(resourceDesc);
+    m_cylinderIndexBuffer = Cylinder::CreateIndexBuffer(resourceDesc);
+    m_capsuleVertexBuffer = Capsule::CreateVertexBuffer(resourceDesc);
+    m_capsuleIndexBuffer = Capsule::CreateIndexBuffer(resourceDesc);
 
     m_modelVertexShader = createModelVertexShader(resourceDesc);
     m_modelPixelShader = std::make_shared<PixelShader>(resourceDesc, ModelShader::GetPixelShaderCode());
@@ -134,32 +147,9 @@ void dx3d::Game::createRenderingResources()
     m_gameObjects.clear();
     m_gameObjects.reserve(100);
 
-    auto groundPlane = std::make_shared<Plane>(
-        Vector3(0.0f, 0.0f, 0.0f),
-        Vector3(0.0f, 90.0f, 0.0f),
-        Vector3(50.0f, 1.0f, 50.0f)
-    );
-    groundPlane->enablePhysics(PhysicsBodyType::Static);
-    groundPlane->setPhysicsRestitution(0.0f);
-    groundPlane->setPhysicsFriction(0.7f);
-    m_gameObjects.push_back(groundPlane);
-
-    DX3DLogInfo("Created ground plane with static physics");
-
-    spawnCubeDemo();
-
-    DX3DLogInfo(("Created " + std::to_string(15) + " physics-enabled cubes").c_str());
-
-    m_gameCamera = std::make_shared<CameraObject>(
-        Vector3(15.0f, 10.0f, -15.0f),
-        Vector3(0.0f, 0.0f, 0.0f)
-    );
-    m_gameCamera->getCamera().lookAt(Vector3(0.0f, 2.0f, 0.0f));
-    m_gameObjects.push_back(m_gameCamera);
-
     m_sceneCamera = std::make_unique<Camera>(
-        Vector3(20.0f, 15.0f, -20.0f),
-        Vector3(0.0f, 2.0f, 0.0f)
+        Vector3(10.0f, 5.0f, -10.0f),
+        Vector3(0.0f, 0.0f, 0.0f)
     );
 
     float aspectRatio = static_cast<float>(windowSize.width) / static_cast<float>(windowSize.height);
@@ -191,7 +181,14 @@ void dx3d::Game::createRenderingResources()
 
     device->Release();
 
-    DX3DLogInfo("Physics demo scene creation complete!");
+    m_gameCamera = std::make_shared<CameraObject>(
+        Vector3(15.0f, 10.0f, -15.0f),
+        Vector3(0.0f, 0.0f, 0.0f)
+    );
+    m_gameCamera->getCamera().lookAt(Vector3(0.0f, 2.0f, 0.0f));
+    m_gameObjects.push_back(m_gameCamera);
+
+    DX3DLogInfo("Empty scene initialized - use GameObjects menu to add objects!");
 }
 
 void dx3d::Game::processInput(float deltaTime)
@@ -514,6 +511,27 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
             indexCount = Plane::GetIndexCount();
             bufferSet = true;
         }
+        else if (auto sphere = std::dynamic_pointer_cast<Sphere>(gameObject))
+        {
+            deviceContext.setVertexBuffer(*m_sphereVertexBuffer);
+            deviceContext.setIndexBuffer(*m_sphereIndexBuffer);
+            indexCount = Sphere::GetIndexCount();
+            bufferSet = true;
+        }
+        else if (auto cylinder = std::dynamic_pointer_cast<Cylinder>(gameObject))
+        {
+            deviceContext.setVertexBuffer(*m_cylinderVertexBuffer);
+            deviceContext.setIndexBuffer(*m_cylinderIndexBuffer);
+            indexCount = Cylinder::GetIndexCount();
+            bufferSet = true;
+        }
+        else if (auto capsule = std::dynamic_pointer_cast<Capsule>(gameObject))
+        {
+            deviceContext.setVertexBuffer(*m_capsuleVertexBuffer);
+            deviceContext.setIndexBuffer(*m_capsuleIndexBuffer);
+            indexCount = Capsule::GetIndexCount();
+            bufferSet = true;
+        }
 
         if (bufferSet)
         {
@@ -613,10 +631,65 @@ void dx3d::Game::renderUI()
 
         if (ImGui::BeginMenu("GameObjects"))
         {
+            bool isEditMode = m_sceneStateManager->isEditMode();
+
+            if (ImGui::BeginMenu("Primitives"))
+            {
+                if (ImGui::MenuItem("Cube", nullptr, false, isEditMode))
+                {
+                    spawnCube();
+                }
+
+                if (ImGui::MenuItem("Sphere", nullptr, false, isEditMode))
+                {
+                    spawnSphere();
+                }
+
+                if (ImGui::MenuItem("Capsule", nullptr, false, isEditMode))
+                {
+                    spawnCapsule();
+                }
+
+                if (ImGui::MenuItem("Cylinder", nullptr, false, isEditMode))
+                {
+                    spawnCylinder();
+                }
+
+                if (ImGui::MenuItem("Plane", nullptr, false, isEditMode))
+                {
+                    spawnPlane();
+                }
+
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Models"))
+            {
+                if (ImGui::MenuItem("Bunny", nullptr, false, isEditMode))
+                {
+                    spawnModel("bunny.obj");
+                }
+
+                if (ImGui::MenuItem("Armadillo", nullptr, false, isEditMode))
+                {
+                    spawnModel("armadillo.obj");
+                }
+
+                if (ImGui::MenuItem("Teapot", nullptr, false, isEditMode))
+                {
+                    spawnModel("teapot.obj");
+                }
+
+                ImGui::EndMenu();
+            }
+
+            ImGui::Separator();
+
             if (ImGui::MenuItem("Cube Demo"))
             {
                 spawnCubeDemo();
             }
+
             ImGui::EndMenu();
         }
 
@@ -1124,6 +1197,133 @@ void dx3d::Game::spawnCubeDemo()
     }
 
     DX3DLogInfo(("Spawned a new Cube Demo with " + std::to_string(numCubes) + " cubes").c_str());
+}
+
+void dx3d::Game::spawnCube()
+{
+    Vector3 position(0.0f, 5.0f, 0.0f);
+    Vector3 scale(1.0f, 1.0f, 1.0f);
+
+    auto cube = std::make_shared<Cube>(position, Vector3(0, 0, 0), scale);
+    cube->enablePhysics(PhysicsBodyType::Dynamic);
+    cube->setPhysicsMass(1.0f);
+    cube->setPhysicsRestitution(0.5f);
+    cube->setPhysicsFriction(0.5f);
+
+    auto createAction = std::make_unique<CreateAction>(cube, m_gameObjects);
+    m_undoRedoSystem->executeAction(std::move(createAction));
+
+    m_selectionSystem->setSelectedObject(cube);
+    DX3DLogInfo("Spawned Cube");
+}
+
+void dx3d::Game::spawnSphere()
+{
+    Vector3 position(0.0f, 5.0f, 0.0f);
+    Vector3 scale(1.0f, 1.0f, 1.0f);
+
+    auto sphere = std::make_shared<Sphere>(position, Vector3(0, 0, 0), scale);
+    sphere->enablePhysics(PhysicsBodyType::Dynamic);
+    sphere->setPhysicsMass(1.0f);
+    sphere->setPhysicsRestitution(0.7f);
+    sphere->setPhysicsFriction(0.3f);
+
+    auto createAction = std::make_unique<CreateAction>(sphere, m_gameObjects);
+    m_undoRedoSystem->executeAction(std::move(createAction));
+
+    m_selectionSystem->setSelectedObject(sphere);
+    DX3DLogInfo("Spawned Sphere");
+}
+
+void dx3d::Game::spawnCapsule()
+{
+    Vector3 position(0.0f, 5.0f, 0.0f);
+    Vector3 scale(1.0f, 1.0f, 1.0f);
+
+    auto capsule = std::make_shared<Capsule>(position, Vector3(0, 0, 0), scale);
+    capsule->enablePhysics(PhysicsBodyType::Dynamic);
+    capsule->setPhysicsMass(1.0f);
+    capsule->setPhysicsRestitution(0.4f);
+    capsule->setPhysicsFriction(0.6f);
+
+    auto createAction = std::make_unique<CreateAction>(capsule, m_gameObjects);
+    m_undoRedoSystem->executeAction(std::move(createAction));
+
+    m_selectionSystem->setSelectedObject(capsule);
+    DX3DLogInfo("Spawned Capsule");
+}
+
+void dx3d::Game::spawnCylinder()
+{
+    Vector3 position(0.0f, 5.0f, 0.0f);
+    Vector3 scale(1.0f, 1.0f, 1.0f);
+
+    auto cylinder = std::make_shared<Cylinder>(position, Vector3(0, 0, 0), scale);
+    cylinder->enablePhysics(PhysicsBodyType::Dynamic);
+    cylinder->setPhysicsMass(1.0f);
+    cylinder->setPhysicsRestitution(0.3f);
+    cylinder->setPhysicsFriction(0.7f);
+
+    auto createAction = std::make_unique<CreateAction>(cylinder, m_gameObjects);
+    m_undoRedoSystem->executeAction(std::move(createAction));
+
+    m_selectionSystem->setSelectedObject(cylinder);
+    DX3DLogInfo("Spawned Cylinder");
+}
+
+void dx3d::Game::spawnModel(const std::string& filename)
+{
+    try
+    {
+        auto& renderSystem = m_graphicsEngine->getRenderSystem();
+        auto resourceDesc = renderSystem.getGraphicsResourceDesc();
+
+        auto model = Model::LoadFromFile(filename, resourceDesc);
+
+        if (model && model->isReadyForRendering())
+        {
+            Vector3 position(0.0f, 5.0f, 0.0f);
+            Vector3 scale(1.0f, 1.0f, 1.0f);
+
+            model->setPosition(position);
+            model->setScale(scale);
+            model->enablePhysics(PhysicsBodyType::Dynamic);
+            model->setPhysicsMass(1.0f);
+            model->setPhysicsRestitution(0.3f);
+            model->setPhysicsFriction(0.6f);
+
+            auto createAction = std::make_unique<CreateAction>(model, m_gameObjects);
+            m_undoRedoSystem->executeAction(std::move(createAction));
+
+            m_selectionSystem->setSelectedObject(model);
+            DX3DLogInfo(("Spawned Model: " + filename).c_str());
+        }
+        else
+        {
+            DX3DLogError(("Failed to load model: " + filename).c_str());
+        }
+    }
+    catch (const std::exception& e)
+    {
+        DX3DLogError(("Error loading model " + filename + ": " + e.what()).c_str());
+    }
+}
+
+void dx3d::Game::spawnPlane()
+{
+    Vector3 position(0.0f, 0.0f, 0.0f);
+    Vector3 scale(10.0f, 1.0f, 10.0f);
+
+    auto plane = std::make_shared<Plane>(position, Vector3(0, 0, 0), scale);
+    plane->enablePhysics(PhysicsBodyType::Static);
+    plane->setPhysicsRestitution(0.0f);
+    plane->setPhysicsFriction(0.7f);
+
+    auto createAction = std::make_unique<CreateAction>(plane, m_gameObjects);
+    m_undoRedoSystem->executeAction(std::move(createAction));
+
+    m_selectionSystem->setSelectedObject(plane);
+    DX3DLogInfo("Spawned Plane");
 }
 
 void dx3d::Game::run()

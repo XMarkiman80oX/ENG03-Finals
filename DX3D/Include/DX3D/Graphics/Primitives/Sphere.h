@@ -10,16 +10,14 @@ namespace dx3d
     class Sphere : public AGameObject
     {
     public:
-        // Static methods for creating rendering resources
-        static std::shared_ptr<VertexBuffer> CreateVertexBuffer(const GraphicsResourceDesc& resourceDesc, 
+        static std::shared_ptr<VertexBuffer> CreateVertexBuffer(const GraphicsResourceDesc& resourceDesc,
             ui32 latitudeSegments = 16, ui32 longitudeSegments = 32);
         static std::shared_ptr<IndexBuffer> CreateIndexBuffer(const GraphicsResourceDesc& resourceDesc,
             ui32 latitudeSegments = 16, ui32 longitudeSegments = 32);
 
-        // Get the number of indices for a sphere
-        static ui32 GetIndexCount(ui32 latitudeSegments = 16, ui32 longitudeSegments = 32) 
-        { 
-            return latitudeSegments * longitudeSegments * 6; 
+        static ui32 GetIndexCount(ui32 latitudeSegments = 16, ui32 longitudeSegments = 32)
+        {
+            return latitudeSegments * longitudeSegments * 6;
         }
 
         Sphere();
@@ -27,5 +25,11 @@ namespace dx3d
         virtual ~Sphere() = default;
 
         virtual void update(float deltaTime) override;
+
+    protected:
+        virtual CollisionShapeType getCollisionShapeType() const override
+        {
+            return CollisionShapeType::Sphere;
+        }
     };
 }
