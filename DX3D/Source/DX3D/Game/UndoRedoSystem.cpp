@@ -1,6 +1,7 @@
 #include <DX3D/Game/UndoRedoSystem.h>
 #include <DX3D/Graphics/Primitives/AGameObject.h>
 #include <algorithm>
+#include <iterator>
 
 using namespace dx3d;
 
@@ -52,7 +53,7 @@ DeleteAction::DeleteAction(std::shared_ptr<AGameObject> object,
     auto it = std::find(objectList.begin(), objectList.end(), object);
     if (it != objectList.end())
     {
-        m_originalIndex = std::distance(objectList.begin(), it);
+        m_originalIndex = static_cast<size_t>(std::distance(objectList.begin(), it));
     }
 }
 

@@ -3,7 +3,7 @@
 #include <DX3D/Math/Math.h>
 #include <memory>
 #include <vector>
-#include <stack>
+#include <string>
 
 namespace dx3d
 {
