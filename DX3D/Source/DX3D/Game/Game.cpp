@@ -532,14 +532,12 @@ void dx3d::Game::renderUI()
 {
     if (ImGui::BeginMainMenuBar())
     {
-        // Edit Menu with Undo/Redo
         if (ImGui::BeginMenu("Edit"))
         {
             bool canUndo = m_undoRedoSystem->canUndo();
             bool canRedo = m_undoRedoSystem->canRedo();
             bool isEditMode = m_sceneStateManager->isEditMode();
 
-            // Undo button
             if (!canUndo || !isEditMode)
             {
                 ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.6f);
@@ -556,14 +554,12 @@ void dx3d::Game::renderUI()
                 ImGui::PopStyleVar();
             }
 
-            // Show undo description
             if (canUndo && isEditMode)
             {
                 ImGui::SameLine();
                 ImGui::TextDisabled("(%s)", m_undoRedoSystem->getUndoDescription().c_str());
             }
 
-            // Redo button
             if (!canRedo || !isEditMode)
             {
                 ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.6f);
@@ -580,7 +576,6 @@ void dx3d::Game::renderUI()
                 ImGui::PopStyleVar();
             }
 
-            // Show redo description
             if (canRedo && isEditMode)
             {
                 ImGui::SameLine();
@@ -589,7 +584,6 @@ void dx3d::Game::renderUI()
 
             ImGui::Separator();
 
-            // Delete button
             auto selectedObject = m_selectionSystem->getSelectedObject();
             bool hasSelection = selectedObject != nullptr;
 
@@ -626,7 +620,6 @@ void dx3d::Game::renderUI()
             ImGui::EndMenu();
         }
 
-        // Show current undo/redo status in menu bar
         if (m_sceneStateManager->isEditMode())
         {
             ImGui::SameLine(ImGui::GetWindowWidth() - 200);
@@ -677,9 +670,8 @@ void dx3d::Game::renderUI()
     }
     ImGui::End();
 
-    // Unity-Style Scene Controls - All 3 buttons always visible
     ImGui::SetNextWindowPos(ImVec2(halfWidth, 20));
-    ImGui::SetNextWindowSize(ImVec2(halfWidth, 100)); // Increased height for undo/redo buttons
+    ImGui::SetNextWindowSize(ImVec2(halfWidth, 100));
     ImGui::Begin("Scene Controls", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
     const char* stateText = "";
@@ -693,7 +685,6 @@ void dx3d::Game::renderUI()
     ImGui::Text("Current State: %s", stateText);
     ImGui::Separator();
 
-    // Play/Pause/Stop controls
     bool isPlaying = m_sceneStateManager->isPlayMode();
     if (isPlaying)
     {
@@ -765,7 +756,6 @@ void dx3d::Game::renderUI()
         ImGui::PopStyleVar();
     }
 
-    // Add Undo/Redo buttons for quick access
     if (m_sceneStateManager->isEditMode())
     {
         ImGui::Separator();
@@ -817,8 +807,7 @@ void dx3d::Game::renderUI()
 
     ImGui::End();
 
-    // Scene Outliner Window
-    ImGui::SetNextWindowPos(ImVec2(halfWidth, 120)); // Adjusted for taller Scene Controls
+    ImGui::SetNextWindowPos(ImVec2(halfWidth, 120));
     ImGui::SetNextWindowSize(ImVec2(halfWidth, halfHeight - 120));
     ImGui::Begin("Scene Outliner", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
@@ -829,7 +818,6 @@ void dx3d::Game::renderUI()
     ImGui::Text("Delta Time: %.3f ms", m_deltaTime * 1000.0f);
     ImGui::Text("FPS: %.1f", 1.0f / m_deltaTime);
 
-    // Show undo/redo stats
     if (m_sceneStateManager->isEditMode())
     {
         ImGui::Text("Undo Stack: %d actions", m_undoRedoSystem->getUndoCount());
@@ -860,7 +848,6 @@ void dx3d::Game::renderUI()
 
     ImGui::End();
 
-    // Inspector Window
     ImGui::SetNextWindowPos(ImVec2(halfWidth, halfHeight));
     ImGui::SetNextWindowSize(ImVec2(halfWidth, halfHeight));
     ImGui::Begin("Inspector", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
@@ -884,49 +871,39 @@ void dx3d::Game::renderUI()
             );
 
             bool transformChanged = false;
-            bool shouldCreateUndoAction = false;
 
-            // Check if we're tracking a different object, reset tracking
             if (m_transformTracking.trackedObject.lock() != selectedObject)
             {
                 m_transformTracking.isDragging = false;
                 m_transformTracking.trackedObject = selectedObject;
             }
 
-            // Position control
             if (ImGui::DragFloat3("Position", &pos.x, 0.1f))
             {
-                // Store old values when drag starts
-                if (ImGui::IsItemActivated() && !m_transformTracking.isDragging)
+                if (!m_transformTracking.isDragging)
                 {
                     m_transformTracking.originalPosition = selectedObject->getPosition();
                     m_transformTracking.originalRotation = selectedObject->getRotation();
                     m_transformTracking.originalScale = selectedObject->getScale();
                     m_transformTracking.isDragging = true;
-                    m_transformTracking.trackedObject = selectedObject;
+                    printf("*** Position drag STARTED ***\n");
                 }
 
                 selectedObject->setPosition(pos);
                 transformChanged = true;
             }
 
-            // Check if position drag ended
-            if (ImGui::IsItemDeactivatedAfterEdit() && m_transformTracking.isDragging)
-            {
-                shouldCreateUndoAction = true;
-            }
+            bool positionActive = ImGui::IsItemActive();
 
-            // Rotation control
             if (ImGui::DragFloat3("Rotation", &rotDegrees.x, 1.0f))
             {
-                // Store old values when drag starts
-                if (ImGui::IsItemActivated() && !m_transformTracking.isDragging)
+                if (!m_transformTracking.isDragging)
                 {
                     m_transformTracking.originalPosition = selectedObject->getPosition();
                     m_transformTracking.originalRotation = selectedObject->getRotation();
                     m_transformTracking.originalScale = selectedObject->getScale();
                     m_transformTracking.isDragging = true;
-                    m_transformTracking.trackedObject = selectedObject;
+                    printf("*** Rotation drag STARTED ***\n");
                 }
 
                 Vector3 rotRadians = Vector3(
@@ -938,65 +915,74 @@ void dx3d::Game::renderUI()
                 transformChanged = true;
             }
 
-            // Check if rotation drag ended
-            if (ImGui::IsItemDeactivatedAfterEdit() && m_transformTracking.isDragging)
-            {
-                shouldCreateUndoAction = true;
-            }
+            bool rotationActive = ImGui::IsItemActive();
 
-            // Scale control
             if (ImGui::DragFloat3("Scale", &scale.x, 0.01f, 0.01f, 10.0f))
             {
-                // Store old values when drag starts
-                if (ImGui::IsItemActivated() && !m_transformTracking.isDragging)
+                if (!m_transformTracking.isDragging)
                 {
                     m_transformTracking.originalPosition = selectedObject->getPosition();
                     m_transformTracking.originalRotation = selectedObject->getRotation();
                     m_transformTracking.originalScale = selectedObject->getScale();
                     m_transformTracking.isDragging = true;
-                    m_transformTracking.trackedObject = selectedObject;
+                    printf("*** Scale drag STARTED ***\n");
                 }
 
                 selectedObject->setScale(scale);
                 transformChanged = true;
             }
 
-            // Check if scale drag ended
-            if (ImGui::IsItemDeactivatedAfterEdit() && m_transformTracking.isDragging)
-            {
-                shouldCreateUndoAction = true;
-            }
+            bool scaleActive = ImGui::IsItemActive();
 
-            // Create undo action when any drag operation ends
-            if (shouldCreateUndoAction && m_sceneStateManager->isEditMode())
-            {
-                Vector3 newPos = selectedObject->getPosition();
-                Vector3 newRot = selectedObject->getRotation();
-                Vector3 newScale = selectedObject->getScale();
+            bool anyControlActive = positionActive || rotationActive || scaleActive;
 
-                // Only create action if something actually changed
-                if (m_transformTracking.originalPosition.x != newPos.x || m_transformTracking.originalPosition.y != newPos.y || m_transformTracking.originalPosition.z != newPos.z ||
-                    m_transformTracking.originalRotation.x != newRot.x || m_transformTracking.originalRotation.y != newRot.y || m_transformTracking.originalRotation.z != newRot.z ||
-                    m_transformTracking.originalScale.x != newScale.x || m_transformTracking.originalScale.y != newScale.y || m_transformTracking.originalScale.z != newScale.z)
+            if (m_transformTracking.isDragging && !anyControlActive)
+            {
+                printf("*** Drag ENDED - creating undo action ***\n");
+
+                if (m_sceneStateManager->isEditMode())
                 {
-                    // Don't execute the action since we already applied the changes
-                    // Instead, create the action and add it directly to the undo stack
-                    auto transformAction = std::make_unique<TransformAction>(
-                        selectedObject,
-                        m_transformTracking.originalPosition, newPos,
-                        m_transformTracking.originalRotation, newRot,
-                        m_transformTracking.originalScale, newScale
-                    );
+                    Vector3 newPos = selectedObject->getPosition();
+                    Vector3 newRot = selectedObject->getRotation();
+                    Vector3 newScale = selectedObject->getScale();
 
-                    // Add to undo system without executing (since we already changed the object)
-                    m_undoRedoSystem->executeAction(std::move(transformAction));
-                    DX3DLogInfo("Transform change recorded for undo/redo");
+                    const float epsilon = 0.001f;
+                    auto isChanged = [epsilon](float a, float b) { return std::abs(a - b) > epsilon; };
+
+                    printf("*** Checking for changes - Old pos:(%.3f,%.3f,%.3f) New pos:(%.3f,%.3f,%.3f) ***\n",
+                        m_transformTracking.originalPosition.x, m_transformTracking.originalPosition.y, m_transformTracking.originalPosition.z,
+                        newPos.x, newPos.y, newPos.z);
+
+                    if (isChanged(m_transformTracking.originalPosition.x, newPos.x) ||
+                        isChanged(m_transformTracking.originalPosition.y, newPos.y) ||
+                        isChanged(m_transformTracking.originalPosition.z, newPos.z) ||
+                        isChanged(m_transformTracking.originalRotation.x, newRot.x) ||
+                        isChanged(m_transformTracking.originalRotation.y, newRot.y) ||
+                        isChanged(m_transformTracking.originalRotation.z, newRot.z) ||
+                        isChanged(m_transformTracking.originalScale.x, newScale.x) ||
+                        isChanged(m_transformTracking.originalScale.y, newScale.y) ||
+                        isChanged(m_transformTracking.originalScale.z, newScale.z))
+                    {
+                        auto transformAction = std::make_unique<TransformAction>(
+                            selectedObject,
+                            m_transformTracking.originalPosition, newPos,
+                            m_transformTracking.originalRotation, newRot,
+                            m_transformTracking.originalScale, newScale
+                        );
+
+                        m_undoRedoSystem->recordAction(std::move(transformAction));
+                        printf("*** Transform action recorded! Undo count: %d ***\n", m_undoRedoSystem->getUndoCount());
+                        DX3DLogInfo("Transform change recorded for undo/redo");
+                    }
+                    else
+                    {
+                        printf("*** No significant change detected for undo recording ***\n");
+                    }
                 }
 
                 m_transformTracking.isDragging = false;
             }
 
-            // Handle physics recreation if needed
             if (transformChanged)
             {
                 if (selectedObject->hasPhysics() && m_sceneStateManager->isEditMode())
@@ -1046,7 +1032,6 @@ void dx3d::Game::renderUI()
             ImGui::Text("Has Physics: %s", selectedObject->hasPhysics() ? "Yes" : "No");
         }
 
-        // Delete button in inspector
         if (m_sceneStateManager->isEditMode())
         {
             ImGui::Separator();
@@ -1066,6 +1051,22 @@ void dx3d::Game::renderUI()
     }
 
     ImGui::End();
+
+    bool canUndo = m_undoRedoSystem->canUndo();
+    bool canRedo = m_undoRedoSystem->canRedo();
+    bool isEditMode = m_sceneStateManager->isEditMode();
+
+    // Debug output
+    static int debugCounter = 0;
+    if (++debugCounter % 60 == 0) // Print every 60 frames
+    {
+        printf("Debug: canUndo=%s, canRedo=%s, isEditMode=%s, undoCount=%d, redoCount=%d\n",
+            canUndo ? "true" : "false",
+            canRedo ? "true" : "false",
+            isEditMode ? "true" : "false",
+            m_undoRedoSystem->getUndoCount(),
+            m_undoRedoSystem->getRedoCount());
+    }
 }
 
 void dx3d::Game::render()
