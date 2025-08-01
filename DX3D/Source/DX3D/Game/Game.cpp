@@ -134,6 +134,7 @@ void dx3d::Game::createRenderingResources()
     m_materialConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(FogMaterialConstants), resourceDesc);
     m_modelMaterialConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(ModelMaterialConstants), resourceDesc);
     m_transformConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(TransformationMatrices), resourceDesc);
+    m_lightConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(LightConstantBuffer), resourceDesc);
 
     const auto& windowSize = m_display->getSize();
     m_depthBuffer = std::make_shared<DepthBuffer>(
@@ -455,6 +456,29 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
     auto& deviceContext = renderSystem.getDeviceContext();
     auto d3dContext = deviceContext.getDeviceContext();
 
+    m_lights.clear();
+    for (const auto& go : m_gameObjects)
+    {
+        if (auto light = std::dynamic_pointer_cast<LightObject>(go))
+        {
+            m_lights.push_back(light);
+        }
+    }
+
+    LightConstantBuffer lcb;
+    Vector3 camPos = camera.getPosition();
+    lcb.camera_position = Vector4(camPos.x, camPos.y, camPos.z, 1.0f);
+    lcb.ambient_color = m_ambientColor;
+    lcb.num_lights = static_cast<UINT>(std::min((size_t)m_lights.size(), (size_t)MAX_LIGHTS_SUPPORTED));
+
+
+    for (int i = 0; i < lcb.num_lights; ++i)
+    {
+        lcb.lights[i] = m_lights[i]->getLightData();
+    }
+    m_lightConstantBuffer->update(deviceContext, &lcb);
+
+
     if (renderTarget)
     {
         renderTarget->clear(deviceContext, 0.1f, 0.1f, 0.2f, 1.0f);
@@ -484,27 +508,15 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
         if (!isSceneView && isCamera)
             continue;
 
-        deviceContext.setVertexShader(m_fogVertexShader->getShader());
-        deviceContext.setPixelShader(m_fogPixelShader->getShader());
-        deviceContext.setInputLayout(m_fogVertexShader->getInputLayout());
+        deviceContext.setVertexShader(m_modelVertexShader->getShader());
+        deviceContext.setPixelShader(m_modelPixelShader->getShader());
+        deviceContext.setInputLayout(m_modelVertexShader->getInputLayout());
 
-        FogShaderConstants fsc = {};
-        fsc.fogColor = m_fogDesc.color;
-        fsc.cameraPosition = camera.getPosition();
-        fsc.fogStart = m_fogDesc.start;
-        fsc.fogEnd = m_fogDesc.end;
-        fsc.fogEnabled = m_fogDesc.enabled;
-        m_fogConstantBuffer->update(deviceContext, &fsc);
+        ID3D11Buffer* modelMatCb = m_modelMaterialConstantBuffer->getBuffer();
+        d3dContext->PSSetConstantBuffers(1, 1, &modelMatCb);
 
-        ID3D11Buffer* fogCb = m_fogConstantBuffer->getBuffer();
-        d3dContext->PSSetConstantBuffers(1, 1, &fogCb);
-
-        FogMaterialConstants fmc = {};
-        fmc.useVertexColor = true;
-        fmc.baseColor = { 1.0f, 1.0f, 1.0f, 1.0f };
-        m_materialConstantBuffer->update(deviceContext, &fmc);
-        ID3D11Buffer* materialCb = m_materialConstantBuffer->getBuffer();
-        d3dContext->PSSetConstantBuffers(2, 1, &materialCb);
+        ID3D11Buffer* lightCb = m_lightConstantBuffer->getBuffer();
+        d3dContext->PSSetConstantBuffers(2, 1, &lightCb);
 
         bool bufferSet = false;
         ui32 indexCount = 0;
@@ -547,6 +559,15 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
 
         if (bufferSet)
         {
+            ModelMaterialConstants mmc;
+            mmc.diffuseColor = Vector4(0.8f, 0.8f, 0.8f, 1.0f);
+            mmc.ambientColor = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+            mmc.specularColor = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+            mmc.specularPower = 32.0f;
+            mmc.opacity = 1.0f;
+            mmc.hasTexture = 0.0f;
+            m_modelMaterialConstantBuffer->update(deviceContext, &mmc);
+
             TransformationMatrices transformMatrices;
             transformMatrices.world = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(gameObject->getWorldMatrix().toXMMatrix()));
             transformMatrices.view = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(camera.getViewMatrix().toXMMatrix()));
@@ -587,7 +608,11 @@ void dx3d::Game::render()
     [this]() { spawnCylinder(); },
     [this]() { spawnPlane(); },
     [this](const std::string& filename) { spawnModel(filename); },
-    [this]() { spawnCubeDemo(); }
+    [this]() { spawnCubeDemo(); },
+
+    [this]() { spawnDirectionalLight(); },
+    [this]() { spawnPointLight(); },
+    [this]() { spawnSpotLight(); }
     };
 
     m_uiManager->render(m_deltaTime, spawnCallbacks);
@@ -761,6 +786,40 @@ void dx3d::Game::spawnPlane()
 
     m_selectionSystem->setSelectedObject(plane);
     DX3DLogInfo("Spawned Plane");
+}
+
+void dx3d::Game::spawnDirectionalLight()
+{
+    auto light = std::make_shared<DirectionalLight>();
+    light->setPosition(Vector3(0, 5, 0));
+    light->setRotation(Vector3(0.785f, 0.785f, 0.0f)); // ~45 degree angle
+
+    m_gameObjects.push_back(light);
+    m_lights.push_back(light);
+    m_selectionSystem->setSelectedObject(light);
+    DX3DLogInfo("Spawned Directional Light");
+}
+
+void dx3d::Game::spawnPointLight()
+{
+    auto light = std::make_shared<PointLight>();
+    light->setPosition(Vector3(0, 3, 0));
+
+    m_gameObjects.push_back(light);
+    m_lights.push_back(light);
+    m_selectionSystem->setSelectedObject(light);
+    DX3DLogInfo("Spawned Point Light");
+}
+
+void dx3d::Game::spawnSpotLight()
+{
+    auto light = std::make_shared<SpotLight>();
+    light->setPosition(Vector3(0, 5, 0));
+
+    m_gameObjects.push_back(light);
+    m_lights.push_back(light);
+    m_selectionSystem->setSelectedObject(light);
+    DX3DLogInfo("Spawned Spot Light");
 }
 
 void dx3d::Game::run()

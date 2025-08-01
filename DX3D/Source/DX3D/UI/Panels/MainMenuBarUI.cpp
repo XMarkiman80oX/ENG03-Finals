@@ -134,6 +134,28 @@ void MainMenuBarUI::render(const Callbacks& callbacks)
                 ImGui::EndMenu();
             }
 
+            if (ImGui::BeginMenu("Lights"))
+            {
+                if (ImGui::MenuItem("Directional Light", nullptr, false, isEditMode))
+                {
+                    if (callbacks.onSpawnDirectionalLight)
+                        callbacks.onSpawnDirectionalLight();
+                }
+
+                if (ImGui::MenuItem("Point Light", nullptr, false, isEditMode))
+                {
+                    if (callbacks.onSpawnPointLight)
+                        callbacks.onSpawnPointLight();
+                }
+
+                if (ImGui::MenuItem("Spot Light", nullptr, false, isEditMode))
+                {
+                    if (callbacks.onSpawnSpotLight)
+                        callbacks.onSpawnSpotLight();
+                }
+                ImGui::EndMenu();
+            }
+
             if (ImGui::BeginMenu("Models"))
             {
                 if (ImGui::MenuItem("Bunny", nullptr, false, isEditMode))

@@ -62,6 +62,9 @@ void UIManager::render(float deltaTime, const SpawnCallbacks& callbacks)
     menuCallbacks.onSpawnPlane = callbacks.onSpawnPlane;
     menuCallbacks.onSpawnModel = callbacks.onSpawnModel;
     menuCallbacks.onSpawnCubeDemo = callbacks.onSpawnCubeDemo;
+    menuCallbacks.onSpawnDirectionalLight = callbacks.onSpawnDirectionalLight;
+    menuCallbacks.onSpawnPointLight = callbacks.onSpawnPointLight;
+    menuCallbacks.onSpawnSpotLight = callbacks.onSpawnSpotLight;
 
     m_mainMenuBar->render(menuCallbacks);
     m_viewport->renderGameView();
