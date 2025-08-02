@@ -49,6 +49,12 @@ void InspectorUI::render()
 
         renderTransform(selectedObject);
         renderCamera(selectedObject);
+
+        if (auto lightObject = std::dynamic_pointer_cast<LightObject>(selectedObject))
+        {
+            renderLight(lightObject);
+        }
+
         renderPhysics(selectedObject);
         renderObjectInfo(selectedObject);
 
@@ -256,5 +262,45 @@ void InspectorUI::renderObjectInfo(std::shared_ptr<AGameObject> object)
 
         ImGui::Text("Type: %s", objectType.c_str());
         ImGui::Text("Has Physics: %s", object->hasPhysics() ? "Yes" : "No");
+    }
+}
+
+void InspectorUI::renderLight(std::shared_ptr<LightObject> lightObject)
+{
+    if (ImGui::CollapsingHeader("Light", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        Light& lightData = lightObject->getLightData();
+
+        ImGui::ColorEdit3("Color", &lightData.color.x);
+        ImGui::DragFloat("Intensity", &lightData.intensity, 0.05f, 0.0f, 100.0f);
+
+        if (lightData.type == LIGHT_TYPE_POINT || lightData.type == LIGHT_TYPE_SPOT)
+        {
+            ImGui::DragFloat("Radius", &lightData.radius, 0.1f, 0.1f, 200.0f);
+        }
+
+        // Show spot angle controls only for Spot lights
+        if (lightData.type == LIGHT_TYPE_SPOT)
+        {
+            ImGui::Separator();
+            ImGui::Text("Spotlight Properties");
+
+            float innerDegrees = lightData.spot_angle_inner * 180.0f / 3.14159f;
+            float outerDegrees = lightData.spot_angle_outer * 180.0f / 3.14159f;
+
+            if (ImGui::SliderFloat("Inner Angle", &innerDegrees, 0.0f, 90.0f))
+            {
+                lightData.spot_angle_inner = innerDegrees * 3.14159f / 180.0f;
+            }
+            if (ImGui::SliderFloat("Outer Angle", &outerDegrees, 0.0f, 90.0f))
+            {
+                lightData.spot_angle_outer = outerDegrees * 3.14159f / 180.0f;
+            }
+
+            if (lightData.spot_angle_inner > lightData.spot_angle_outer)
+            {
+                lightData.spot_angle_inner = lightData.spot_angle_outer;
+            }
+        }
     }
 }

@@ -31,6 +31,6 @@ SpotLight::SpotLight()
 {
     m_lightData.type = LIGHT_TYPE_SPOT;
     m_lightData.color = Vector3(1.0f, 1.0f, 1.0f); // White light
-    m_lightData.intensity = 1.0f;
+    m_lightData.intensity = 2.0f;
     m_lightData.radius = 20.0f;
 }

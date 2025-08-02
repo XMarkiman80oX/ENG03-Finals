@@ -111,7 +111,6 @@ namespace dx3d
                     float3 worldPos     : TEXCOORD1;
                 };
 
-                // --- THIS IS THE FULLY RESTORED AND CORRECTED FUNCTION ---
                 float3 calculateLight(Light light, float3 pixel_world_pos, float3 normal, float3 view_dir)
                 {
                     float3 light_dir;
@@ -120,9 +119,8 @@ namespace dx3d
                     if (light.type == LIGHT_TYPE_DIRECTIONAL)
                     {
                         light_dir = normalize(-light.direction);
-                        // No attenuation for directional lights
                     }
-                    else // Point and Spot lights
+                    else
                     {
                         float3 distance_vec = light.position - pixel_world_pos;
                         float dist = length(distance_vec);
@@ -133,43 +131,36 @@ namespace dx3d
 
                     if (light.type == LIGHT_TYPE_SPOT)
                     {
-                        float spot_factor = dot(normalize(-light.direction), -light_dir);
-                        float spot_effect = smoothstep(light.spot_angle_outer, light.spot_angle_inner, spot_factor);
+                        float3 direction_to_pixel = normalize(pixel_world_pos - light.position);
+                        float spot_factor = dot(-direction_to_pixel, normalize(light.direction));
+                        float spot_effect = smoothstep(cos(light.spot_angle_outer), cos(light.spot_angle_inner), spot_factor);
                         attenuation *= spot_effect;
                     }
 
-                    // Diffuse Lighting (multiplied by the material's diffuse color)
                     float diffuse_factor = max(dot(normal, light_dir), 0.0f);
                     float3 diffuse = diffuse_factor * light.color * light.intensity * diffuseColor.rgb;
 
-                    // Specular Lighting (multiplied by the material's specular color)
                     float3 halfway_vec = normalize(light_dir + view_dir);
                     float specular_factor = pow(max(dot(normal, halfway_vec), 0.0f), specularPower);
                     float3 specular = specular_factor * light.color * light.intensity * specularColor.rgb;
             
-                    // Combine and apply attenuation
                     return (diffuse + specular) * attenuation;
                 }
 
-                // --- THIS IS THE FULLY RESTORED AND CORRECTED MAIN FUNCTION ---
                 float4 main(PS_INPUT input) : SV_TARGET 
                 {
                     float3 normal = normalize(input.normal);
                     float3 view_dir = normalize(camera_position.xyz - input.worldPos);
             
-                    // Start with ambient light, respecting the material's ambient properties
                     float4 finalColor = ambientColor * ambient_color;
 
-                    // Add the contribution from every active light
                     for (uint i = 0; i < num_lights; i++)
                     {
                         finalColor.rgb += calculateLight(lights[i], input.worldPos, normal, view_dir);
                     }
 
-                    // Add any emissive color from the material itself
                     finalColor.rgb += emissiveColor.rgb;
 
-                    // Apply texture if one exists
                     if (hasTexture > 0.5f) {
                         finalColor.rgb = finalColor.rgb * diffuseTexture.Sample(textureSampler, input.texCoord).rgb;
                     }
