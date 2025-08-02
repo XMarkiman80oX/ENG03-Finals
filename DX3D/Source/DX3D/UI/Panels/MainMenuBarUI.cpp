@@ -24,6 +24,21 @@ void MainMenuBarUI::render(const Callbacks& callbacks)
 {
     if (ImGui::BeginMainMenuBar())
     {
+        if (ImGui::BeginMenu("File"))
+        {
+            if (ImGui::MenuItem("Save Scene"))
+            {
+                // Open a file dialog to get the save path
+                // For simplicity, we'll just use a fixed name here
+                callbacks.onSaveScene("scene.json");
+            }
+            if (ImGui::MenuItem("Load Scene"))
+            {
+                // Open a file dialog to get the load path
+                callbacks.onLoadScene("scene.json");
+            }
+            ImGui::EndMenu();
+        }
         if (ImGui::BeginMenu("Edit"))
         {
             bool canUndo = m_undoRedoSystem.canUndo();

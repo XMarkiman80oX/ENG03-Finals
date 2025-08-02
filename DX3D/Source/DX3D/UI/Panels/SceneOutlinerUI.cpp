@@ -106,3 +106,4 @@ std::string SceneOutlinerUI::getObjectIcon(std::shared_ptr<AGameObject> object)
     else if (std::dynamic_pointer_cast<CameraObject>(object)) return "[CAM]";
     return "[?]";
 }
+

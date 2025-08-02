@@ -42,12 +42,16 @@
 #include <DX3D/Physics/PhysicsSystem.h>
 
 #include <DX3D/UI/UIManager.h>
+#include <DX3D/JSON/json.hpp>
 
 #include <cmath>
+#include <fstream>
 #include <random>
 #include <string>
 #include <cstdio>
 #include <DirectXMath.h>
+
+using json = nlohmann::json;
 
 dx3d::Game::Game(const GameDesc& desc) :
     Base({ *std::make_unique<Logger>(desc.logLevel).release() }),
@@ -380,7 +384,8 @@ void dx3d::Game::update()
         m_fpsController->update(m_deltaTime);
     }
 
-    updatePhysics(m_deltaTime);
+    if(m_deltaTime > 0.0f)
+        updatePhysics(m_deltaTime);
 
     for (auto& gameObject : m_gameObjects)
     {
@@ -394,6 +399,121 @@ void dx3d::Game::update()
         DX3DLogInfo(("Physics demo running - " + std::to_string(m_gameObjects.size()) + " objects").c_str());
         debugTimer = 0.0f;
     }
+}
+
+void dx3d::Game::loadScene(const std::string& filename)
+{
+    //std::ifstream i(filename);
+    //if (!i.is_open())
+    //{
+    //    DX3DLogError(("Failed to open scene file: " + filename).c_str());
+    //    return;
+    //}
+
+    //json sceneJson;
+    //i >> sceneJson;
+
+    //// Clear existing scene
+    //m_gameObjects.clear();
+    //m_selectionSystem->setSelectedObject(nullptr);
+    //m_undoRedoSystem->clear();
+
+
+    //for (const auto& goJson : sceneJson["gameObjects"])
+    //{
+    //    std::string type = goJson["type"];
+    //    std::shared_ptr<AGameObject> newObject = nullptr;
+
+    //    if (type == "Cube") newObject = std::make_shared<Cube>();
+    //    else if (type == "Sphere") newObject = std::make_shared<Sphere>();
+    //    // ... other primitive types
+    //    else if (type == "Model")
+    //    {
+    //        spawnModel(goJson["filePath"]);
+    //    }
+
+
+    //    if (newObject)
+    //    {
+    //        // Load transform
+    //        Vector3 position(goJson["position"]["x"], goJson["position"]["y"], goJson["position"]["z"]);
+    //        Vector3 rotation(goJson["rotation"]["x"], goJson["rotation"]["y"], goJson["rotation"]["z"]);
+    //        Vector3 scale(goJson["scale"]["x"], goJson["scale"]["y"], goJson["scale"]["z"]);
+    //        newObject->setPosition(position);
+    //        newObject->setRotation(rotation);
+    //        newObject->setScale(scale);
+
+
+    //        m_gameObjects.push_back(newObject);
+    //    }
+    //}
+
+    //DX3DLogInfo(("Scene loaded from " + filename).c_str());
+}
+
+void dx3d::Game::saveScene(const std::string& filename)
+{
+    json sceneJson;
+    sceneJson["sceneName"] = "MyScene";
+    sceneJson["gameObjects"] = json::array();
+    
+    if (!this->m_gameObjects.empty()) {
+        for (const auto& go : m_gameObjects)
+        {
+            json goJson;
+            // Determine object type
+            if (auto model = std::dynamic_pointer_cast<Model>(go))
+            {
+                goJson["type"] = "Model";
+                goJson["filePath"] = model->getFilePath();
+            }
+            else
+                goJson["type"] = go->getObjectType();
+
+            // Save transform
+            goJson["position"] = { {"x", go->getPosition().x}, {"y", go->getPosition().y}, {"z", go->getPosition().z} };
+            goJson["rotation"] = { {"x", go->getRotation().x}, {"y", go->getRotation().y}, {"z", go->getRotation().z} };
+            goJson["scale"] = { {"x", go->getScale().x}, {"y", go->getScale().y}, {"z", go->getScale().z} };
+
+            // Save physics
+            if (go->hasPhysics())
+            {
+                auto* physicsComp = dx3d::ComponentManager::getInstance().getComponent<PhysicsComponent>(go->getEntity().getID());
+                if (physicsComp)
+                {
+                    // Helper to convert enum to string
+                    auto bodyTypeToString = [](PhysicsBodyType type) {
+                        switch (type) {
+                        case PhysicsBodyType::Static: return "Static";
+                        case PhysicsBodyType::Kinematic: return "Kinematic";
+                        case PhysicsBodyType::Dynamic: return "Dynamic";
+                        default: return "Unknown";
+                        }
+                        };
+
+                    goJson["physics"] = {
+                        {"enabled", true},
+                        {"bodyType", bodyTypeToString(physicsComp->bodyType)},
+                        {"mass", physicsComp->mass},
+                        {"restitution", physicsComp->restitution},
+                        {"friction", physicsComp->friction}
+                    };
+                }
+            }
+            else
+            {
+                goJson["physics"] = {
+                    {"enabled", false}
+                };
+            }
+            sceneJson["gameObjects"].push_back(goJson);
+        }
+
+    }
+
+    std::ofstream o(filename);
+    o << std::setw(4) << sceneJson << std::endl;
+    DX3DLogInfo(("Scene saved to " + filename).c_str());
 }
 
 void dx3d::Game::onSceneStateChanged(SceneState oldState, SceneState newState)
@@ -612,7 +732,9 @@ void dx3d::Game::render()
 
     [this]() { spawnDirectionalLight(); },
     [this]() { spawnPointLight(); },
-    [this]() { spawnSpotLight(); }
+    [this]() { spawnSpotLight(); },
+    [this](const std::string& filename) { saveScene(filename); },
+    [this](const std::string& filename) { loadScene(filename); }
     };
 
     m_uiManager->render(m_deltaTime, spawnCallbacks);

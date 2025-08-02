@@ -1,0 +1,26 @@
+{
+    "gameObjects": [
+        {
+            "physics": {
+                "enabled": false
+            },
+            "position": {
+                "x": 15.0,
+                "y": 10.0,
+                "z": -15.0
+            },
+            "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+            },
+            "type": "CameraObject"
+        }
+    ],
+    "sceneName": "MyScene"
+}

@@ -6,6 +6,7 @@
 #include <chrono>
 #include <memory>
 #include <vector>
+#include <typeinfo>
 #include <d3d11.h> 
 #include "imgui.h"
 #include "imgui_impl_win32.h"
@@ -120,6 +121,9 @@ namespace dx3d
         std::string getObjectDisplayName(std::shared_ptr<AGameObject> object, int index);
         std::string getObjectIcon(std::shared_ptr<AGameObject> object);
         std::shared_ptr<AGameObject> createObjectCopy(std::shared_ptr<AGameObject> original);
+
+        void saveScene(const std::string& filename);
+        void loadScene(const std::string& filename);
 
     private:
         std::unique_ptr<Logger> m_loggerPtr{};
