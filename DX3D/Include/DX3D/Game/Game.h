@@ -119,11 +119,13 @@ namespace dx3d
         void updatePhysics(float deltaTime);
 
         std::string getObjectDisplayName(std::shared_ptr<AGameObject> object, int index);
+        std::string getCurrentTimeAndDate();
         std::string getObjectIcon(std::shared_ptr<AGameObject> object);
         std::shared_ptr<AGameObject> createObjectCopy(std::shared_ptr<AGameObject> original);
 
-        void saveScene(const std::string& filename);
+        void saveScene();
         void loadScene(const std::string& filename);
+
 
     private:
         std::unique_ptr<Logger> m_loggerPtr{};

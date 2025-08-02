@@ -24,7 +24,7 @@ namespace dx3d
             std::function<void()> onSpawnDirectionalLight;
             std::function<void()> onSpawnPointLight;
             std::function<void()> onSpawnSpotLight;
-            std::function<void(const std::string&)> onSaveScene;
+            std::function<void()> onSaveScene;
             std::function<void(const std::string&)> onLoadScene;
         };
 

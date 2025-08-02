@@ -30,6 +30,9 @@ namespace dx3d
             SceneStateManager& sceneStateManager;
             ViewportManager& viewportManager;
             std::vector<std::shared_ptr<AGameObject>>& gameObjects;
+
+            std::function<std::vector<std::string>()> getSavedSceneFiles;
+            std::function<void(const std::string&)> onLoadScene;
         };
 
         struct SpawnCallbacks
@@ -44,7 +47,7 @@ namespace dx3d
             std::function<void()> onSpawnDirectionalLight;
             std::function<void()> onSpawnPointLight;
             std::function<void()> onSpawnSpotLight;
-            std::function<void(const std::string&)> onSaveScene;
+            std::function<void()> onSaveScene;
             std::function<void(const std::string&)> onLoadScene;
         };
 
@@ -57,6 +60,7 @@ namespace dx3d
 
     private:
         void applyLayout();
+        void renderLoadScenePopup();
 
     private:
         UIState m_state;
@@ -67,5 +71,11 @@ namespace dx3d
         std::unique_ptr<InspectorUI> m_inspector;
         std::unique_ptr<DebugConsoleUI> m_debugConsole;
         std::unique_ptr<ViewportUI> m_viewport;
+
+        // Manage Pop Up States
+        bool m_isLoadScenePopupOpen = false;
+        std::vector<std::string> m_sceneFiles;
+        std::function<std::vector<std::string>()> m_getSceneFilesCallback;
+        std::function<void(const std::string&)> m_loadSceneCallback;
     };
 }
