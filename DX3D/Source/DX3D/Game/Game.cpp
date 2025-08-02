@@ -80,12 +80,15 @@ dx3d::Game::Game(const GameDesc& desc) :
         });
 
     UIManager::Dependencies uiDeps{
-    m_logger,
-    *m_undoRedoSystem,
-    *m_selectionSystem,
-    *m_sceneStateManager,
-    *m_viewportManager,
-    m_gameObjects
+        m_logger,
+        *m_undoRedoSystem,
+        *m_selectionSystem,
+        *m_sceneStateManager,
+        *m_viewportManager,
+        m_gameObjects,
+
+        [this]() { return this->getSavedSceneFiles(); },
+        [this](const std::string& filename) { this->loadScene(filename); }
     };
     m_uiManager = std::make_unique<UIManager>(uiDeps);
 
@@ -538,6 +541,24 @@ void dx3d::Game::loadScene(const std::string& filename)
     m_gameObjects.push_back(m_gameCamera);
 
     DX3DLogInfo(("Scene loaded successfully from " + filename).c_str());
+}
+
+std::vector<std::string> dx3d::Game::getSavedSceneFiles() const
+{
+    std::vector<std::string> files;
+    const std::string saveDir = "Saved Scenes";
+
+    if (fs::exists(saveDir) && fs::is_directory(saveDir))
+    {
+        for (const auto& entry : fs::directory_iterator(saveDir))
+        {
+            if (entry.is_regular_file() && entry.path().extension() == ".json")
+            {
+                files.push_back(entry.path().filename().string());
+            }
+        }
+    }
+    return files;
 }
 
 std::string dx3d::Game::getCurrentTimeAndDate()

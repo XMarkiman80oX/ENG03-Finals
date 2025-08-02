@@ -32,7 +32,8 @@ void MainMenuBarUI::render(const Callbacks& callbacks)
             }
             if (ImGui::MenuItem("Load Scene"))
             {
-                callbacks.onLoadScene("scene.json");
+                if (callbacks.onShowLoadSceneDialog)
+                    callbacks.onShowLoadSceneDialog();
             }
             ImGui::EndMenu();
         }

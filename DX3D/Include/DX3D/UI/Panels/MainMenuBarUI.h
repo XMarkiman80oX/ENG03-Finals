@@ -26,6 +26,7 @@ namespace dx3d
             std::function<void()> onSpawnSpotLight;
             std::function<void()> onSaveScene;
             std::function<void(const std::string&)> onLoadScene;
+            std::function<void()> onShowLoadSceneDialog;
         };
 
         MainMenuBarUI(

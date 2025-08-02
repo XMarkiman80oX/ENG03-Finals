@@ -125,6 +125,7 @@ namespace dx3d
 
         void saveScene();
         void loadScene(const std::string& filename);
+        std::vector<std::string> getSavedSceneFiles() const;
 
 
     private:
