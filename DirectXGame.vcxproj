@@ -144,7 +144,7 @@
     <ClCompile Include="DX3D\Source\DX3D\Physics\PhysicsSystem.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Assets\AssetManager.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Assets\ModelLoader.cpp" />
-    <ClCompile Include="DX3D\Source\DX3D\Game\Camera.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Game\SceneCamera.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Game\SelectionSystem.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Game\ViewportManager.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\Mesh.cpp" />
@@ -208,7 +208,7 @@
     <ClInclude Include="DX3D\Include\DX3D\Assets\ModelLoader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Assets\tiny_obj_loader.h" />
     <ClInclude Include="DX3D\Include\DX3D\ECS\Entity.h" />
-    <ClInclude Include="DX3D\Include\DX3D\Game\Camera.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Game\SceneCamera.h" />
     <ClInclude Include="DX3D\Include\DX3D\Game\FPSCameraController.h" />
     <ClInclude Include="DX3D\Include\DX3D\Game\SelectionSystem.h" />
     <ClInclude Include="DX3D\Include\DX3D\Game\UndoRedoSystem.h" />

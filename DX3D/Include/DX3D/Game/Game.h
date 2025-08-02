@@ -31,7 +31,7 @@ namespace dx3d
     class Capsule;
     class LightObject;
     class DepthBuffer;
-    class Camera;
+    class SceneCamera;
     class FogShader;
     class CameraObject;
     class UIManager;
@@ -96,7 +96,7 @@ namespace dx3d
 
     private:
         void render();
-        void renderScene(Camera& camera, const Matrix4x4& projMatrix, RenderTexture* renderTarget = nullptr);
+        void renderScene(SceneCamera& camera, const Matrix4x4& projMatrix, RenderTexture* renderTarget = nullptr);
         void createRenderingResources();
         void update();
         void processInput(float deltaTime);
@@ -134,7 +134,7 @@ namespace dx3d
         std::unique_ptr<UIManager> m_uiManager{};
         
 
-        std::unique_ptr<Camera> m_sceneCamera{};
+        std::unique_ptr<SceneCamera> m_sceneCamera{};
         std::shared_ptr<CameraObject> m_gameCamera{};
         std::unique_ptr<ViewportManager> m_viewportManager{};
         std::unique_ptr<SelectionSystem> m_selectionSystem{};

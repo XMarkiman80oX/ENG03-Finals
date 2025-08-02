@@ -3,7 +3,7 @@
 #include <DX3D/Graphics/GraphicsEngine.h>
 #include <DX3D/Core/Logger.h>
 #include <DX3D/Game/Display.h>
-#include <DX3D/Game/Camera.h>
+#include <DX3D/Game/SceneCamera.h>
 #include <DX3D/Input/Input.h>
 #include <DX3D/Graphics/RenderSystem.h>
 #include <DX3D/Graphics/SwapChain.h>
@@ -164,7 +164,7 @@ void dx3d::Game::createRenderingResources()
     m_gameObjects.clear();
     m_gameObjects.reserve(100);
 
-    m_sceneCamera = std::make_unique<Camera>(
+    m_sceneCamera = std::make_unique<SceneCamera>(
         Vector3(10.0f, 5.0f, -10.0f),
         Vector3(0.0f, 0.0f, 0.0f)
     );
@@ -455,6 +455,22 @@ void dx3d::Game::saveScene(const std::string& filename)
 {
     json sceneJson;
     sceneJson["sceneName"] = "MyScene";
+    sceneJson["SceneCameraData"] = json::array();
+    
+    json sceneCamJson;
+
+    sceneCamJson["position"] = { {"x", this->m_sceneCamera->getPosition().x}, {"y", this->m_sceneCamera->getPosition().y}, {"z", this->m_sceneCamera->getPosition().z} };
+    sceneCamJson["forward"] = { {"x", this->m_sceneCamera->getForward().x}, {"y", this->m_sceneCamera->getForward().y}, {"z", this->m_sceneCamera->getForward().z} };
+    sceneCamJson["right"] = { {"x", this->m_sceneCamera->getRight().x}, {"y", this->m_sceneCamera->getRight().y}, {"z", this->m_sceneCamera->getRight().z} };
+    sceneCamJson["up"] = { {"x", this->m_sceneCamera->getUp().x}, {"y", this->m_sceneCamera->getUp().y}, {"z", this->m_sceneCamera->getUp().z} };
+    sceneCamJson["worldUp"] = { {"x", this->m_sceneCamera->getWorldUp().x}, {"y", this->m_sceneCamera->getWorldUp().y}, {"z", this->m_sceneCamera->getWorldUp().z} };
+    
+    sceneCamJson["yaw"] = this->m_sceneCamera->getYaw();
+    sceneCamJson["pitch"] = this->m_sceneCamera->getPitch();
+    sceneCamJson["roll"] = this->m_sceneCamera->getRoll() ;
+
+    sceneJson["SceneCameraData"].push_back(sceneCamJson);
+
     sceneJson["gameObjects"] = json::array();
     
     if (!this->m_gameObjects.empty()) {
@@ -570,7 +586,7 @@ void dx3d::Game::updatePhysics(float deltaTime)
     }
 }
 
-void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, RenderTexture* renderTarget)
+void dx3d::Game::renderScene(SceneCamera& camera, const Matrix4x4& projMatrix, RenderTexture* renderTarget)
 {
     auto& renderSystem = m_graphicsEngine->getRenderSystem();
     auto& deviceContext = renderSystem.getDeviceContext();
