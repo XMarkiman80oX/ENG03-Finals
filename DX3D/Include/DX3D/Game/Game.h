@@ -22,6 +22,7 @@ namespace dx3d
     class VertexShader;
     class PixelShader;
     class Light;
+    class ShadowMap;
     class AGameObject;
     class Cube;
     class Plane;
@@ -48,6 +49,13 @@ namespace dx3d
 }
 
 namespace dx3d {
+    struct LightTransformMatrices
+    {
+        Matrix4x4 light_view;
+        Matrix4x4 light_projection;
+        Matrix4x4 world;
+    };
+
     struct FogDesc
     {
         bool enabled = true;
@@ -96,6 +104,8 @@ namespace dx3d
     private:
         void render();
         void renderScene(Camera& camera, const Matrix4x4& projMatrix, RenderTexture* renderTarget = nullptr);
+        void renderShadowMapPass();
+        void PrintMatrix(const char* name, const Matrix4x4& mat);
         void createRenderingResources();
         void update();
         void processInput(float deltaTime);
@@ -201,5 +211,14 @@ namespace dx3d
         std::vector<std::shared_ptr<LightObject>> m_lights;
         std::shared_ptr<ConstantBuffer> m_lightConstantBuffer;
         Vector4 m_ambientColor = { 0.2f, 0.2f, 0.2f, 1.0f };
+
+        std::shared_ptr<ShadowMap> m_shadowMap;
+        std::shared_ptr<VertexShader> m_depthVertexShader;
+        std::shared_ptr<ConstantBuffer> m_lightTransformConstantBuffer;
+
+        Matrix4x4 m_lightViewMatrix;
+        Matrix4x4 m_lightProjectionMatrix;
+        ID3D11SamplerState* m_shadowSamplerState = nullptr;
+        int m_shadowCastingLightIndex = -1;
     };
 }

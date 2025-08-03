@@ -20,6 +20,8 @@
 #include <DX3D/Graphics/Shaders/FogShader.h>
 #include <DX3D/Graphics/Shaders/ModelShader.h>
 #include <DX3D/Graphics/Shaders/ModelVertexShader.h>
+#include <DX3D/Graphics/Shaders/DepthShader.h>
+#include <DX3D/Graphics/ShadowMap.h>
 #include <DX3D/Math/Math.h>
 #include <DX3D/Game/ViewportManager.h>
 #include <DX3D/Game/SelectionSystem.h>
@@ -76,7 +78,8 @@ dx3d::Game::Game(const GameDesc& desc) :
     *m_selectionSystem,
     *m_sceneStateManager,
     *m_viewportManager,
-    m_gameObjects
+    m_gameObjects,
+    m_lights
     };
     m_uiManager = std::make_unique<UIManager>(uiDeps);
 
@@ -135,6 +138,22 @@ void dx3d::Game::createRenderingResources()
     m_modelMaterialConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(ModelMaterialConstants), resourceDesc);
     m_transformConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(TransformationMatrices), resourceDesc);
     m_lightConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(LightConstantBuffer), resourceDesc);
+
+    m_lightTransformConstantBuffer = std::make_shared<ConstantBuffer>(sizeof(TransformationMatrices), resourceDesc);
+    m_depthVertexShader = std::make_shared<VertexShader>(resourceDesc, DepthShader::GetVertexShaderCode());
+    m_shadowMap = std::make_shared<ShadowMap>(2048, 2048, resourceDesc);
+
+    D3D11_SAMPLER_DESC samplerDesc = {};
+    samplerDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
+    samplerDesc.ComparisonFunc = D3D11_COMPARISON_LESS;
+    samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
+    samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
+    samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
+    samplerDesc.BorderColor[0] = 1.0f;
+    samplerDesc.BorderColor[1] = 1.0f;
+    samplerDesc.BorderColor[2] = 1.0f;
+    samplerDesc.BorderColor[3] = 1.0f;
+    device->CreateSamplerState(&samplerDesc, &m_shadowSamplerState);
 
     const auto& windowSize = m_display->getSize();
     m_depthBuffer = std::make_shared<DepthBuffer>(
@@ -237,7 +256,7 @@ void dx3d::Game::processInput(float deltaTime)
             if (selectedObject)
             {
                 // Create delete action and execute it through undo system
-                auto deleteAction = std::make_unique<DeleteAction>(selectedObject, m_gameObjects);
+                auto deleteAction = std::make_unique<DeleteAction>(selectedObject, m_gameObjects, m_lights);
                 m_undoRedoSystem->executeAction(std::move(deleteAction));
 
                 // Clear selection since object is deleted
@@ -456,26 +475,20 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
     auto& deviceContext = renderSystem.getDeviceContext();
     auto d3dContext = deviceContext.getDeviceContext();
 
-    m_lights.clear();
-    for (const auto& go : m_gameObjects)
-    {
-        if (auto light = std::dynamic_pointer_cast<LightObject>(go))
-        {
-            m_lights.push_back(light);
-        }
-    }
-
     LightConstantBuffer lcb;
     Vector3 camPos = camera.getPosition();
     lcb.camera_position = Vector4(camPos.x, camPos.y, camPos.z, 1.0f);
     lcb.ambient_color = m_ambientColor;
     lcb.num_lights = static_cast<UINT>(std::min((size_t)m_lights.size(), (size_t)MAX_LIGHTS_SUPPORTED));
-
+    lcb.shadow_casting_light_index = m_shadowCastingLightIndex;
 
     for (int i = 0; i < lcb.num_lights; ++i)
     {
         lcb.lights[i] = m_lights[i]->getLightData();
     }
+    lcb.light_view = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(m_lightViewMatrix.toXMMatrix()));
+    lcb.light_projection = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(m_lightProjectionMatrix.toXMMatrix()));
+
     m_lightConstantBuffer->update(deviceContext, &lcb);
 
 
@@ -517,6 +530,10 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
 
         ID3D11Buffer* lightCb = m_lightConstantBuffer->getBuffer();
         d3dContext->PSSetConstantBuffers(2, 1, &lightCb);
+
+        ID3D11ShaderResourceView* shadowSRV = m_shadowMap->getShaderResourceView();
+        d3dContext->PSSetShaderResources(1, 1, &shadowSRV);
+        d3dContext->PSSetSamplers(1, 1, &m_shadowSamplerState);
 
         bool bufferSet = false;
         ui32 indexCount = 0;
@@ -577,10 +594,148 @@ void dx3d::Game::renderScene(Camera& camera, const Matrix4x4& projMatrix, Render
             deviceContext.drawIndexed(indexCount, 0, 0);
         }
     }
+
+    ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
+    d3dContext->PSSetShaderResources(1, 1, nullSRV);
+}
+
+void dx3d::Game::renderShadowMapPass()
+{
+    auto& deviceContext = m_graphicsEngine->getRenderSystem().getDeviceContext();
+    auto d3dContext = deviceContext.getDeviceContext();
+
+    m_shadowCastingLightIndex = -1;
+    Light* shadowCastingLight = nullptr;
+
+    // Prioritize a Directional Light for shadows if one exists.
+    for (int i = 0; i < m_lights.size(); ++i) {
+        if (m_lights[i] && m_lights[i]->getLightData().type == LIGHT_TYPE_DIRECTIONAL) {
+            shadowCastingLight = &m_lights[i]->getLightData();
+            m_shadowCastingLightIndex = i;
+            break;
+        }
+    }
+    // If no Directional Light was found, find the first Spot Light.
+    if (!shadowCastingLight) {
+        for (int i = 0; i < m_lights.size(); ++i) {
+            if (m_lights[i] && m_lights[i]->getLightData().type == LIGHT_TYPE_SPOT) {
+                shadowCastingLight = &m_lights[i]->getLightData();
+                m_shadowCastingLightIndex = i;
+                break;
+            }
+        }
+    }
+
+    // CRITICAL FIX: If no shadow caster is found, reset matrices to prevent using stale data from a deleted light.
+    if (!shadowCastingLight)
+    {
+        m_lightViewMatrix = Matrix4x4();
+        m_lightProjectionMatrix = Matrix4x4();
+        return;
+    }
+
+    m_shadowMap->clear(deviceContext);
+    m_shadowMap->setAsRenderTarget(deviceContext);
+
+    deviceContext.setVertexShader(m_depthVertexShader->getShader());
+    d3dContext->PSSetShader(nullptr, nullptr, 0);
+    deviceContext.setInputLayout(m_depthVertexShader->getInputLayout());
+
+    Matrix4x4 lightView, lightProjection;
+
+    if (shadowCastingLight->type == LIGHT_TYPE_DIRECTIONAL)
+    {
+        Vector3 lightPos = Vector3(0, 0, 0) - (shadowCastingLight->direction * 50.0f);
+        Vector3 target = Vector3(0, 0, 0);
+        lightView = Matrix4x4::CreateLookAtLH(lightPos, target, Vector3(0, 1, 0));
+        lightProjection = Matrix4x4::fromXMMatrix(DirectX::XMMatrixOrthographicLH(40.0f, 40.0f, 1.0f, 100.0f));
+    }
+    else if (shadowCastingLight->type == LIGHT_TYPE_SPOT)
+    {
+        Vector3 lightPos = shadowCastingLight->position;
+        Vector3 lightDir = Vector3::Normalize(shadowCastingLight->direction);
+        Vector3 target = lightPos + lightDir;
+
+        // Vector3 up = Vector3::Normalize(shadowCastingLight->up);
+
+        Vector3 up;
+        const Vector3 worldUp = Vector3(0, 1, 0);
+
+        // Check if the light's direction is nearly parallel to the world's up vector.
+        if (abs(Vector3::Dot(lightDir, worldUp)) > 0.999f)
+        {
+            // If it is, use the world's X-axis to create the 'right' vector.
+            // This avoids the mathematical instability.
+            const Vector3 worldRight = Vector3(1, 0, 0);
+            Vector3 right = Vector3::Normalize(Vector3::Cross(lightDir, worldRight));
+            up = Vector3::Cross(right, lightDir);
+        }
+        else
+        {
+            // Otherwise, the standard calculation is stable and safe to use.
+            Vector3 right = Vector3::Normalize(Vector3::Cross(worldUp, lightDir));
+            up = Vector3::Cross(lightDir, right);
+        }
+
+        lightView = Matrix4x4::CreateLookAtLH(lightPos, target, up);
+        lightProjection = Matrix4x4::CreatePerspectiveFovLH(shadowCastingLight->spot_angle_outer * 2.0f, 1.0f, 0.1f, shadowCastingLight->radius);
+
+        PrintMatrix("SpotLight View", lightView);
+        PrintMatrix("SpotLight Projection", lightProjection);
+    }
+
+    m_lightViewMatrix = lightView;
+    m_lightProjectionMatrix = lightProjection;
+
+    // Render all shadow-casting objects
+    for (const auto& gameObject : m_gameObjects)
+    {
+        if (!gameObject || std::dynamic_pointer_cast<LightObject>(gameObject) || std::dynamic_pointer_cast<CameraObject>(gameObject)) {
+            continue;
+        }
+
+        LightTransformMatrices ltm;
+        ltm.world = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(gameObject->getWorldMatrix().toXMMatrix()));
+        ltm.light_view = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(lightView.toXMMatrix()));
+        ltm.light_projection = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(lightProjection.toXMMatrix()));
+        m_lightTransformConstantBuffer->update(deviceContext, &ltm);
+
+        ID3D11Buffer* lightTransformCb = m_lightTransformConstantBuffer->getBuffer();
+        d3dContext->VSSetConstantBuffers(0, 1, &lightTransformCb);
+
+        bool bufferSet = false;
+        ui32 indexCount = 0;
+        if (std::dynamic_pointer_cast<Cube>(gameObject)) {
+            deviceContext.setVertexBuffer(*m_cubeVertexBuffer);
+            deviceContext.setIndexBuffer(*m_cubeIndexBuffer);
+            indexCount = Cube::GetIndexCount();
+            bufferSet = true;
+        }
+        else if (std::dynamic_pointer_cast<Plane>(gameObject)) {
+            deviceContext.setVertexBuffer(*m_planeVertexBuffer);
+            deviceContext.setIndexBuffer(*m_planeIndexBuffer);
+            indexCount = Plane::GetIndexCount();
+            bufferSet = true;
+        }
+
+        if (bufferSet) {
+            deviceContext.drawIndexed(indexCount, 0, 0);
+        }
+    }
+}
+
+void dx3d::Game::PrintMatrix(const char* name, const Matrix4x4& mat) {
+    printf("--- Matrix: %s ---\n", name);
+    for (int i = 0; i < 4; ++i) {
+        printf("  [%.2f, %.2f, %.2f, %.2f]\n", mat.m[i][0], mat.m[i][1], mat.m[i][2], mat.m[i][3]);
+    }
+    printf("-----------------------\n");
 }
 
 void dx3d::Game::render()
 {
+    renderShadowMapPass();
+
     auto& renderSystem = m_graphicsEngine->getRenderSystem();
     auto& deviceContext = renderSystem.getDeviceContext();
     auto& swapChain = m_display->getSwapChain();
@@ -804,6 +959,7 @@ void dx3d::Game::spawnPointLight()
 {
     auto light = std::make_shared<PointLight>();
     light->setPosition(Vector3(0, 3, 0));
+    light->setRotation(Vector3(0.785f, 0.0f, 0.0f));
 
     m_gameObjects.push_back(light);
     m_lights.push_back(light);
@@ -814,7 +970,8 @@ void dx3d::Game::spawnPointLight()
 void dx3d::Game::spawnSpotLight()
 {
     auto light = std::make_shared<SpotLight>();
-    light->setPosition(Vector3(0, 5, 0));
+    light->setPosition(Vector3(0, 3, 0));
+    light->setRotation(Vector3(-0.785f, 0.0f, 0.0f));
 
     m_gameObjects.push_back(light);
     m_lights.push_back(light);

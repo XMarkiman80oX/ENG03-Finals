@@ -20,8 +20,11 @@ namespace dx3d
 
         float spot_angle_inner = 0.785f;
         float spot_angle_outer = 0.959f;
-        float spot_falloff = 1.0f; 
-        float padding; 
+        float spot_falloff = 1.0f;
+        float padding;
+
+        Vector3 up;
+        float final_padding;
     };
 
 #define MAX_LIGHTS_SUPPORTED 16
@@ -30,7 +33,10 @@ namespace dx3d
         Vector4 camera_position;
         Vector4 ambient_color;
         UINT num_lights;
-        Vector3 padding;
+        int shadow_casting_light_index = -1;
+        Vector2 padding;
         Light lights[MAX_LIGHTS_SUPPORTED];
+        Matrix4x4 light_view;
+        Matrix4x4 light_projection;
     };
 }

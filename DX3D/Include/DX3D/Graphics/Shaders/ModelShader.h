@@ -84,8 +84,11 @@ namespace dx3d
                     float4 camera_position;
                     float4 ambient_color;
                     uint   num_lights;
-                    float3 padding;
+                    int    shadow_casting_light_index;
+                    float2 padding;
                     Light  lights[16];
+                    matrix light_view;
+                    matrix light_projection;
                 };
         
                 cbuffer MaterialBuffer : register(b1)
@@ -100,6 +103,8 @@ namespace dx3d
                     float  padding_mat;
                 };
 
+                Texture2D shadowMap : register(t1);
+                SamplerComparisonState shadowSampler : register(s1);
                 Texture2D diffuseTexture : register(t0);
                 SamplerState textureSampler : register(s0);
 
@@ -111,7 +116,7 @@ namespace dx3d
                     float3 worldPos     : TEXCOORD1;
                 };
 
-                float3 calculateLight(Light light, float3 pixel_world_pos, float3 normal, float3 view_dir)
+                float3 calculateLight(Light light, float3 pixel_world_pos, float3 normal, float3 view_dir, float shadow_factor)
                 {
                     float3 light_dir;
                     float attenuation = 1.0f;
@@ -126,7 +131,7 @@ namespace dx3d
                         float dist = length(distance_vec);
                         light_dir = normalize(distance_vec);
                         attenuation = saturate(1.0f - (dist / light.radius));
-                        attenuation *= attenuation; // Quadratic falloff for a smoother look
+                        attenuation *= attenuation;
                     }
 
                     if (light.type == LIGHT_TYPE_SPOT)
@@ -144,11 +149,19 @@ namespace dx3d
                     float specular_factor = pow(max(dot(normal, halfway_vec), 0.0f), specularPower);
                     float3 specular = specular_factor * light.color * light.intensity * specularColor.rgb;
             
-                    return (diffuse + specular) * attenuation;
+                    return (diffuse + specular) * attenuation * shadow_factor;
                 }
 
                 float4 main(PS_INPUT input) : SV_TARGET 
                 {
+                    // --- Shadow Calculation (same as before) ---
+                    float4 light_clip_pos = mul(float4(input.worldPos, 1.0f), light_view);
+                    light_clip_pos = mul(light_clip_pos, light_projection);
+                    float2 shadow_tex_coord = 0.5f * light_clip_pos.xy / light_clip_pos.w + 0.5f;
+                    shadow_tex_coord.y = 1.0f - shadow_tex_coord.y;
+                    float depth_from_light = light_clip_pos.z / light_clip_pos.w;
+                    float shadow_value = shadowMap.SampleCmp(shadowSampler, shadow_tex_coord, depth_from_light - 0.0005f);
+
                     float3 normal = normalize(input.normal);
                     float3 view_dir = normalize(camera_position.xyz - input.worldPos);
             
@@ -156,13 +169,14 @@ namespace dx3d
 
                     for (uint i = 0; i < num_lights; i++)
                     {
-                        finalColor.rgb += calculateLight(lights[i], input.worldPos, normal, view_dir);
+                        float shadow_factor_for_this_light = (i == shadow_casting_light_index) ? shadow_value : 1.0f;
+                        finalColor.rgb += calculateLight(lights[i], input.worldPos, normal, view_dir, shadow_factor_for_this_light);
                     }
 
                     finalColor.rgb += emissiveColor.rgb;
 
                     if (hasTexture > 0.5f) {
-                        finalColor.rgb = finalColor.rgb * diffuseTexture.Sample(textureSampler, input.texCoord).rgb;
+                        finalColor.rgb *= diffuseTexture.Sample(textureSampler, input.texCoord).rgb;
                     }
 
                     finalColor.a = diffuseColor.a * opacity;

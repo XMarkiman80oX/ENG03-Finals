@@ -16,7 +16,8 @@ UIManager::UIManager(const Dependencies& deps)
         deps.undoRedoSystem,
         deps.selectionSystem,
         deps.sceneStateManager,
-        deps.gameObjects
+        deps.gameObjects,
+        deps.lights
     );
 
     m_mainMenuBar = std::make_unique<MainMenuBarUI>(

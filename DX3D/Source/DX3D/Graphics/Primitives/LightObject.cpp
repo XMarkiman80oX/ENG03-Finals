@@ -29,8 +29,11 @@ PointLight::PointLight()
 
 SpotLight::SpotLight()
 {
+    Matrix4x4 world = getWorldMatrix();
+
     m_lightData.type = LIGHT_TYPE_SPOT;
     m_lightData.color = Vector3(1.0f, 1.0f, 1.0f); // White light
+    m_lightData.up = Vector3(world.m[1][0], world.m[1][1], world.m[1][2]);
     m_lightData.intensity = 2.0f;
     m_lightData.radius = 20.0f;
 }
