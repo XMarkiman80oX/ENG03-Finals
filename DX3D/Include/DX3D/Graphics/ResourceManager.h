@@ -54,7 +54,7 @@ namespace dx3d
         std::string findTexturePath(const std::string& fileName) const;
 
     private:
-        GraphicsResourceDesc m_resourceDesc;
+        std::unique_ptr<GraphicsResourceDesc> m_resourceDesc;
         std::unordered_map<std::string, std::shared_ptr<Texture2D>> m_textureCache;
         mutable std::mutex m_textureMutex;
         bool m_initialized = false;

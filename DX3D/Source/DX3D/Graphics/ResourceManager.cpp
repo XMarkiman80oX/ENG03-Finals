@@ -20,14 +20,11 @@ void ResourceManager::initialize(const GraphicsResourceDesc& resourceDesc)
 
     if (m_initialized)
     {
-        //DX3DLogWarning("ResourceManager already initialized");
         return;
     }
 
-    m_resourceDesc = resourceDesc;
+    m_resourceDesc = std::make_unique<GraphicsResourceDesc>(resourceDesc); 
     m_initialized = true;
-
-    //DX3DLogInfo("ResourceManager initialized successfully");
 }
 
 void ResourceManager::shutdown()
@@ -42,6 +39,11 @@ void ResourceManager::shutdown()
 
 std::shared_ptr<Texture2D> ResourceManager::loadTexture(const std::string& fileName)
 {
+    if (!m_initialized || !m_resourceDesc) // Add null check
+    {
+        return nullptr;
+    }
+
     if (!m_initialized)
     {
         //DX3DLogError("ResourceManager not initialized - cannot load texture");
@@ -74,15 +76,12 @@ std::shared_ptr<Texture2D> ResourceManager::loadTexture(const std::string& fileN
 
     try
     {
-        auto texture = std::make_shared<Texture2D>(fullPath, m_resourceDesc);
+        auto texture = std::make_shared<Texture2D>(fullPath, *m_resourceDesc); // Add dereference
         m_textureCache[fileName] = texture;
-
-        //DX3DLogInfo(("Texture loaded successfully: " + fileName + " from " + fullPath).c_str());
         return texture;
     }
     catch (const std::exception& e)
     {
-        //DX3DLogError(("Failed to load texture " + fileName + ": " + e.what()).c_str());
         return nullptr;
     }
 }

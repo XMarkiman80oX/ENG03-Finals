@@ -36,7 +36,6 @@
 #include <DX3D/Graphics/Primitives/Capsule.h>
 #include <DX3D/Graphics/Primitives/Cylinder.h>
 #include <DX3D/Graphics/Primitives/Model.h>
-#include <DX3D/Graphics/Texture2D.h>
 #include <DX3D/Assets/ModelLoader.h>
 
 #include <DX3D/ECS/ComponentManager.h>
@@ -1388,7 +1387,7 @@ void dx3d::Game::setObjectTexture(std::shared_ptr<AGameObject> object, const std
     object->setTexture(textureFileName);
 }
 
-std::shared_ptr<Texture2D> dx3d::Game::loadTexture(const std::string& fileName)
+std::shared_ptr<dx3d::Texture2D> dx3d::Game::loadTexture(const std::string& fileName)
 {
     return ResourceManager::getInstance().loadTexture(fileName);
 }

@@ -13,7 +13,9 @@
 #include "imgui_impl_dx11.h"
 #include <DX3D/Graphics/Shaders/ModelVertexShader.h>
 #include <DX3D/Graphics/Light.h>
+#include <DX3D/Graphics/Texture2D.h>
 #include <DX3D/Graphics/Primitives/LightObject.h> 
+
 
 namespace dx3d
 {
@@ -45,6 +47,7 @@ namespace dx3d
     class Display;
     class Logger;
     class UndoRedoSystem;
+    class Texture2D;
 
     enum class SceneState;
 }
