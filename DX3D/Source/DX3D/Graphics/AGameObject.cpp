@@ -460,3 +460,16 @@ void AGameObject::setTexture(const std::string& textureFileName)
         matComp->hasTexture = false;
     }
 }
+
+std::string AGameObject::getTextureName() const
+{
+    auto& componentManager = ComponentManager::getInstance();
+    auto* matComp = componentManager.getComponent<MaterialComponent>(m_entity.getID());
+
+    if (matComp)
+    {
+        return matComp->textureFileName;
+    }
+
+    return "";
+}

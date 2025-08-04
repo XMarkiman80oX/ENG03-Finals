@@ -38,6 +38,10 @@ namespace dx3d
         void renderObjectInfo(std::shared_ptr<AGameObject> object);
         void renderLight(std::shared_ptr<LightObject> lightObject);
 
+        void renderMaterialSection(std::shared_ptr<AGameObject> object);
+        void renderTextureSelector(std::shared_ptr<AGameObject> object);
+        void renderPrimitiveSelector(std::shared_ptr<AGameObject> object);
+
     private:
         UIController& m_controller;
         SelectionSystem& m_selectionSystem;

@@ -140,6 +140,7 @@ namespace dx3d
         std::string getCurrentTimeAndDate();
         std::string getObjectIcon(std::shared_ptr<AGameObject> object);
         std::shared_ptr<AGameObject> createObjectCopy(std::shared_ptr<AGameObject> original);
+        void setupMaterialForObject(std::shared_ptr<AGameObject> gameObject, DeviceContext& deviceContext);
 
         void saveScene();
         void loadScene(const std::string& filename);

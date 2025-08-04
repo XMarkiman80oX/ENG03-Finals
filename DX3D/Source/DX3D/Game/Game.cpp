@@ -971,14 +971,12 @@ void dx3d::Game::renderScene(SceneCamera& camera, const Matrix4x4& projMatrix, R
 
         if (bufferSet)
         {
-            ModelMaterialConstants mmc;
-            mmc.diffuseColor = Vector4(0.8f, 0.8f, 0.8f, 1.0f);
-            mmc.ambientColor = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
-            mmc.specularColor = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
-            mmc.specularPower = 32.0f;
-            mmc.opacity = 1.0f;
-            mmc.hasTexture = 0.0f;
-            m_modelMaterialConstantBuffer->update(deviceContext, &mmc);
+            // Setup material for this object (reads from ECS MaterialComponent)
+            setupMaterialForObject(gameObject, deviceContext);
+
+            // Set material constant buffer
+            ID3D11Buffer* materialCb = m_modelMaterialConstantBuffer->getBuffer();
+            d3dContext->PSSetConstantBuffers(1, 1, &materialCb);
 
             TransformationMatrices transformMatrices;
             transformMatrices.world = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(gameObject->getWorldMatrix().toXMMatrix()));
@@ -1391,6 +1389,70 @@ std::shared_ptr<dx3d::Texture2D> dx3d::Game::loadTexture(const std::string& file
 {
     return ResourceManager::getInstance().loadTexture(fileName);
 }
+
+void dx3d::Game::setupMaterialForObject(std::shared_ptr<AGameObject> gameObject, DeviceContext& deviceContext)
+{
+    auto& componentManager = ComponentManager::getInstance();
+    auto* materialComp = componentManager.getComponent<MaterialComponent>(gameObject->getEntity().getID());
+
+    ModelMaterialConstants mmc;
+
+    // Set default values first
+    mmc.diffuseColor = Vector4(0.8f, 0.8f, 0.8f, 1.0f);
+    mmc.ambientColor = Vector4(0.2f, 0.2f, 0.2f, 1.0f);
+    mmc.specularColor = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+    mmc.emissiveColor = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
+    mmc.specularPower = 32.0f;
+    mmc.opacity = 1.0f;
+    mmc.hasTexture = 0.0f;
+
+    // If object has a material, use its properties
+    if (materialComp && materialComp->material)
+    {
+        auto material = materialComp->material;
+
+        mmc.diffuseColor = material->getDiffuseColor();
+        mmc.ambientColor = material->getAmbientColor();
+        mmc.specularColor = material->getSpecularColor();
+        mmc.emissiveColor = material->getEmissiveColor();
+        mmc.specularPower = material->getSpecularPower();
+        mmc.opacity = material->getOpacity();
+
+        // Handle texture
+        if (material->hasDiffuseTexture())
+        {
+            auto texture = material->getDiffuseTexture();
+            mmc.hasTexture = 1.0f;
+
+            // Set texture in shader
+            auto d3dContext = deviceContext.getDeviceContext();
+            ID3D11ShaderResourceView* srv = texture->getShaderResourceView();
+            ID3D11SamplerState* sampler = texture->getSamplerState();
+            d3dContext->PSSetShaderResources(0, 1, &srv);
+            d3dContext->PSSetSamplers(0, 1, &sampler);
+        }
+        else
+        {
+            mmc.hasTexture = 0.0f;
+
+            // Clear texture binding
+            auto d3dContext = deviceContext.getDeviceContext();
+            ID3D11ShaderResourceView* nullSRV = nullptr;
+            d3dContext->PSSetShaderResources(0, 1, &nullSRV);
+        }
+    }
+    else
+    {
+        // Clear texture binding for objects without materials
+        auto d3dContext = deviceContext.getDeviceContext();
+        ID3D11ShaderResourceView* nullSRV = nullptr;
+        d3dContext->PSSetShaderResources(0, 1, &nullSRV);
+    }
+
+    // Update the material constant buffer
+    m_modelMaterialConstantBuffer->update(deviceContext, &mmc);
+}
+
 
 void dx3d::Game::clearTextureCache()
 {
