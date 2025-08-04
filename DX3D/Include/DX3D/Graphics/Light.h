@@ -22,9 +22,6 @@ namespace dx3d
         float spot_angle_outer = 0.959f;
         float spot_falloff = 1.0f;
         float padding;
-
-        Vector3 up;
-        float final_padding;
     };
 
 #define MAX_LIGHTS_SUPPORTED 16
