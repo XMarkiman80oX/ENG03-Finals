@@ -5,6 +5,9 @@
 #include <DX3D/ECS/Entity.h>
 #include <DX3D/ECS/Components/TransformComponent.h>
 #include <DX3D/ECS/Components/PhysicsComponent.h>
+#include <DX3D/ECS/Components/MaterialComponent.h>
+#include <DX3D/Graphics/GraphicsEngine.h>
+#include <DX3D/Graphics/RenderSystem.h>
 #include <memory>
 #include <typeinfo>
 
@@ -70,6 +73,13 @@ namespace dx3d
         virtual void render() {}
 
         std::string getObjectType();
+
+        // Material management
+        void attachMaterial(std::shared_ptr<Material> material);
+        void detachMaterial();
+        bool hasMaterial() const;
+        std::shared_ptr<Material> getMaterial() const;
+        void setTexture(const std::string& textureFileName);
 
     protected:
         // For derived classes to override collision shape creation

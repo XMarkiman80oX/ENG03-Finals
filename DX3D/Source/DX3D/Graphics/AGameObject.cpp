@@ -390,3 +390,56 @@ void AGameObject::setEnabled(bool enabled)
         }
     }
 }
+
+void AGameObject::attachMaterial(std::shared_ptr<Material> material)
+{
+    auto& componentManager = ComponentManager::getInstance();
+    MaterialComponent matComp;
+    matComp.material = material;
+    componentManager.addComponent(m_entity.getID(), matComp);
+}
+
+void AGameObject::detachMaterial()
+{
+    auto& componentManager = ComponentManager::getInstance();
+    componentManager.removeComponent<MaterialComponent>(m_entity.getID());
+}
+
+bool AGameObject::hasMaterial() const
+{
+    auto& componentManager = ComponentManager::getInstance();
+    return componentManager.hasComponent<MaterialComponent>(m_entity.getID());
+}
+
+std::shared_ptr<Material> AGameObject::getMaterial() const
+{
+    auto& componentManager = ComponentManager::getInstance();
+    auto* matComp = componentManager.getComponent<MaterialComponent>(m_entity.getID());
+    return matComp ? matComp->material : nullptr;
+}
+
+void AGameObject::setTexture(const std::string& textureFileName)
+{
+    auto& componentManager = ComponentManager::getInstance();
+    auto* matComp = componentManager.getComponent<MaterialComponent>(m_entity.getID());
+
+    if (!matComp || !matComp->material)
+        return;
+
+    // Create texture from file
+    auto& renderSystem = m_graphicsEngine->getRenderSystem();
+    auto resourceDesc = renderSystem.getGraphicsResourceDesc();
+
+    std::string fullPath = "DX3D/Assets/Textures/" + textureFileName;
+    try
+    {
+        auto texture = std::make_shared<Texture2D>(fullPath, resourceDesc);
+        matComp->material->setDiffuseTexture(texture);
+        matComp->textureFileName = textureFileName;
+        matComp->hasTexture = true;
+    }
+    catch (const std::exception& e)
+    {
+        DX3DLogError(("Failed to load texture: " + textureFileName).c_str());
+    }
+}
