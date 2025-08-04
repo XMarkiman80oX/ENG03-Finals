@@ -80,6 +80,7 @@ namespace dx3d
         bool hasMaterial() const;
         std::shared_ptr<Material> getMaterial() const;
         void setTexture(const std::string& textureFileName);
+        std::string getTextureName() const;
 
     protected:
         // For derived classes to override collision shape creation

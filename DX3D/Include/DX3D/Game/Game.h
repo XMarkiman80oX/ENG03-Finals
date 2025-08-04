@@ -102,6 +102,11 @@ namespace dx3d
 
         virtual void run() final;
 
+        void setObjectTexture(std::shared_ptr<AGameObject> object, const std::string& textureFileName);
+        std::shared_ptr<Texture2D> loadTexture(const std::string& fileName);
+        void clearTextureCache();
+        std::vector<std::string> getLoadedTextures() const;
+
     private:
         void render();
         void renderScene(SceneCamera& camera, const Matrix4x4& projMatrix, RenderTexture* renderTarget = nullptr);

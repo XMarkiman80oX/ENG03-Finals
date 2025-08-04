@@ -1,7 +1,10 @@
 #include <DX3D/Graphics/Primitives/AGameObject.h>
 #include <DX3D/ECS/ComponentManager.h>
 #include <DX3D/Physics/PhysicsSystem.h>
+#include <DX3D/Graphics/ResourceManager.h>
+#include <DX3D/ECS/Components/MaterialComponent.h>
 #include <DirectXMath.h>
+
 
 using namespace dx3d;
 using namespace DirectX;
@@ -416,4 +419,44 @@ std::shared_ptr<Material> AGameObject::getMaterial() const
     auto& componentManager = ComponentManager::getInstance();
     auto* matComp = componentManager.getComponent<MaterialComponent>(m_entity.getID());
     return matComp ? matComp->material : nullptr;
+}
+
+void AGameObject::setTexture(const std::string& textureFileName)
+{
+    auto& componentManager = ComponentManager::getInstance();
+    auto* matComp = componentManager.getComponent<MaterialComponent>(m_entity.getID());
+
+    // Create material component if it doesn't exist
+    if (!matComp)
+    {
+        MaterialComponent newMatComp;
+        newMatComp.material = ResourceManager::getInstance().createMaterial();
+        newMatComp.textureFileName = "";
+        newMatComp.hasTexture = false;
+
+        componentManager.addComponent(m_entity.getID(), newMatComp);
+        matComp = componentManager.getComponent<MaterialComponent>(m_entity.getID());
+    }
+
+    // Create material if the component exists but material is null
+    if (!matComp->material)
+    {
+        matComp->material = ResourceManager::getInstance().createMaterial();
+    }
+
+    // Load texture through ResourceManager
+    auto texture = ResourceManager::getInstance().loadTexture(textureFileName);
+    if (texture)
+    {
+        matComp->material->setDiffuseTexture(texture);
+        matComp->textureFileName = textureFileName;
+        matComp->hasTexture = true;
+
+        //DX3DLogInfo(("Texture set successfully for object: " + textureFileName).c_str());
+    }
+    else
+    {
+        //DX3DLogError(("Failed to load texture for object: " + textureFileName).c_str());
+        matComp->hasTexture = false;
+    }
 }

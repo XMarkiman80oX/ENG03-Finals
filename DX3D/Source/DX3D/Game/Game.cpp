@@ -36,6 +36,7 @@
 #include <DX3D/Graphics/Primitives/Capsule.h>
 #include <DX3D/Graphics/Primitives/Cylinder.h>
 #include <DX3D/Graphics/Primitives/Model.h>
+#include <DX3D/Graphics/Texture2D.h>
 #include <DX3D/Assets/ModelLoader.h>
 
 #include <DX3D/ECS/ComponentManager.h>
@@ -45,6 +46,9 @@
 
 #include <DX3D/UI/UIManager.h>
 #include <DX3D/JSON/json.hpp>
+
+#include <DX3D/Graphics/ResourceManager.h>
+#include <DX3D/ECS/Components/MaterialComponent.h>
 
 #include <chrono>      
 #include <iomanip>  
@@ -132,8 +136,10 @@ void dx3d::Game::createRenderingResources()
     auto& componentManager = ComponentManager::getInstance();
     componentManager.registerComponent<TransformComponent>();
     componentManager.registerComponent<PhysicsComponent>();
+    componentManager.registerComponent<MaterialComponent>();
 
     PhysicsSystem::getInstance().initialize();
+    ResourceManager::getInstance().initialize(resourceDesc);
 
     DX3DLogInfo("ECS and Physics systems initialized successfully.");
 
@@ -1369,6 +1375,33 @@ void dx3d::Game::spawnSpotLight()
     m_lights.push_back(light);
     m_selectionSystem->setSelectedObject(light);
     DX3DLogInfo("Spawned Spot Light");
+}
+
+void dx3d::Game::setObjectTexture(std::shared_ptr<AGameObject> object, const std::string& textureFileName)
+{
+    if (!object)
+    {
+        DX3DLogError("Cannot set texture on null object");
+        return;
+    }
+
+    object->setTexture(textureFileName);
+}
+
+std::shared_ptr<Texture2D> dx3d::Game::loadTexture(const std::string& fileName)
+{
+    return ResourceManager::getInstance().loadTexture(fileName);
+}
+
+void dx3d::Game::clearTextureCache()
+{
+    ResourceManager::getInstance().clearTextureCache();
+    DX3DLogInfo("Texture cache cleared");
+}
+
+std::vector<std::string> dx3d::Game::getLoadedTextures() const
+{
+    return ResourceManager::getInstance().getLoadedTextureNames();
 }
 
 void dx3d::Game::run()

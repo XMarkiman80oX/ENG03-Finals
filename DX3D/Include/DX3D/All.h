@@ -20,6 +20,7 @@
 #include <DX3D/Graphics/Material.h>
 #include <DX3D/Graphics/Mesh.h>
 #include <DX3D/Graphics/Primitives/Model.h>
+#include <DX3D/Graphics/ResourceManager.h>
 #include <DX3D/Assets/ModelLoader.h>
 #include <DX3D/Assets/AssetManager.h>
 
