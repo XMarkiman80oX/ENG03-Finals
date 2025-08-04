@@ -392,12 +392,16 @@ void dx3d::Game::update()
         m_fpsController->update(m_deltaTime);
     }
 
+
     if(m_deltaTime > 0.0f)
         updatePhysics(m_deltaTime);
 
     for (auto& gameObject : m_gameObjects)
     {
-        gameObject->update(m_deltaTime);
+        if (gameObject->isEnabled())
+        {
+            gameObject->update(m_deltaTime);
+        }
     }
 
     static float debugTimer = 0.0f;
@@ -536,8 +540,6 @@ void dx3d::Game::loadScene(const std::string& filename)
         }
     }
 
-    // Crucially, re-add the game camera to the gameObjects list after it was cleared.
-    // Your save function includes it, so your load should too.
     m_gameObjects.push_back(m_gameCamera);
 
     DX3DLogInfo(("Scene loaded successfully from " + filename).c_str());
@@ -791,8 +793,13 @@ void dx3d::Game::renderScene(SceneCamera& camera, const Matrix4x4& projMatrix, R
 
     bool isSceneView = (&camera == m_sceneCamera.get());
 
+
+
     for (const auto& gameObject : m_gameObjects)
     {
+        if (!gameObject->isEnabled())
+            continue;
+
         bool isCamera = std::dynamic_pointer_cast<CameraObject>(gameObject) != nullptr;
         if (!isSceneView && isCamera)
             continue;
