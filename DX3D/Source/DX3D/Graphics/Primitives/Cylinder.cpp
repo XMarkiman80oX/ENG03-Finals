@@ -26,27 +26,51 @@ std::shared_ptr<VertexBuffer> Cylinder::CreateVertexBuffer(const GraphicsResourc
     const float height = 1.0f;
     const float halfHeight = height * 0.5f;
 
-    // Center vertices for top and bottom caps
-    vertices.push_back({ {0.0f, halfHeight, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f} }); // Top center (green)
-    vertices.push_back({ {0.0f, -halfHeight, 0.0f}, {1.0f, 1.0f, 0.0f, 1.0f} }); // Bottom center (yellow)
+    // Top center vertex
+    vertices.push_back({ {0.0f, halfHeight, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {0.5f, 0.5f} });
 
-    // Generate vertices for top and bottom circles and sides
+    // Bottom center vertex
+    vertices.push_back({ {0.0f, -halfHeight, 0.0f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, -1.0f, 0.0f}, {0.5f, 0.5f} });
+
+    // Top ring vertices (for caps and sides)
     for (ui32 i = 0; i <= segments; ++i)
     {
         float angle = i * 2.0f * 3.14159265f / segments;
         float x = radius * std::cos(angle);
         float z = radius * std::sin(angle);
+        float u = static_cast<float>(i) / segments;
 
-        // Top circle vertex (blue tint)
-        vertices.push_back({ {x, halfHeight, z}, {0.2f, 0.5f, 1.0f, 1.0f} });
+        // Top cap vertex
+        vertices.push_back({ {x, halfHeight, z}, {0.2f, 0.5f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {u, 0.0f} });
+    }
 
-        // Bottom circle vertex (orange tint)
-        vertices.push_back({ {x, -halfHeight, z}, {1.0f, 0.5f, 0.2f, 1.0f} });
+    // Bottom ring vertices (for caps and sides)
+    for (ui32 i = 0; i <= segments; ++i)
+    {
+        float angle = i * 2.0f * 3.14159265f / segments;
+        float x = radius * std::cos(angle);
+        float z = radius * std::sin(angle);
+        float u = static_cast<float>(i) / segments;
 
-        // Side vertices with gradient color
-        float t = static_cast<float>(i) / segments;
-        vertices.push_back({ {x, halfHeight, z}, {1.0f - t, t, 0.5f, 1.0f} }); // Top side
-        vertices.push_back({ {x, -halfHeight, z}, {t, 0.5f, 1.0f - t, 1.0f} }); // Bottom side
+        // Bottom cap vertex
+        vertices.push_back({ {x, -halfHeight, z}, {1.0f, 0.5f, 0.2f, 1.0f}, {0.0f, -1.0f, 0.0f}, {u, 1.0f} });
+    }
+
+    // Side vertices (separate from cap vertices for proper normals)
+    for (ui32 i = 0; i <= segments; ++i)
+    {
+        float angle = i * 2.0f * 3.14159265f / segments;
+        float x = radius * std::cos(angle);
+        float z = radius * std::sin(angle);
+        float u = static_cast<float>(i) / segments;
+
+        Vector3 sideNormal = Vector3::Normalize(Vector3(x, 0.0f, z));
+
+        // Top side vertex
+        vertices.push_back({ {x, halfHeight, z}, {1.0f, 0.5f, 0.5f, 1.0f}, sideNormal, {u, 0.0f} });
+
+        // Bottom side vertex
+        vertices.push_back({ {x, -halfHeight, z}, {0.5f, 1.0f, 0.5f, 1.0f}, sideNormal, {u, 1.0f} });
     }
 
     return std::make_shared<VertexBuffer>(
@@ -61,37 +85,44 @@ std::shared_ptr<IndexBuffer> Cylinder::CreateIndexBuffer(const GraphicsResourceD
 {
     std::vector<ui32> indices;
 
-    // Top cap indices (looking down, clockwise)
+    // Starting index for the vertices of the bottom cap ring
+    const ui32 bottomStart = 2 + segments + 1;
+    // Starting index for the vertices of the cylinder's side faces
+    const ui32 sideStart = bottomStart + segments + 1;
+
+    // Top cap indices (CCW from outside/above)
     for (ui32 i = 0; i < segments; ++i)
     {
-        indices.push_back(0); // Center
-        indices.push_back(2 + i * 4); // Current top vertex
-        indices.push_back(2 + ((i + 1) % segments) * 4); // Next top vertex
+        indices.push_back(0);                   // Top center
+        indices.push_back(2 + i + 1);           // Next top vertex
+        indices.push_back(2 + i);               // Current top vertex
     }
 
-    // Bottom cap indices (looking up, counter-clockwise which appears clockwise from outside)
+    // Bottom cap indices (CCW from outside/below)
     for (ui32 i = 0; i < segments; ++i)
     {
-        indices.push_back(1); // Center
-        indices.push_back(3 + ((i + 1) % segments) * 4); // Next bottom vertex
-        indices.push_back(3 + i * 4); // Current bottom vertex
+        indices.push_back(1);                   // Bottom center
+        indices.push_back(bottomStart + i);     // Current bottom vertex
+        indices.push_back(bottomStart + i + 1); // Next bottom vertex
     }
 
-    // Side indices
+    // Side faces indices
     for (ui32 i = 0; i < segments; ++i)
     {
-        ui32 topCurrent = 4 + i * 4;
-        ui32 bottomCurrent = 5 + i * 4;
-        ui32 topNext = 4 + ((i + 1) % segments) * 4;
-        ui32 bottomNext = 5 + ((i + 1) % segments) * 4;
+        ui32 topCurrent = sideStart + i * 2;
+        ui32 bottomCurrent = topCurrent + 1;
+        ui32 topNext = sideStart + (i + 1) * 2;
+        ui32 bottomNext = topNext + 1;
 
+        // First triangle of the quad
         indices.push_back(topCurrent);
-        indices.push_back(bottomCurrent);
         indices.push_back(topNext);
+        indices.push_back(bottomCurrent);
 
+        // Second triangle of the quad
         indices.push_back(topNext);
-        indices.push_back(bottomCurrent);
         indices.push_back(bottomNext);
+        indices.push_back(bottomCurrent);
     }
 
     return std::make_shared<IndexBuffer>(

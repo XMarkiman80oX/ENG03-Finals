@@ -24,13 +24,12 @@ std::shared_ptr<VertexBuffer> Capsule::CreateVertexBuffer(const GraphicsResource
 {
     std::vector<Vertex> vertices;
     const float radius = 0.5f;
-    const float cylinderHeight = 0.5f; // Height of the cylindrical part
+    const float cylinderHeight = 0.5f;
     const float halfCylinderHeight = cylinderHeight * 0.5f;
 
-    // Top hemisphere
     for (ui32 ring = 0; ring <= rings / 2; ++ring)
     {
-        float phi = ring * 3.14159265f / rings; // 0 to PI/2
+        float phi = ring * 3.14159265f / rings;
         float y = halfCylinderHeight + radius * std::cos(phi);
         float ringRadius = radius * std::sin(phi);
 
@@ -40,13 +39,18 @@ std::shared_ptr<VertexBuffer> Capsule::CreateVertexBuffer(const GraphicsResource
             float x = ringRadius * std::cos(theta);
             float z = ringRadius * std::sin(theta);
 
-            // Color based on position (purple to blue gradient)
+            Vector3 position(x, y, z);
+            Vector3 normal = Vector3::Normalize(Vector3(x, y - halfCylinderHeight, z));
+
+            float u = static_cast<float>(seg) / segments;
+            float v = static_cast<float>(ring) / (rings / 2);
+            Vector2 texCoord(u, v * 0.25f);
+
             float t = static_cast<float>(ring) / (rings / 2);
-            vertices.push_back({ {x, y, z}, {0.5f + 0.5f * t, 0.2f, 1.0f - 0.5f * t, 1.0f} });
+            vertices.push_back({ position, {0.5f + 0.5f * t, 0.2f, 1.0f - 0.5f * t, 1.0f}, normal, texCoord });
         }
     }
 
-    // Cylinder middle
     for (ui32 i = 0; i <= 1; ++i)
     {
         float y = halfCylinderHeight - i * cylinderHeight;
@@ -57,16 +61,21 @@ std::shared_ptr<VertexBuffer> Capsule::CreateVertexBuffer(const GraphicsResource
             float x = radius * std::cos(theta);
             float z = radius * std::sin(theta);
 
-            // Color gradient (cyan to green)
+            Vector3 position(x, y, z);
+            Vector3 normal = Vector3::Normalize(Vector3(x, 0.0f, z));
+
+            float u = static_cast<float>(seg) / segments;
+            float v = 0.25f + i * 0.5f;
+            Vector2 texCoord(u, v);
+
             float t = static_cast<float>(i);
-            vertices.push_back({ {x, y, z}, {0.2f, 1.0f - 0.5f * t, 0.8f + 0.2f * t, 1.0f} });
+            vertices.push_back({ position, {0.2f, 1.0f - 0.5f * t, 0.8f + 0.2f * t, 1.0f}, normal, texCoord });
         }
     }
 
-    // Bottom hemisphere
     for (ui32 ring = rings / 2; ring <= rings; ++ring)
     {
-        float phi = ring * 3.14159265f / rings; // PI/2 to PI
+        float phi = ring * 3.14159265f / rings;
         float y = -halfCylinderHeight + radius * std::cos(phi);
         float ringRadius = radius * std::sin(phi);
 
@@ -76,9 +85,15 @@ std::shared_ptr<VertexBuffer> Capsule::CreateVertexBuffer(const GraphicsResource
             float x = ringRadius * std::cos(theta);
             float z = ringRadius * std::sin(theta);
 
-            // Color based on position (green to yellow gradient)
+            Vector3 position(x, y, z);
+            Vector3 normal = Vector3::Normalize(Vector3(x, y + halfCylinderHeight, z));
+
+            float u = static_cast<float>(seg) / segments;
+            float v = 0.75f + static_cast<float>(ring - rings / 2) / (rings / 2) * 0.25f;
+            Vector2 texCoord(u, v);
+
             float t = static_cast<float>(ring - rings / 2) / (rings / 2);
-            vertices.push_back({ {x, y, z}, {0.5f + 0.5f * t, 1.0f - 0.3f * t, 0.2f, 1.0f} });
+            vertices.push_back({ position, {0.5f + 0.5f * t, 1.0f - 0.3f * t, 0.2f, 1.0f}, normal, texCoord });
         }
     }
 
@@ -96,7 +111,6 @@ std::shared_ptr<IndexBuffer> Capsule::CreateIndexBuffer(const GraphicsResourceDe
     std::vector<ui32> indices;
     ui32 verticesPerRing = segments + 1;
 
-    // Top hemisphere indices
     for (ui32 ring = 0; ring < rings / 2; ++ring)
     {
         for (ui32 seg = 0; seg < segments; ++seg)
@@ -105,16 +119,15 @@ std::shared_ptr<IndexBuffer> Capsule::CreateIndexBuffer(const GraphicsResourceDe
             ui32 next = current + verticesPerRing;
 
             indices.push_back(current);
-            indices.push_back(next);
             indices.push_back(current + 1);
+            indices.push_back(next);
 
             indices.push_back(current + 1);
-            indices.push_back(next);
             indices.push_back(next + 1);
+            indices.push_back(next);
         }
     }
 
-    // Cylinder middle indices
     ui32 cylinderStart = (rings / 2 + 1) * verticesPerRing;
     for (ui32 seg = 0; seg < segments; ++seg)
     {
@@ -122,15 +135,14 @@ std::shared_ptr<IndexBuffer> Capsule::CreateIndexBuffer(const GraphicsResourceDe
         ui32 bottomCurrent = topCurrent + verticesPerRing;
 
         indices.push_back(topCurrent);
-        indices.push_back(bottomCurrent);
         indices.push_back(topCurrent + 1);
+        indices.push_back(bottomCurrent);
 
         indices.push_back(topCurrent + 1);
-        indices.push_back(bottomCurrent);
         indices.push_back(bottomCurrent + 1);
+        indices.push_back(bottomCurrent);
     }
 
-    // Bottom hemisphere indices
     ui32 bottomStart = cylinderStart + 2 * verticesPerRing;
     for (ui32 ring = 0; ring < rings / 2; ++ring)
     {
@@ -140,12 +152,12 @@ std::shared_ptr<IndexBuffer> Capsule::CreateIndexBuffer(const GraphicsResourceDe
             ui32 next = current + verticesPerRing;
 
             indices.push_back(current);
-            indices.push_back(next);
             indices.push_back(current + 1);
+            indices.push_back(next);
 
             indices.push_back(current + 1);
-            indices.push_back(next);
             indices.push_back(next + 1);
+            indices.push_back(next);
         }
     }
 

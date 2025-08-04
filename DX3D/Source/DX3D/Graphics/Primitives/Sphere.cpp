@@ -25,30 +25,34 @@ std::shared_ptr<VertexBuffer> Sphere::CreateVertexBuffer(const GraphicsResourceD
     std::vector<Vertex> vertices;
     const float radius = 0.5f;
 
-    // Generate vertices
     for (ui32 lat = 0; lat <= latitudeSegments; ++lat)
     {
-        float theta = lat * 3.14159265f / latitudeSegments; // 0 to PI
+        float theta = lat * 3.14159265f / latitudeSegments;
         float sinTheta = std::sin(theta);
         float cosTheta = std::cos(theta);
 
         for (ui32 lon = 0; lon <= longitudeSegments; ++lon)
         {
-            float phi = lon * 2.0f * 3.14159265f / longitudeSegments; // 0 to 2PI
+            float phi = lon * 2.0f * 3.14159265f / longitudeSegments;
             float sinPhi = std::sin(phi);
             float cosPhi = std::cos(phi);
 
-            // Calculate position
             float x = radius * sinTheta * cosPhi;
             float y = radius * cosTheta;
             float z = radius * sinTheta * sinPhi;
 
-            // Map position to color for rainbow effect
+            Vector3 position(x, y, z);
+            Vector3 normal = Vector3::Normalize(position);
+
+            float u = static_cast<float>(lon) / longitudeSegments;
+            float v = static_cast<float>(lat) / latitudeSegments;
+            Vector2 texCoord(u, v);
+
             float r = (x + radius) / (2.0f * radius);
             float g = (y + radius) / (2.0f * radius);
             float b = (z + radius) / (2.0f * radius);
 
-            vertices.push_back({ {x, y, z}, {r, g, b, 1.0f} });
+            vertices.push_back({ position, {r, g, b, 1.0f}, normal, texCoord });
         }
     }
 
@@ -73,12 +77,12 @@ std::shared_ptr<IndexBuffer> Sphere::CreateIndexBuffer(const GraphicsResourceDes
             ui32 next = current + longitudeSegments + 1;
 
             indices.push_back(current);
-            indices.push_back(next);
             indices.push_back(current + 1);
+            indices.push_back(next);
 
             indices.push_back(current + 1);
-            indices.push_back(next);
             indices.push_back(next + 1);
+            indices.push_back(next);
         }
     }
 
@@ -88,3 +92,4 @@ std::shared_ptr<IndexBuffer> Sphere::CreateIndexBuffer(const GraphicsResourceDes
         resourceDesc
     );
 }
+
