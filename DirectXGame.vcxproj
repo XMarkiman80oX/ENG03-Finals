@@ -141,6 +141,7 @@
     <ClCompile Include="DX3D\Source\DX3D\Game\UndoRedoSystem.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\Material.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Graphics\Primitives\LightObject.cpp" />
+    <ClCompile Include="DX3D\Source\DX3D\Graphics\ShadowMap.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Physics\PhysicsSystem.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Assets\AssetManager.cpp" />
     <ClCompile Include="DX3D\Source\DX3D\Assets\ModelLoader.cpp" />
@@ -224,11 +225,13 @@
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\Cylinder.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\Sphere.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\RenderTexture.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\DepthShader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\FogShader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\ModelShader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\ModelVertexShader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\ParticleShader.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Shaders\ParticleVertexShader.h" />
+    <ClInclude Include="DX3D\Include\DX3D\Graphics\ShadowMap.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Texture2D.h" />
     <ClInclude Include="DX3D\Include\DX3D\Input\Input.h" />
     <ClInclude Include="DX3D\Include\DX3D\Graphics\Primitives\AGameObject.h" />

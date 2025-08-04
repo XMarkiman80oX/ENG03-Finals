@@ -8,6 +8,7 @@
 namespace dx3d
 {
     class AGameObject;
+    class LightObject;
 
     // Base class for all undoable actions
     class IAction
@@ -44,7 +45,8 @@ namespace dx3d
     {
     public:
         DeleteAction(std::shared_ptr<AGameObject> object,
-            std::vector<std::shared_ptr<AGameObject>>& objectList);
+            std::vector<std::shared_ptr<AGameObject>>& objectList,
+            std::vector<std::shared_ptr<LightObject>>& lightList);
 
         void execute() override;
         void undo() override;
@@ -53,6 +55,7 @@ namespace dx3d
     private:
         std::shared_ptr<AGameObject> m_object;
         std::vector<std::shared_ptr<AGameObject>>* m_objectList;
+        std::vector<std::shared_ptr<LightObject>>* m_lightList;
         size_t m_originalIndex;
     };
 

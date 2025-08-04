@@ -6,6 +6,7 @@
 namespace dx3d
 {
     class AGameObject;
+    class LightObject;
     class SelectionSystem;
     class UIController;
     class SceneStateManager;
@@ -35,6 +36,7 @@ namespace dx3d
         void renderCamera(std::shared_ptr<AGameObject> object);
         void renderPhysics(std::shared_ptr<AGameObject> object);
         void renderObjectInfo(std::shared_ptr<AGameObject> object);
+        void renderLight(std::shared_ptr<LightObject> lightObject);
 
     private:
         UIController& m_controller;

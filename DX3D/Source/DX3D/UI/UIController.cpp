@@ -2,6 +2,7 @@
 #include <DX3D/Game/SelectionSystem.h>
 #include <DX3D/Game/UndoRedoSystem.h>
 #include <DX3D/Graphics/Primitives/AGameObject.h>
+#include <DX3D/Graphics/Primitives/LightObject.h>
 #include <DX3D/Scene/SceneStateManager.h>
 #include <DX3D/UI/UIController.h>
 
@@ -11,11 +12,13 @@ UIController::UIController(
     UndoRedoSystem& undoRedoSystem,
     SelectionSystem& selectionSystem,
     SceneStateManager& sceneStateManager,
-    std::vector<std::shared_ptr<AGameObject>>& gameObjects)
+    std::vector<std::shared_ptr<AGameObject>>& gameObjects,
+    std::vector<std::shared_ptr<LightObject>>& lights)
     : m_undoRedoSystem(undoRedoSystem)
     , m_selectionSystem(selectionSystem)
     , m_sceneStateManager(sceneStateManager)
     , m_gameObjects(gameObjects)
+    , m_lights(lights)
 {
 }
 
@@ -42,7 +45,7 @@ void UIController::onDeleteClicked()
     auto selectedObject = m_selectionSystem.getSelectedObject();
     if (selectedObject && m_sceneStateManager.isEditMode())
     {
-        auto deleteAction = std::make_unique<DeleteAction>(selectedObject, m_gameObjects);
+        auto deleteAction = std::make_unique<DeleteAction>(selectedObject, m_gameObjects, m_lights);
         m_undoRedoSystem.executeAction(std::move(deleteAction));
         m_selectionSystem.setSelectedObject(nullptr);
         //DX3DLogInfo("Deleted selected object");

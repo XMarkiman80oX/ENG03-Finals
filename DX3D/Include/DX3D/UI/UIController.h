@@ -10,6 +10,7 @@ namespace dx3d
     class SelectionSystem;
     class SceneStateManager;
     class AGameObject;
+    class LightObject;
 
     class UIController
     {
@@ -18,7 +19,8 @@ namespace dx3d
             UndoRedoSystem& undoRedoSystem,
             SelectionSystem& selectionSystem,
             SceneStateManager& sceneStateManager,
-            std::vector<std::shared_ptr<AGameObject>>& gameObjects
+            std::vector<std::shared_ptr<AGameObject>>& gameObjects,
+            std::vector<std::shared_ptr<LightObject>>& lights
         );
 
         void onUndoClicked();
@@ -39,5 +41,6 @@ namespace dx3d
         SelectionSystem& m_selectionSystem;
         SceneStateManager& m_sceneStateManager;
         std::vector<std::shared_ptr<AGameObject>>& m_gameObjects;
+        std::vector<std::shared_ptr<LightObject>>& m_lights;
     };
 }

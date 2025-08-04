@@ -11,6 +11,7 @@ namespace dx3d
     class SceneStateManager;
     class ViewportManager;
     class AGameObject;
+    class LightObject;
     class UIController;
     class MainMenuBarUI;
     class SceneControlsUI;
@@ -33,6 +34,7 @@ namespace dx3d
 
             std::function<std::vector<std::string>()> getSavedSceneFiles;
             std::function<void(const std::string&)> onLoadScene;
+            std::vector<std::shared_ptr<LightObject>>& lights;
         };
 
         struct SpawnCallbacks

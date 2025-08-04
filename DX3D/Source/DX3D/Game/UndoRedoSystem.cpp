@@ -1,5 +1,6 @@
 #include <DX3D/Game/UndoRedoSystem.h>
 #include <DX3D/Graphics/Primitives/AGameObject.h>
+#include <DX3D/Graphics/Primitives/LightObject.h>
 #include <algorithm>
 #include <iterator>
 
@@ -59,9 +60,11 @@ std::string TransformAction::getDescription() const
 
 // DeleteAction Implementation
 DeleteAction::DeleteAction(std::shared_ptr<AGameObject> object,
-    std::vector<std::shared_ptr<AGameObject>>& objectList)
+    std::vector<std::shared_ptr<AGameObject>>& objectList,
+    std::vector<std::shared_ptr<LightObject>>& lightList)
     : m_object(object)
     , m_objectList(&objectList)
+    , m_lightList(&lightList)
     , m_originalIndex(0)
 {
     // Find the index of the object in the list
@@ -69,6 +72,13 @@ DeleteAction::DeleteAction(std::shared_ptr<AGameObject> object,
     if (it != objectList.end())
     {
         m_originalIndex = static_cast<size_t>(std::distance(objectList.begin(), it));
+    }
+
+    if (auto light = std::dynamic_pointer_cast<LightObject>(m_object)) {
+        auto light_it = std::find(m_lightList->begin(), m_lightList->end(), light);
+        if (light_it != m_lightList->end()) {
+            m_lightList->erase(light_it);
+        }
     }
 }
 
@@ -96,6 +106,10 @@ void DeleteAction::undo()
         else
         {
             m_objectList->push_back(m_object);
+        }
+
+        if (auto light = std::dynamic_pointer_cast<LightObject>(m_object)) {
+            m_lightList->push_back(light);
         }
     }
 }
