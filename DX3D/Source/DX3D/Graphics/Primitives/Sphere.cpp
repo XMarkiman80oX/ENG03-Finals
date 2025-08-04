@@ -65,7 +65,6 @@ std::shared_ptr<IndexBuffer> Sphere::CreateIndexBuffer(const GraphicsResourceDes
 {
     std::vector<ui32> indices;
 
-    // Generate indices
     for (ui32 lat = 0; lat < latitudeSegments; ++lat)
     {
         for (ui32 lon = 0; lon < longitudeSegments; ++lon)
@@ -73,12 +72,10 @@ std::shared_ptr<IndexBuffer> Sphere::CreateIndexBuffer(const GraphicsResourceDes
             ui32 current = lat * (longitudeSegments + 1) + lon;
             ui32 next = current + longitudeSegments + 1;
 
-            // First triangle
             indices.push_back(current);
             indices.push_back(next);
             indices.push_back(current + 1);
 
-            // Second triangle
             indices.push_back(current + 1);
             indices.push_back(next);
             indices.push_back(next + 1);

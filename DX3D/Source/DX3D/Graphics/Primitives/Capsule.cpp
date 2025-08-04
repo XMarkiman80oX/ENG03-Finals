@@ -104,12 +104,10 @@ std::shared_ptr<IndexBuffer> Capsule::CreateIndexBuffer(const GraphicsResourceDe
             ui32 current = ring * verticesPerRing + seg;
             ui32 next = current + verticesPerRing;
 
-            // First triangle
             indices.push_back(current);
             indices.push_back(next);
             indices.push_back(current + 1);
 
-            // Second triangle
             indices.push_back(current + 1);
             indices.push_back(next);
             indices.push_back(next + 1);
@@ -123,12 +121,10 @@ std::shared_ptr<IndexBuffer> Capsule::CreateIndexBuffer(const GraphicsResourceDe
         ui32 topCurrent = cylinderStart + seg;
         ui32 bottomCurrent = topCurrent + verticesPerRing;
 
-        // First triangle
         indices.push_back(topCurrent);
         indices.push_back(bottomCurrent);
         indices.push_back(topCurrent + 1);
 
-        // Second triangle
         indices.push_back(topCurrent + 1);
         indices.push_back(bottomCurrent);
         indices.push_back(bottomCurrent + 1);
@@ -143,12 +139,10 @@ std::shared_ptr<IndexBuffer> Capsule::CreateIndexBuffer(const GraphicsResourceDe
             ui32 current = bottomStart + ring * verticesPerRing + seg;
             ui32 next = current + verticesPerRing;
 
-            // First triangle
             indices.push_back(current);
             indices.push_back(next);
             indices.push_back(current + 1);
 
-            // Second triangle
             indices.push_back(current + 1);
             indices.push_back(next);
             indices.push_back(next + 1);

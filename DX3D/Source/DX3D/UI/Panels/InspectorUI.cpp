@@ -37,8 +37,8 @@ void InspectorUI::render()
     float halfHeight = windowHeight * 0.5f;
 
     
-    float inspectorHeight = halfHeight * 0.45f; 
-    float inspectorY = halfHeight + (halfHeight * 0.15f);
+    float inspectorHeight = halfHeight * 0.60f; 
+    float inspectorY = halfHeight + (halfHeight * 0.03f);
 
     ImGui::SetNextWindowPos(ImVec2(halfWidth, inspectorY));
     ImGui::SetNextWindowSize(ImVec2(halfWidth, inspectorHeight));
@@ -94,68 +94,12 @@ void InspectorUI::renderObjectInfo(std::shared_ptr<AGameObject> object)
     }
 }
 
-void InspectorUI::renderTransform(std::shared_ptr<AGameObject> object)
-{
-    if (!m_sceneStateManager.isEditMode())
-    {
-        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.6f);
-    }
 
-    ImGui::Text("Transform");
-
-    Vector3 position = object->getPosition();
-    Vector3 rotation = object->getRotation();
-    Vector3 scale = object->getScale();
-
-    Vector3 oldPos = position;
-    Vector3 oldRot = rotation;
-    Vector3 oldScale = scale;
-
-    bool transformChanged = false;
-
-    if (ImGui::DragFloat3("Position", &position.x, 0.1f))
-    {
-        object->setPosition(position);
-        transformChanged = true;
-    }
-
-    // Convert radians to degrees for display
-    Vector3 rotationDegrees = { rotation.x * 180.0f / 3.14159f,
-                               rotation.y * 180.0f / 3.14159f,
-                               rotation.z * 180.0f / 3.14159f };
-
-    if (ImGui::DragFloat3("Rotation", &rotationDegrees.x, 1.0f))
-    {
-        // Convert back to radians
-        rotation = { rotationDegrees.x * 3.14159f / 180.0f,
-                    rotationDegrees.y * 3.14159f / 180.0f,
-                    rotationDegrees.z * 3.14159f / 180.0f };
-        object->setRotation(rotation);
-        transformChanged = true;
-    }
-
-    if (ImGui::DragFloat3("Scale", &scale.x, 0.1f, 0.01f, 100.0f))
-    {
-        object->setScale(scale);
-        transformChanged = true;
-    }
-
-    if (transformChanged && m_sceneStateManager.isEditMode())
-    {
-        m_controller.onTransformChanged(object, oldPos, position, oldRot, rotation, oldScale, scale);
-    }
-
-    if (!m_sceneStateManager.isEditMode())
-    {
-        ImGui::PopStyleVar();
-    }
-}
 
 void InspectorUI::renderMaterialSection(std::shared_ptr<AGameObject> object)
 {
     ImGui::Text("Material");
 
-    // Skip material section for lights and cameras
     if (std::dynamic_pointer_cast<LightObject>(object) ||
         std::dynamic_pointer_cast<CameraObject>(object))
     {
@@ -168,12 +112,16 @@ void InspectorUI::renderMaterialSection(std::shared_ptr<AGameObject> object)
 
     if (hasMaterial)
     {
+        if (ImGui::Button("Remove Material"))
+        {
+            object->detachMaterial();
+        }
+
         auto material = object->getMaterial();
         if (material)
         {
             ImGui::Text("Material Name: %s", material->getName().c_str());
 
-            // Material properties
             Vector4 diffuseColor = material->getDiffuseColor();
             if (ImGui::ColorEdit4("Diffuse Color", &diffuseColor.x))
             {
@@ -204,7 +152,6 @@ void InspectorUI::renderMaterialSection(std::shared_ptr<AGameObject> object)
                 material->setOpacity(opacity);
             }
 
-            // Texture section
             ImGui::Separator();
             ImGui::Text("Texture");
 
@@ -222,7 +169,6 @@ void InspectorUI::renderMaterialSection(std::shared_ptr<AGameObject> object)
                 }
             }
 
-            // Texture selection dropdown
             ImGui::Text("Available Textures:");
             renderTextureSelector(object);
         }
@@ -236,9 +182,72 @@ void InspectorUI::renderMaterialSection(std::shared_ptr<AGameObject> object)
         }
     }
 
-    // Primitive Selection Area for Materials
     ImGui::Separator();
     renderPrimitiveSelector(object);
+}
+
+
+void InspectorUI::renderTransform(std::shared_ptr<AGameObject> object)
+{
+    if (!m_sceneStateManager.isEditMode())
+    {
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.6f);
+    }
+
+    ImGui::Text("Transform");
+
+    Vector3 position = object->getPosition();
+    Vector3 rotation = object->getRotation();
+    Vector3 scale = object->getScale();
+
+    Vector3 oldPos = position;
+    Vector3 oldRot = rotation;
+    Vector3 oldScale = scale;
+
+    bool transformChanged = false;
+
+    if (ImGui::DragFloat3("Position", &position.x, 0.1f))
+    {
+        object->setPosition(position);
+        transformChanged = true;
+    }
+
+    Vector3 rotationDegrees = { rotation.x * 180.0f / 3.14159f,
+                               rotation.y * 180.0f / 3.14159f,
+                               rotation.z * 180.0f / 3.14159f };
+
+    if (ImGui::DragFloat3("Rotation", &rotationDegrees.x, 1.0f))
+    {
+        rotation = { rotationDegrees.x * 3.14159f / 180.0f,
+                    rotationDegrees.y * 3.14159f / 180.0f,
+                    rotationDegrees.z * 3.14159f / 180.0f };
+        object->setRotation(rotation);
+        transformChanged = true;
+    }
+
+    if (ImGui::DragFloat3("Scale", &scale.x, 0.1f, 0.01f, 100.0f))
+    {
+        object->setScale(scale);
+        transformChanged = true;
+    }
+
+    if (!object->hasPhysics() && m_sceneStateManager.isEditMode())
+    {
+        if (ImGui::Button("Add Physics"))
+        {
+            object->enablePhysics(PhysicsBodyType::Dynamic);
+        }
+    }
+
+    if (transformChanged && m_sceneStateManager.isEditMode())
+    {
+        m_controller.onTransformChanged(object, oldPos, position, oldRot, rotation, oldScale, scale);
+    }
+
+    if (!m_sceneStateManager.isEditMode())
+    {
+        ImGui::PopStyleVar();
+    }
 }
 
 void InspectorUI::renderTextureSelector(std::shared_ptr<AGameObject> object)

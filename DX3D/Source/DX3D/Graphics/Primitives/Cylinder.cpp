@@ -61,7 +61,7 @@ std::shared_ptr<IndexBuffer> Cylinder::CreateIndexBuffer(const GraphicsResourceD
 {
     std::vector<ui32> indices;
 
-    // Top cap indices
+    // Top cap indices (looking down, clockwise)
     for (ui32 i = 0; i < segments; ++i)
     {
         indices.push_back(0); // Center
@@ -69,7 +69,7 @@ std::shared_ptr<IndexBuffer> Cylinder::CreateIndexBuffer(const GraphicsResourceD
         indices.push_back(2 + ((i + 1) % segments) * 4); // Next top vertex
     }
 
-    // Bottom cap indices
+    // Bottom cap indices (looking up, counter-clockwise which appears clockwise from outside)
     for (ui32 i = 0; i < segments; ++i)
     {
         indices.push_back(1); // Center
@@ -85,12 +85,10 @@ std::shared_ptr<IndexBuffer> Cylinder::CreateIndexBuffer(const GraphicsResourceD
         ui32 topNext = 4 + ((i + 1) % segments) * 4;
         ui32 bottomNext = 5 + ((i + 1) % segments) * 4;
 
-        // First triangle
         indices.push_back(topCurrent);
         indices.push_back(bottomCurrent);
         indices.push_back(topNext);
 
-        // Second triangle
         indices.push_back(topNext);
         indices.push_back(bottomCurrent);
         indices.push_back(bottomNext);

@@ -1019,7 +1019,6 @@ void dx3d::Game::renderShadowMapPass()
         }
     }
 
-    // CRITICAL FIX: If no shadow caster is found, reset matrices to prevent using stale data from a deleted light.
     if (!shadowCastingLight)
     {
         m_lightViewMatrix = Matrix4x4();
