@@ -97,6 +97,8 @@ dx3d::Game::Game(const GameDesc& desc) :
     };
     m_uiManager = std::make_unique<UIManager>(uiDeps);
 
+    spawnDirectionalLight();
+
     DX3DLogInfo("Game initialized with ECS, Physics, and Scene State systems.");
 }
 
@@ -999,32 +1001,35 @@ void dx3d::Game::renderShadowMapPass()
 
     m_shadowCastingLightIndex = -1;
     Light* shadowCastingLight = nullptr;
+    std::shared_ptr<LightObject> shadowCastingObject = nullptr;
 
     // Prioritize a Directional Light for shadows if one exists.
     for (int i = 0; i < m_lights.size(); ++i) {
         if (m_lights[i] && m_lights[i]->getLightData().type == LIGHT_TYPE_DIRECTIONAL) {
-            shadowCastingLight = &m_lights[i]->getLightData();
+            shadowCastingObject = m_lights[i];
             m_shadowCastingLightIndex = i;
             break;
         }
     }
     // If no Directional Light was found, find the first Spot Light.
-    if (!shadowCastingLight) {
+    if (!shadowCastingObject) {
         for (int i = 0; i < m_lights.size(); ++i) {
             if (m_lights[i] && m_lights[i]->getLightData().type == LIGHT_TYPE_SPOT) {
-                shadowCastingLight = &m_lights[i]->getLightData();
+                shadowCastingObject = m_lights[i];
                 m_shadowCastingLightIndex = i;
                 break;
             }
         }
     }
 
-    if (!shadowCastingLight)
+    if (!shadowCastingObject)
     {
         m_lightViewMatrix = Matrix4x4();
         m_lightProjectionMatrix = Matrix4x4();
         return;
     }
+
+    shadowCastingLight = &shadowCastingObject->getLightData();
 
     m_shadowMap->clear(deviceContext);
     m_shadowMap->setAsRenderTarget(deviceContext);
@@ -1048,34 +1053,15 @@ void dx3d::Game::renderShadowMapPass()
         Vector3 lightDir = Vector3::Normalize(shadowCastingLight->direction);
         Vector3 target = lightPos + lightDir;
 
-        // Vector3 up = Vector3::Normalize(shadowCastingLight->up);
-
-        Vector3 up;
-        const Vector3 worldUp = Vector3(0, 1, 0);
-
-        // Check if the light's direction is nearly parallel to the world's up vector.
-        if (abs(Vector3::Dot(lightDir, worldUp)) > 0.999f)
-        {
-            // If it is, use the world's X-axis to create the 'right' vector.
-            // This avoids the mathematical instability.
-            const Vector3 worldRight = Vector3(1, 0, 0);
-            Vector3 right = Vector3::Normalize(Vector3::Cross(lightDir, worldRight));
-            up = Vector3::Cross(right, lightDir);
-        }
-        else
-        {
-            // Otherwise, the standard calculation is stable and safe to use.
-            Vector3 right = Vector3::Normalize(Vector3::Cross(worldUp, lightDir));
-            up = Vector3::Cross(lightDir, right);
-        }
+        // Get the 'up' vector directly from the game object's transform matrix.
+        Matrix4x4 world = shadowCastingObject->getWorldMatrix();
+        Vector3 up = Vector3::Normalize(Vector3(world.m[1][0], world.m[1][1], world.m[1][2]));
 
         lightView = Matrix4x4::CreateLookAtLH(lightPos, target, up);
         lightProjection = Matrix4x4::CreatePerspectiveFovLH(shadowCastingLight->spot_angle_outer * 2.0f, 1.0f, 0.1f, shadowCastingLight->radius);
-
-        PrintMatrix("SpotLight View", lightView);
-        PrintMatrix("SpotLight Projection", lightProjection);
     }
 
+    // Store the calculated matrices for the main render pass
     m_lightViewMatrix = lightView;
     m_lightProjectionMatrix = lightProjection;
 
@@ -1107,6 +1093,27 @@ void dx3d::Game::renderShadowMapPass()
             deviceContext.setVertexBuffer(*m_planeVertexBuffer);
             deviceContext.setIndexBuffer(*m_planeIndexBuffer);
             indexCount = Plane::GetIndexCount();
+            bufferSet = true;
+        }
+        else if (auto sphere = std::dynamic_pointer_cast<Sphere>(gameObject))
+        {
+            deviceContext.setVertexBuffer(*m_sphereVertexBuffer);
+            deviceContext.setIndexBuffer(*m_sphereIndexBuffer);
+            indexCount = Sphere::GetIndexCount();
+            bufferSet = true;
+        }
+        else if (auto cylinder = std::dynamic_pointer_cast<Cylinder>(gameObject))
+        {
+            deviceContext.setVertexBuffer(*m_cylinderVertexBuffer);
+            deviceContext.setIndexBuffer(*m_cylinderIndexBuffer);
+            indexCount = Cylinder::GetIndexCount();
+            bufferSet = true;
+        }
+        else if (auto capsule = std::dynamic_pointer_cast<Capsule>(gameObject))
+        {
+            deviceContext.setVertexBuffer(*m_capsuleVertexBuffer);
+            deviceContext.setIndexBuffer(*m_capsuleIndexBuffer);
+            indexCount = Capsule::GetIndexCount();
             bufferSet = true;
         }
 
