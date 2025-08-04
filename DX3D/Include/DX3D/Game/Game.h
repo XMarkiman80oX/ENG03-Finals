@@ -104,7 +104,7 @@ namespace dx3d
 
     private:
         void render();
-        void renderScene(Camera& camera, const Matrix4x4& projMatrix, RenderTexture* renderTarget = nullptr);
+        void renderScene(SceneCamera& camera, const Matrix4x4& projMatrix, RenderTexture* renderTarget = nullptr);
         void renderShadowMapPass();
         void PrintMatrix(const char* name, const Matrix4x4& mat);
         void createRenderingResources();

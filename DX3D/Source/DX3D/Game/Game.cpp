@@ -82,13 +82,15 @@ dx3d::Game::Game(const GameDesc& desc) :
         });
 
     UIManager::Dependencies uiDeps{
-    m_logger,
-    *m_undoRedoSystem,
-    *m_selectionSystem,
-    *m_sceneStateManager,
-    *m_viewportManager,
-    m_gameObjects,
-    m_lights
+     m_logger,
+     *m_undoRedoSystem,
+     *m_selectionSystem,
+     *m_sceneStateManager,
+     *m_viewportManager,
+     m_gameObjects,
+     [this]() { return getSavedSceneFiles(); },  // Add this lambda
+     [this](const std::string& filename) { loadScene(filename); },  // Add this lambda
+     m_lights
     };
     m_uiManager = std::make_unique<UIManager>(uiDeps);
 
@@ -103,8 +105,6 @@ dx3d::Game::~Game()
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
 
-    // Manually disable physics on every game object.
-    // This unregisters them from the physics world while it's still active.
     for (const auto& go : m_gameObjects)
     {
         if (go->hasPhysics())
