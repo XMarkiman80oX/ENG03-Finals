@@ -36,8 +36,8 @@ void InspectorUI::render()
     float halfWidth = windowWidth * 0.5f;
     float halfHeight = windowHeight * 0.5f;
 
-    
-    float inspectorHeight = halfHeight * 0.60f; 
+
+    float inspectorHeight = halfHeight * 0.60f;
     float inspectorY = halfHeight + (halfHeight * 0.03f);
 
     ImGui::SetNextWindowPos(ImVec2(halfWidth, inspectorY));
@@ -231,11 +231,21 @@ void InspectorUI::renderTransform(std::shared_ptr<AGameObject> object)
         transformChanged = true;
     }
 
-    if (!object->hasPhysics() && m_sceneStateManager.isEditMode())
+    if (m_sceneStateManager.isEditMode())
     {
-        if (ImGui::Button("Add Physics"))
+        if (object->hasPhysics())
         {
-            object->enablePhysics(PhysicsBodyType::Dynamic);
+            if (ImGui::Button("Remove Physics"))
+            {
+                object->disablePhysics();
+            }
+        }
+        else
+        {
+            if (ImGui::Button("Add Physics"))
+            {
+                object->enablePhysics(PhysicsBodyType::Dynamic);
+            }
         }
     }
 
