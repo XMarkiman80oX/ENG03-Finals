@@ -510,8 +510,6 @@ void dx3d::Game::update()
 using json = nlohmann::json;
 namespace fs = std::filesystem;
 
-// ... (rest of the file is unchanged) ...
-
 void dx3d::Game::loadScene(const std::string& filename)
 {
     const std::string saveDir = "Saved Scenes";
