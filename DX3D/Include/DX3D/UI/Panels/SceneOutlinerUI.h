@@ -24,6 +24,8 @@ namespace dx3d
         void render(float deltaTime);
 
     private:
+        void renderHierarchy();
+        void renderObjectNode(std::shared_ptr<AGameObject> object, int& nodeIndex);
         std::string getObjectDisplayName(std::shared_ptr<AGameObject> object, int index);
         std::string getObjectIcon(std::shared_ptr<AGameObject> object);
 
@@ -33,5 +35,6 @@ namespace dx3d
         SceneStateManager& m_sceneStateManager;
         UndoRedoSystem& m_undoRedoSystem;
         const std::vector<std::shared_ptr<AGameObject>>& m_gameObjects;
+        std::shared_ptr<AGameObject> m_draggedObject = nullptr;
     };
 }

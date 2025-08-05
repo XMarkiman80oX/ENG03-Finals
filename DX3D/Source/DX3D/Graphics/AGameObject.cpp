@@ -5,7 +5,6 @@
 #include <DX3D/ECS/Components/MaterialComponent.h>
 #include <DirectXMath.h>
 
-
 using namespace dx3d;
 using namespace DirectX;
 
@@ -13,30 +12,24 @@ EntityID AGameObject::s_nextEntityID = 1;
 
 AGameObject::AGameObject()
 {
-    // Create entity
     m_entity = Entity(s_nextEntityID++);
 
-    // Add transform component
     auto& componentManager = ComponentManager::getInstance();
     TransformComponent transform;
     transform.position = m_transform.position;
     transform.rotation = m_transform.rotation;
     transform.scale = m_transform.scale;
     componentManager.addComponent(m_entity.getID(), transform);
-
 }
 
 AGameObject::AGameObject(const Vector3& position, const Vector3& rotation, const Vector3& scale)
 {
-    // Create entity
     m_entity = Entity(s_nextEntityID++);
 
-    // Set transform values
     m_transform.position = position;
     m_transform.rotation = rotation;
     m_transform.scale = scale;
 
-    // Add transform component
     auto& componentManager = ComponentManager::getInstance();
     TransformComponent transform;
     transform.position = position;
@@ -47,13 +40,27 @@ AGameObject::AGameObject(const Vector3& position, const Vector3& rotation, const
 
 AGameObject::~AGameObject()
 {
-    // Clean up physics if enabled
+    if (hasParent())
+    {
+        if (auto parent = m_parent.lock())
+        {
+            parent->removeChild(shared_from_this());
+        }
+    }
+
+    for (auto& weakChild : m_children)
+    {
+        if (auto child = weakChild.lock())
+        {
+            child->m_parent.reset();
+        }
+    }
+
     if (hasPhysics())
     {
         disablePhysics();
     }
 
-    // Remove all components
     auto& componentManager = ComponentManager::getInstance();
     componentManager.removeEntity(m_entity.getID());
 }
@@ -62,46 +69,108 @@ void AGameObject::setPosition(const Vector3& position)
 {
     m_transform.position = position;
     syncTransformToECS();
+    updateChildrenTransforms();
 }
 
 void AGameObject::setRotation(const Vector3& rotation)
 {
     m_transform.rotation = rotation;
     syncTransformToECS();
+    updateChildrenTransforms();
 }
 
 void AGameObject::setScale(const Vector3& scale)
 {
     m_transform.scale = scale;
     syncTransformToECS();
+    updateChildrenTransforms();
 }
 
 const Vector3& AGameObject::getPosition() const
 {
-    // Always sync from ECS to ensure we have the latest physics-updated position
     const_cast<AGameObject*>(this)->syncTransformFromECS();
     return m_transform.position;
 }
 
 const Vector3& AGameObject::getRotation() const
 {
-    // Always sync from ECS to ensure we have the latest physics-updated rotation
     const_cast<AGameObject*>(this)->syncTransformFromECS();
     return m_transform.rotation;
 }
 
 const Vector3& AGameObject::getScale() const
 {
-    // Scale is not affected by physics, but sync anyway for consistency
     const_cast<AGameObject*>(this)->syncTransformFromECS();
     return m_transform.scale;
 }
 
+Vector3 AGameObject::getWorldPosition() const
+{
+    if (!hasParent())
+    {
+        return getPosition();
+    }
+
+    Matrix4x4 worldMatrix = getWorldMatrix();
+    return Vector3(worldMatrix.m[3][0], worldMatrix.m[3][1], worldMatrix.m[3][2]);
+}
+
+Vector3 AGameObject::getWorldRotation() const
+{
+    if (!hasParent())
+    {
+        return getRotation();
+    }
+
+    Vector3 worldRot = getRotation();
+    if (auto parent = m_parent.lock())
+    {
+        Vector3 parentWorldRot = parent->getWorldRotation();
+        worldRot = worldRot + parentWorldRot;
+    }
+    return worldRot;
+}
+
+Vector3 AGameObject::getWorldScale() const
+{
+    if (!hasParent())
+    {
+        return getScale();
+    }
+
+    Vector3 worldScale = getScale();
+    if (auto parent = m_parent.lock())
+    {
+        Vector3 parentWorldScale = parent->getWorldScale();
+        worldScale.x *= parentWorldScale.x;
+        worldScale.y *= parentWorldScale.y;
+        worldScale.z *= parentWorldScale.z;
+    }
+    return worldScale;
+}
+
 Matrix4x4 AGameObject::getWorldMatrix() const
 {
-    // Always sync from ECS first
     const_cast<AGameObject*>(this)->syncTransformFromECS();
-    return m_transform.getWorldMatrix();
+
+    Matrix4x4 localMatrix = m_transform.getLocalMatrix();
+
+    if (hasParent())
+    {
+        Matrix4x4 parentWorldMatrix = getParentWorldMatrix();
+        return localMatrix * parentWorldMatrix;
+    }
+
+    return localMatrix;
+}
+
+Matrix4x4 AGameObject::getParentWorldMatrix() const
+{
+    if (auto parent = m_parent.lock())
+    {
+        return parent->getWorldMatrix();
+    }
+    return Matrix4x4();
 }
 
 void AGameObject::rotate(const Vector3& deltaRotation)
@@ -109,6 +178,7 @@ void AGameObject::rotate(const Vector3& deltaRotation)
     syncTransformFromECS();
     m_transform.rotation += deltaRotation;
     syncTransformToECS();
+    updateChildrenTransforms();
 }
 
 void AGameObject::translate(const Vector3& deltaPosition)
@@ -116,6 +186,149 @@ void AGameObject::translate(const Vector3& deltaPosition)
     syncTransformFromECS();
     m_transform.position += deltaPosition;
     syncTransformToECS();
+    updateChildrenTransforms();
+}
+
+void AGameObject::setParent(std::shared_ptr<AGameObject> parent)
+{
+    if (parent.get() == this)
+        return;
+
+    if (auto oldParent = m_parent.lock())
+    {
+        oldParent->removeChild(shared_from_this());
+    }
+
+    if (parent)
+    {
+        Vector3 worldPos = getWorldPosition();
+        Vector3 worldRot = getWorldRotation();
+        Vector3 worldScale = getWorldScale();
+
+        m_parent = parent;
+        parent->addChild(shared_from_this());
+
+        setWorldPosition(worldPos);
+        setWorldRotation(worldRot);
+        setWorldScale(worldScale);
+    }
+    else
+    {
+        m_parent.reset();
+    }
+}
+
+void AGameObject::removeParent()
+{
+    if (auto parent = m_parent.lock())
+    {
+        Vector3 worldPos = getWorldPosition();
+        Vector3 worldRot = getWorldRotation();
+        Vector3 worldScale = getWorldScale();
+
+        parent->removeChild(shared_from_this());
+        m_parent.reset();
+
+        setPosition(worldPos);
+        setRotation(worldRot);
+        setScale(worldScale);
+    }
+}
+
+void AGameObject::addChild(std::shared_ptr<AGameObject> child)
+{
+    if (!child || child.get() == this)
+        return;
+
+    auto it = std::find_if(m_children.begin(), m_children.end(),
+        [&child](const std::weak_ptr<AGameObject>& wptr) {
+            return !wptr.expired() && wptr.lock() == child;
+        });
+
+    if (it == m_children.end())
+    {
+        m_children.push_back(child);
+    }
+}
+
+void AGameObject::removeChild(std::shared_ptr<AGameObject> child)
+{
+    m_children.erase(
+        std::remove_if(m_children.begin(), m_children.end(),
+            [&child](const std::weak_ptr<AGameObject>& wptr) {
+                return wptr.expired() || wptr.lock() == child;
+            }),
+        m_children.end()
+    );
+}
+
+void AGameObject::setWorldPosition(const Vector3& worldPos)
+{
+    if (!hasParent())
+    {
+        setPosition(worldPos);
+        return;
+    }
+
+    if (auto parent = m_parent.lock())
+    {
+        Matrix4x4 parentWorld = parent->getWorldMatrix();
+        XMMATRIX xmParentWorld = parentWorld.toXMMatrix();
+        XMMATRIX xmParentWorldInv = XMMatrixInverse(nullptr, xmParentWorld);
+
+        XMVECTOR worldPosVec = XMVectorSet(worldPos.x, worldPos.y, worldPos.z, 1.0f);
+        XMVECTOR localPosVec = XMVector3Transform(worldPosVec, xmParentWorldInv);
+
+        XMFLOAT3 localPos;
+        XMStoreFloat3(&localPos, localPosVec);
+
+        setPosition(Vector3(localPos.x, localPos.y, localPos.z));
+    }
+}
+
+void AGameObject::setWorldRotation(const Vector3& worldRot)
+{
+    if (!hasParent())
+    {
+        setRotation(worldRot);
+        return;
+    }
+
+    if (auto parent = m_parent.lock())
+    {
+        Vector3 parentWorldRot = parent->getWorldRotation();
+        setRotation(worldRot - parentWorldRot);
+    }
+}
+
+void AGameObject::setWorldScale(const Vector3& worldScale)
+{
+    if (!hasParent())
+    {
+        setScale(worldScale);
+        return;
+    }
+
+    if (auto parent = m_parent.lock())
+    {
+        Vector3 parentWorldScale = parent->getWorldScale();
+        Vector3 localScale;
+        localScale.x = parentWorldScale.x != 0 ? worldScale.x / parentWorldScale.x : 1.0f;
+        localScale.y = parentWorldScale.y != 0 ? worldScale.y / parentWorldScale.y : 1.0f;
+        localScale.z = parentWorldScale.z != 0 ? worldScale.z / parentWorldScale.z : 1.0f;
+        setScale(localScale);
+    }
+}
+
+void AGameObject::updateChildrenTransforms()
+{
+    for (auto& weakChild : m_children)
+    {
+        if (auto child = weakChild.lock())
+        {
+            child->updateChildrenTransforms();
+        }
+    }
 }
 
 void AGameObject::enablePhysics(PhysicsBodyType bodyType)
@@ -125,11 +338,9 @@ void AGameObject::enablePhysics(PhysicsBodyType bodyType)
         disablePhysics();
     }
 
-    // Create physics component
     PhysicsComponent physicsComp = createPhysicsComponent();
     physicsComp.bodyType = bodyType;
 
-    // Add to physics system
     PhysicsSystem::getInstance().addPhysicsComponent(m_entity.getID(), physicsComp);
 }
 
@@ -248,22 +459,20 @@ void AGameObject::setLinearVelocity(const Vector3& velocity)
     }
 }
 
-std::string AGameObject::getObjectType() 
+std::string AGameObject::getObjectType()
 {
-	const std::type_info& typeInfo = typeid(*this);
-	std::string rawName = typeInfo.name();
+    const std::type_info& typeInfo = typeid(*this);
+    std::string rawName = typeInfo.name();
 
-	// Initially returns as "class dx3d::[GameObjectType]" but I want to make it as "[GameObjectType]"
-	std::string removedPrefix = "class dx3d::";
-	int removdPrefixLength = removedPrefix.length();
+    std::string removedPrefix = "class dx3d::";
+    int removdPrefixLength = removedPrefix.length();
 
-	size_t startPos = rawName.find(removedPrefix);
+    size_t startPos = rawName.find(removedPrefix);
 
     if (startPos != std::string::npos) {
-		// Remove the prefix "class dx3d::" if it exists
         rawName.erase(startPos, removdPrefixLength);
     }
-	return rawName; // Returns a string representation of the type name
+    return rawName;
 }
 
 PhysicsComponent AGameObject::createPhysicsComponent() const
@@ -271,7 +480,6 @@ PhysicsComponent AGameObject::createPhysicsComponent() const
     PhysicsComponent component;
     component.shapeType = getCollisionShapeType();
 
-    // Set shape parameters based on current scale
     Vector3 scale = getScale();
 
     switch (component.shapeType)
@@ -281,7 +489,7 @@ PhysicsComponent AGameObject::createPhysicsComponent() const
         break;
 
     case CollisionShapeType::Sphere:
-        component.sphereRadius = scale.x * 0.5f; // Use X scale for radius
+        component.sphereRadius = scale.x * 0.5f;
         break;
 
     case CollisionShapeType::Cylinder:
@@ -340,7 +548,7 @@ void AGameObject::syncTransformToECS()
     }
 }
 
-Matrix4x4 AGameObject::Transform::getWorldMatrix() const
+Matrix4x4 AGameObject::Transform::getLocalMatrix() const
 {
     Matrix4x4 scaleMatrix = Matrix4x4::CreateScale(scale);
     Matrix4x4 rotationX = Matrix4x4::CreateRotationX(rotation.x);
@@ -361,11 +569,9 @@ void AGameObject::setEnabled(bool enabled)
 
     if (!enabled)
     {
-        // Remember if we had physics before disabling
         m_hadPhysicsBeforeDisable = hasPhysics();
         if (m_hadPhysicsBeforeDisable)
         {
-            // Store the body type before disabling
             auto& componentManager = ComponentManager::getInstance();
             auto* physicsComp = componentManager.getComponent<PhysicsComponent>(m_entity.getID());
             if (physicsComp)
@@ -377,18 +583,14 @@ void AGameObject::setEnabled(bool enabled)
     }
     else
     {
-        // Re-enable physics if we had it before
         if (m_hadPhysicsBeforeDisable)
         {
             enablePhysics(m_previousBodyType);
 
-            // Restore physics properties if needed
             auto& componentManager = ComponentManager::getInstance();
             auto* physicsComp = componentManager.getComponent<PhysicsComponent>(m_entity.getID());
             if (physicsComp)
             {
-                // The physics properties should be restored from the component
-                // The enablePhysics method should handle this
             }
         }
     }
@@ -426,7 +628,6 @@ void AGameObject::setTexture(const std::string& textureFileName)
     auto& componentManager = ComponentManager::getInstance();
     auto* matComp = componentManager.getComponent<MaterialComponent>(m_entity.getID());
 
-    // Create material component if it doesn't exist
     if (!matComp)
     {
         MaterialComponent newMatComp;
@@ -438,25 +639,20 @@ void AGameObject::setTexture(const std::string& textureFileName)
         matComp = componentManager.getComponent<MaterialComponent>(m_entity.getID());
     }
 
-    // Create material if the component exists but material is null
     if (!matComp->material)
     {
         matComp->material = ResourceManager::getInstance().createMaterial();
     }
 
-    // Load texture through ResourceManager
     auto texture = ResourceManager::getInstance().loadTexture(textureFileName);
     if (texture)
     {
         matComp->material->setDiffuseTexture(texture);
         matComp->textureFileName = textureFileName;
         matComp->hasTexture = true;
-
-        //DX3DLogInfo(("Texture set successfully for object: " + textureFileName).c_str());
     }
     else
     {
-        //DX3DLogError(("Failed to load texture for object: " + textureFileName).c_str());
         matComp->hasTexture = false;
     }
 }

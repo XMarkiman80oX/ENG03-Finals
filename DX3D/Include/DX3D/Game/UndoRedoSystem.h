@@ -1,8 +1,8 @@
 #pragma once
-#include <DX3D/Core/Core.h>
 #include <DX3D/Math/Math.h>
-#include <memory>
 #include <vector>
+#include <memory>
+#include <stack>
 #include <string>
 
 namespace dx3d
@@ -10,18 +10,51 @@ namespace dx3d
     class AGameObject;
     class LightObject;
 
-    // Base class for all undoable actions
-    class IAction
+    class IUndoableAction
     {
     public:
-        virtual ~IAction() = default;
-        virtual void execute() = 0;
+        virtual ~IUndoableAction() = default;
         virtual void undo() = 0;
+        virtual void redo() = 0;
         virtual std::string getDescription() const = 0;
     };
 
-    // Transform action for position, rotation, scale changes
-    class TransformAction : public IAction
+    class CreateAction : public IUndoableAction
+    {
+    public:
+        CreateAction(std::shared_ptr<AGameObject> object,
+            std::vector<std::shared_ptr<AGameObject>>& gameObjects);
+
+        void undo() override;
+        void redo() override;
+        std::string getDescription() const override;
+
+    private:
+        std::shared_ptr<AGameObject> m_object;
+        std::vector<std::shared_ptr<AGameObject>>& m_gameObjects;
+        int m_insertIndex;
+    };
+
+    class DeleteAction : public IUndoableAction
+    {
+    public:
+        DeleteAction(std::shared_ptr<AGameObject> object,
+            std::vector<std::shared_ptr<AGameObject>>& gameObjects,
+            std::vector<std::shared_ptr<LightObject>>& lights);
+
+        void undo() override;
+        void redo() override;
+        std::string getDescription() const override;
+
+    private:
+        std::shared_ptr<AGameObject> m_object;
+        std::vector<std::shared_ptr<AGameObject>>& m_gameObjects;
+        std::vector<std::shared_ptr<LightObject>>& m_lights;
+        int m_objectIndex;
+        bool m_wasLight;
+    };
+
+    class TransformAction : public IUndoableAction
     {
     public:
         TransformAction(std::shared_ptr<AGameObject> object,
@@ -29,90 +62,68 @@ namespace dx3d
             const Vector3& oldRot, const Vector3& newRot,
             const Vector3& oldScale, const Vector3& newScale);
 
-        void execute() override;
         void undo() override;
-        std::string getDescription() const override;
-
-    private:
-        std::weak_ptr<AGameObject> m_object;
-        Vector3 m_oldPosition, m_newPosition;
-        Vector3 m_oldRotation, m_newRotation;
-        Vector3 m_oldScale, m_newScale;
-    };
-
-    // Delete action for object deletion
-    class DeleteAction : public IAction
-    {
-    public:
-        DeleteAction(std::shared_ptr<AGameObject> object,
-            std::vector<std::shared_ptr<AGameObject>>& objectList,
-            std::vector<std::shared_ptr<LightObject>>& lightList);
-
-        void execute() override;
-        void undo() override;
+        void redo() override;
         std::string getDescription() const override;
 
     private:
         std::shared_ptr<AGameObject> m_object;
-        std::vector<std::shared_ptr<AGameObject>>* m_objectList;
-        std::vector<std::shared_ptr<LightObject>>* m_lightList;
-        size_t m_originalIndex;
+        Vector3 m_oldPosition;
+        Vector3 m_newPosition;
+        Vector3 m_oldRotation;
+        Vector3 m_newRotation;
+        Vector3 m_oldScale;
+        Vector3 m_newScale;
     };
 
-    // Create action for object creation
-    class CreateAction : public IAction
+    class ParentAction : public IUndoableAction
     {
     public:
-        CreateAction(std::shared_ptr<AGameObject> object,
-            std::vector<std::shared_ptr<AGameObject>>& objectList);
+        ParentAction(std::shared_ptr<AGameObject> child,
+            std::shared_ptr<AGameObject> oldParent,
+            std::shared_ptr<AGameObject> newParent,
+            std::vector<std::shared_ptr<AGameObject>>& gameObjects);
 
-        void execute() override;
         void undo() override;
+        void redo() override;
         std::string getDescription() const override;
 
     private:
-        std::shared_ptr<AGameObject> m_object;
-        std::vector<std::shared_ptr<AGameObject>>* m_objectList;
+        std::shared_ptr<AGameObject> m_child;
+        std::weak_ptr<AGameObject> m_oldParent;
+        std::weak_ptr<AGameObject> m_newParent;
+        Vector3 m_oldWorldPos;
+        Vector3 m_oldWorldRot;
+        Vector3 m_oldWorldScale;
+        std::vector<std::shared_ptr<AGameObject>>& m_gameObjects;
     };
 
-    // Main undo/redo system
     class UndoRedoSystem
     {
     public:
-        explicit UndoRedoSystem(ui32 maxActions = 10);
-        ~UndoRedoSystem() = default;
+        explicit UndoRedoSystem(size_t maxHistorySize = 50);
+        ~UndoRedoSystem();
 
-        // Execute and record an action
-        void recordAction(std::unique_ptr<IAction> action);
-        void executeAction(std::unique_ptr<IAction> action);
+        void executeAction(std::unique_ptr<IUndoableAction> action);
+        void recordAction(std::unique_ptr<IUndoableAction> action);
 
-        // Undo/Redo operations
         bool canUndo() const;
         bool canRedo() const;
+
         void undo();
         void redo();
 
-        // Clear history
         void clear();
 
-        // Get descriptions for UI
+        size_t getUndoCount() const { return m_undoStack.size(); }
+        size_t getRedoCount() const { return m_redoStack.size(); }
+
         std::string getUndoDescription() const;
         std::string getRedoDescription() const;
 
-        // Configuration
-        void setMaxActions(ui32 maxActions) { m_maxActions = maxActions; }
-        ui32 getMaxActions() const { return m_maxActions; }
-
-        // Statistics
-        ui32 getUndoCount() const { return static_cast<ui32>(m_undoStack.size()); }
-        ui32 getRedoCount() const { return static_cast<ui32>(m_redoStack.size()); }
-
     private:
-        void trimUndoStack();
-
-    private:
-        std::vector<std::unique_ptr<IAction>> m_undoStack;
-        std::vector<std::unique_ptr<IAction>> m_redoStack;
-        ui32 m_maxActions;
+        std::stack<std::unique_ptr<IUndoableAction>> m_undoStack;
+        std::stack<std::unique_ptr<IUndoableAction>> m_redoStack;
+        size_t m_maxHistorySize;
     };
 }

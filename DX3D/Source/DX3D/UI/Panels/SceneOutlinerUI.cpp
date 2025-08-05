@@ -12,6 +12,7 @@
 #include <DX3D/Graphics/Primitives/CameraObject.h>
 #include <DX3D/Graphics/Primitives/LightObject.h>
 #include <imgui.h>
+#include <imgui_internal.h>
 
 using namespace dx3d;
 
@@ -58,70 +59,175 @@ void SceneOutlinerUI::render(float deltaTime)
     ImGui::Text("Scene Hierarchy");
     ImGui::BeginChild("Outliner", ImVec2(0, 0), true);
 
-    int objectId = 0;
-    for (const auto& gameObject : m_gameObjects)
-    {
-        ImGui::PushID(objectId);
-
-        // Create a horizontal group for the button and selectable
-        ImGui::BeginGroup();
-
-        // Enable/Disable button
-        bool isEnabled = gameObject->isEnabled();
-        const char* buttonLabel = isEnabled ? "Enabled" : "Disabled";
-
-        // Set button color based on state
-        if (!isEnabled)
-        {
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.5f, 0.2f, 0.2f, 1.0f));
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.6f, 0.3f, 0.3f, 1.0f));
-            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.4f, 0.1f, 0.1f, 1.0f));
-        }
-        else
-        {
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.5f, 0.2f, 1.0f));
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.6f, 0.3f, 1.0f));
-            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.1f, 0.4f, 0.1f, 1.0f));
-        }
-
-        if (ImGui::SmallButton(buttonLabel))
-        {
-            gameObject->setEnabled(!isEnabled);
-        }
-
-        ImGui::PopStyleColor(3);
-
-        ImGui::SameLine();
-
-        // Object name as selectable
-        std::string label = getObjectDisplayName(gameObject, objectId);
-
-        // Gray out text if disabled
-        if (!isEnabled)
-        {
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-        }
-
-        bool isSelected = (gameObject == m_selectionSystem.getSelectedObject());
-        if (ImGui::Selectable(label.c_str(), isSelected))
-        {
-            m_controller.onObjectSelected(gameObject);
-        }
-
-        if (!isEnabled)
-        {
-            ImGui::PopStyleColor();
-        }
-
-        ImGui::EndGroup();
-        ImGui::PopID();
-
-        objectId++;
-    }
+    renderHierarchy();
 
     ImGui::EndChild();
-
     ImGui::End();
+}
+
+void SceneOutlinerUI::renderHierarchy()
+{
+    std::vector<std::shared_ptr<AGameObject>> rootObjects;
+    for (const auto& obj : m_gameObjects)
+    {
+        if (!obj->hasParent())
+        {
+            rootObjects.push_back(obj);
+        }
+    }
+
+    int nodeIndex = 0;
+    for (const auto& rootObj : rootObjects)
+    {
+        renderObjectNode(rootObj, nodeIndex);
+    }
+
+    if (ImGui::BeginDragDropTarget())
+    {
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("GAME_OBJECT"))
+        {
+            std::shared_ptr<AGameObject>* droppedObj = (std::shared_ptr<AGameObject>*)payload->Data;
+            if (*droppedObj && m_draggedObject)
+            {
+                m_draggedObject->removeParent();
+                m_draggedObject = nullptr;
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
+}
+
+void SceneOutlinerUI::renderObjectNode(std::shared_ptr<AGameObject> object, int& nodeIndex)
+{
+    if (!object)
+        return;
+
+    ImGui::PushID(nodeIndex++);
+
+    bool isEnabled = object->isEnabled();
+    bool isSelected = (object == m_selectionSystem.getSelectedObject());
+
+    ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
+
+    if (isSelected)
+        nodeFlags |= ImGuiTreeNodeFlags_Selected;
+
+    if (!object->hasChildren())
+        nodeFlags |= ImGuiTreeNodeFlags_Leaf;
+
+    bool isPrimitive = (std::dynamic_pointer_cast<Cube>(object) ||
+        std::dynamic_pointer_cast<Sphere>(object) ||
+        std::dynamic_pointer_cast<Plane>(object) ||
+        std::dynamic_pointer_cast<Cylinder>(object) ||
+        std::dynamic_pointer_cast<Capsule>(object));
+
+    if (!isEnabled)
+    {
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.5f, 0.2f, 0.2f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.6f, 0.3f, 0.3f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.4f, 0.1f, 0.1f, 1.0f));
+    }
+    else
+    {
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.5f, 0.2f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.6f, 0.3f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.1f, 0.4f, 0.1f, 1.0f));
+    }
+
+    const char* buttonLabel = isEnabled ? "E" : "D";
+    if (ImGui::SmallButton(buttonLabel))
+    {
+        object->setEnabled(!isEnabled);
+    }
+    ImGui::PopStyleColor(3);
+
+    ImGui::SameLine();
+
+    std::string nodeName = getObjectDisplayName(object, object->getEntity().getID());
+
+    if (!isEnabled)
+    {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+    }
+
+    if (object->getChildren().empty())
+    {
+        nodeFlags |= ImGuiTreeNodeFlags_Leaf;
+    }
+
+    bool nodeOpen = ImGui::TreeNodeEx(nodeName.c_str(), nodeFlags);
+
+    if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+    {
+        m_controller.onObjectSelected(object);
+    }
+
+    if (isPrimitive && ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
+    {
+        ImGui::SetDragDropPayload("GAME_OBJECT", &object, sizeof(std::shared_ptr<AGameObject>));
+        ImGui::Text("Dragging %s", nodeName.c_str());
+        m_draggedObject = object; 
+        ImGui::EndDragDropSource();
+    }
+
+    if (isPrimitive && ImGui::BeginDragDropTarget())
+    {
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("GAME_OBJECT"))
+        {
+            std::shared_ptr<AGameObject>* droppedObj = (std::shared_ptr<AGameObject>*)payload->Data;
+
+            if (*droppedObj && m_draggedObject && m_draggedObject != object)
+            {
+                bool canParent = true;
+                std::shared_ptr<AGameObject> checkParent = object;
+                while (checkParent)
+                {
+                    if (checkParent == m_draggedObject)
+                    {
+                        canParent = false;
+                        break;
+                    }
+                    checkParent = checkParent->getParent();
+                }
+
+                if (canParent)
+                {
+                    m_controller.onParentChanged(m_draggedObject, m_draggedObject->getParent(), object);
+                    m_draggedObject = nullptr;
+                }
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
+
+    if (!isEnabled)
+    {
+        ImGui::PopStyleColor();
+    }
+
+    if (nodeOpen)
+    {
+        int validChildCount = 0;
+        for (auto& weakChild : object->getChildren())
+        {
+            if (auto child = weakChild.lock())
+            {
+                validChildCount++;
+                renderObjectNode(child, nodeIndex);
+            }
+        }
+
+        if (!object->getChildren().empty() && validChildCount == 0)
+        {
+            ImGui::TextDisabled("  (Children are invalid or destroyed)");
+        }
+
+        ImGui::TreePop();
+    }
+
+    ImGui::PopID();
+
+    
 }
 
 std::string SceneOutlinerUI::getObjectDisplayName(std::shared_ptr<AGameObject> object, int index)

@@ -27,7 +27,6 @@ void UIController::onUndoClicked()
     if (m_undoRedoSystem.canUndo())
     {
         m_undoRedoSystem.undo();
-        //DX3DLogInfo("Undo action performed");
     }
 }
 
@@ -36,7 +35,6 @@ void UIController::onRedoClicked()
     if (m_undoRedoSystem.canRedo())
     {
         m_undoRedoSystem.redo();
-        //DX3DLogInfo("Redo action performed");
     }
 }
 
@@ -48,7 +46,6 @@ void UIController::onDeleteClicked()
         auto deleteAction = std::make_unique<DeleteAction>(selectedObject, m_gameObjects, m_lights);
         m_undoRedoSystem.executeAction(std::move(deleteAction));
         m_selectionSystem.setSelectedObject(nullptr);
-        //DX3DLogInfo("Deleted selected object");
     }
 }
 
@@ -120,6 +117,16 @@ void UIController::onTransformChanged(std::shared_ptr<AGameObject> object,
         );
 
         m_undoRedoSystem.recordAction(std::move(transformAction));
-        //DX3DLogInfo("Transform change recorded for undo/redo");
     }
+}
+
+void UIController::onParentChanged(std::shared_ptr<AGameObject> child,
+    std::shared_ptr<AGameObject> oldParent,
+    std::shared_ptr<AGameObject> newParent)
+{
+    if (!m_sceneStateManager.isEditMode())
+        return;
+
+    auto parentAction = std::make_unique<ParentAction>(child, oldParent, newParent, m_gameObjects);
+    m_undoRedoSystem.executeAction(std::move(parentAction));
 }

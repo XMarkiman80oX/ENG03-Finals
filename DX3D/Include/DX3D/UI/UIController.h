@@ -35,6 +35,9 @@ namespace dx3d
             const Vector3& oldPos, const Vector3& newPos,
             const Vector3& oldRot, const Vector3& newRot,
             const Vector3& oldScale, const Vector3& newScale);
+        void onParentChanged(std::shared_ptr<AGameObject> child,
+            std::shared_ptr<AGameObject> oldParent,
+            std::shared_ptr<AGameObject> newParent);
 
     private:
         UndoRedoSystem& m_undoRedoSystem;

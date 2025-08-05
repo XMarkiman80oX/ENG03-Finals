@@ -2,180 +2,272 @@
 #include <DX3D/Graphics/Primitives/AGameObject.h>
 #include <DX3D/Graphics/Primitives/LightObject.h>
 #include <algorithm>
-#include <iterator>
 
 using namespace dx3d;
 
-// TransformAction Implementation
-TransformAction::TransformAction(std::shared_ptr<AGameObject> object,
-    const Vector3& oldPos, const Vector3& newPos,
-    const Vector3& oldRot, const Vector3& newRot,
-    const Vector3& oldScale, const Vector3& newScale)
+CreateAction::CreateAction(std::shared_ptr<AGameObject> object,
+    std::vector<std::shared_ptr<AGameObject>>& gameObjects)
     : m_object(object)
-    , m_oldPosition(oldPos), m_newPosition(newPos)
-    , m_oldRotation(oldRot), m_newRotation(newRot)
-    , m_oldScale(oldScale), m_newScale(newScale)
+    , m_gameObjects(gameObjects)
+    , m_insertIndex(static_cast<int>(gameObjects.size()))
 {
 }
 
-void UndoRedoSystem::recordAction(std::unique_ptr<IAction> action)
+void CreateAction::undo()
 {
-    if (!action)
-        return;
-
-    // Add to undo stack WITHOUT executing (since the action has already been applied)
-    m_undoStack.push_back(std::move(action));
-
-    // Clear redo stack since we performed a new action
-    m_redoStack.clear();
-
-    // Trim undo stack if it exceeds maximum
-    trimUndoStack();
-}
-
-void TransformAction::execute()
-{
-    if (auto obj = m_object.lock())
+    auto it = std::find(m_gameObjects.begin(), m_gameObjects.end(), m_object);
+    if (it != m_gameObjects.end())
     {
-        obj->setPosition(m_newPosition);
-        obj->setRotation(m_newRotation);
-        obj->setScale(m_newScale);
+        m_insertIndex = static_cast<int>(std::distance(m_gameObjects.begin(), it));
+        m_gameObjects.erase(it);
     }
 }
 
-void TransformAction::undo()
+void CreateAction::redo()
 {
-    if (auto obj = m_object.lock())
+    if (m_insertIndex >= 0 && m_insertIndex <= static_cast<int>(m_gameObjects.size()))
     {
-        obj->setPosition(m_oldPosition);
-        obj->setRotation(m_oldRotation);
-        obj->setScale(m_oldScale);
+        m_gameObjects.insert(m_gameObjects.begin() + m_insertIndex, m_object);
+    }
+    else
+    {
+        m_gameObjects.push_back(m_object);
     }
 }
 
-std::string TransformAction::getDescription() const
+std::string CreateAction::getDescription() const
 {
-    return "Transform Object";
+    return "Create " + m_object->getObjectType();
 }
 
-// DeleteAction Implementation
 DeleteAction::DeleteAction(std::shared_ptr<AGameObject> object,
-    std::vector<std::shared_ptr<AGameObject>>& objectList,
-    std::vector<std::shared_ptr<LightObject>>& lightList)
+    std::vector<std::shared_ptr<AGameObject>>& gameObjects,
+    std::vector<std::shared_ptr<LightObject>>& lights)
     : m_object(object)
-    , m_objectList(&objectList)
-    , m_lightList(&lightList)
-    , m_originalIndex(0)
+    , m_gameObjects(gameObjects)
+    , m_lights(lights)
+    , m_objectIndex(-1)
+    , m_wasLight(false)
 {
-    // Find the index of the object in the list
-    auto it = std::find(objectList.begin(), objectList.end(), object);
-    if (it != objectList.end())
+    if (std::dynamic_pointer_cast<LightObject>(object))
     {
-        m_originalIndex = static_cast<size_t>(std::distance(objectList.begin(), it));
-    }
-
-    if (auto light = std::dynamic_pointer_cast<LightObject>(m_object)) {
-        auto light_it = std::find(m_lightList->begin(), m_lightList->end(), light);
-        if (light_it != m_lightList->end()) {
-            m_lightList->erase(light_it);
-        }
-    }
-}
-
-void DeleteAction::execute()
-{
-    if (m_object && m_objectList)
-    {
-        auto it = std::find(m_objectList->begin(), m_objectList->end(), m_object);
-        if (it != m_objectList->end())
-        {
-            m_objectList->erase(it);
-        }
+        m_wasLight = true;
     }
 }
 
 void DeleteAction::undo()
 {
-    if (m_object && m_objectList)
+    if (m_objectIndex >= 0 && m_objectIndex <= static_cast<int>(m_gameObjects.size()))
     {
-        // Insert back at original position or at end if index is out of bounds
-        if (m_originalIndex <= m_objectList->size())
-        {
-            m_objectList->insert(m_objectList->begin() + m_originalIndex, m_object);
-        }
-        else
-        {
-            m_objectList->push_back(m_object);
-        }
+        m_gameObjects.insert(m_gameObjects.begin() + m_objectIndex, m_object);
 
-        if (auto light = std::dynamic_pointer_cast<LightObject>(m_object)) {
-            m_lightList->push_back(light);
+        if (m_wasLight)
+        {
+            auto lightObj = std::static_pointer_cast<LightObject>(m_object);
+            m_lights.push_back(lightObj);
+        }
+    }
+}
+
+void DeleteAction::redo()
+{
+    auto it = std::find(m_gameObjects.begin(), m_gameObjects.end(), m_object);
+    if (it != m_gameObjects.end())
+    {
+        m_objectIndex = static_cast<int>(std::distance(m_gameObjects.begin(), it));
+        m_gameObjects.erase(it);
+
+        if (m_wasLight)
+        {
+            auto lightObj = std::static_pointer_cast<LightObject>(m_object);
+            auto lightIt = std::find(m_lights.begin(), m_lights.end(), lightObj);
+            if (lightIt != m_lights.end())
+            {
+                m_lights.erase(lightIt);
+            }
         }
     }
 }
 
 std::string DeleteAction::getDescription() const
 {
-    return "Delete Object";
+    return "Delete " + m_object->getObjectType();
 }
 
-// CreateAction Implementation
-CreateAction::CreateAction(std::shared_ptr<AGameObject> object,
-    std::vector<std::shared_ptr<AGameObject>>& objectList)
+TransformAction::TransformAction(std::shared_ptr<AGameObject> object,
+    const Vector3& oldPos, const Vector3& newPos,
+    const Vector3& oldRot, const Vector3& newRot,
+    const Vector3& oldScale, const Vector3& newScale)
     : m_object(object)
-    , m_objectList(&objectList)
+    , m_oldPosition(oldPos)
+    , m_newPosition(newPos)
+    , m_oldRotation(oldRot)
+    , m_newRotation(newRot)
+    , m_oldScale(oldScale)
+    , m_newScale(newScale)
 {
 }
 
-void CreateAction::execute()
+void TransformAction::undo()
 {
-    if (m_object && m_objectList)
+    if (m_object)
     {
-        m_objectList->push_back(m_object);
+        m_object->setPosition(m_oldPosition);
+        m_object->setRotation(m_oldRotation);
+        m_object->setScale(m_oldScale);
     }
 }
 
-void CreateAction::undo()
+void TransformAction::redo()
 {
-    if (m_object && m_objectList)
+    if (m_object)
     {
-        auto it = std::find(m_objectList->begin(), m_objectList->end(), m_object);
-        if (it != m_objectList->end())
+        m_object->setPosition(m_newPosition);
+        m_object->setRotation(m_newRotation);
+        m_object->setScale(m_newScale);
+    }
+}
+
+std::string TransformAction::getDescription() const
+{
+    return "Transform " + m_object->getObjectType();
+}
+
+ParentAction::ParentAction(std::shared_ptr<AGameObject> child,
+    std::shared_ptr<AGameObject> oldParent,
+    std::shared_ptr<AGameObject> newParent,
+    std::vector<std::shared_ptr<AGameObject>>& gameObjects)
+    : m_child(child)
+    , m_oldParent(oldParent)
+    , m_newParent(newParent)
+    , m_gameObjects(gameObjects)
+{
+    if (child)
+    {
+        m_oldWorldPos = child->getWorldPosition();
+        m_oldWorldRot = child->getWorldRotation();
+        m_oldWorldScale = child->getWorldScale();
+    }
+}
+
+void ParentAction::undo()
+{
+    if (!m_child)
+        return;
+
+    if (auto oldParent = m_oldParent.lock())
+    {
+        m_child->setParent(oldParent);
+    }
+    else
+    {
+        m_child->removeParent();
+    }
+
+    m_child->setWorldPosition(m_oldWorldPos);
+    m_child->setWorldRotation(m_oldWorldRot);
+    m_child->setWorldScale(m_oldWorldScale);
+
+    bool found = false;
+    for (const auto& obj : m_gameObjects) { if (obj == m_child) { found = true; break; } }
+    if (!found) { m_gameObjects.push_back(m_child); }
+}
+
+void ParentAction::redo()
+{
+    if (!m_child)
+        return;
+
+    if (auto newParent = m_newParent.lock())
+    {
+        m_child->setParent(newParent);
+    }
+    else
+    {
+        m_child->removeParent();
+    }
+
+    bool found = false;
+    for (const auto& obj : m_gameObjects) { if (obj == m_child) { found = true; break; } }
+    if (!found) { m_gameObjects.push_back(m_child); }
+}
+
+std::string ParentAction::getDescription() const
+{
+    std::string desc = "Parent " + m_child->getObjectType();
+    if (auto newParent = m_newParent.lock())
+    {
+        desc += " to " + newParent->getObjectType();
+    }
+    else
+    {
+        desc += " (unparent)";
+    }
+    return desc;
+}
+
+UndoRedoSystem::UndoRedoSystem(size_t maxHistorySize)
+    : m_maxHistorySize(maxHistorySize)
+{
+}
+
+UndoRedoSystem::~UndoRedoSystem()
+{
+}
+
+void UndoRedoSystem::executeAction(std::unique_ptr<IUndoableAction> action)
+{
+    action->redo();
+    m_undoStack.push(std::move(action));
+
+    while (!m_redoStack.empty())
+    {
+        m_redoStack.pop();
+    }
+
+    while (m_undoStack.size() > m_maxHistorySize)
+    {
+        std::stack<std::unique_ptr<IUndoableAction>> tempStack;
+        while (m_undoStack.size() > 1)
         {
-            m_objectList->erase(it);
+            tempStack.push(std::move(m_undoStack.top()));
+            m_undoStack.pop();
+        }
+        m_undoStack.pop();
+
+        while (!tempStack.empty())
+        {
+            m_undoStack.push(std::move(tempStack.top()));
+            tempStack.pop();
         }
     }
 }
 
-std::string CreateAction::getDescription() const
+void UndoRedoSystem::recordAction(std::unique_ptr<IUndoableAction> action)
 {
-    return "Create Object";
-}
+    m_undoStack.push(std::move(action));
 
-// UndoRedoSystem Implementation
-UndoRedoSystem::UndoRedoSystem(ui32 maxActions)
-    : m_maxActions(maxActions)
-{
-    m_undoStack.reserve(maxActions);
-    m_redoStack.reserve(maxActions);
-}
+    while (!m_redoStack.empty())
+    {
+        m_redoStack.pop();
+    }
 
-void UndoRedoSystem::executeAction(std::unique_ptr<IAction> action)
-{
-    if (!action)
-        return;
+    while (m_undoStack.size() > m_maxHistorySize)
+    {
+        std::stack<std::unique_ptr<IUndoableAction>> tempStack;
+        while (m_undoStack.size() > 1)
+        {
+            tempStack.push(std::move(m_undoStack.top()));
+            m_undoStack.pop();
+        }
+        m_undoStack.pop();
 
-    // Execute the action
-    action->execute();
-
-    // Add to undo stack
-    m_undoStack.push_back(std::move(action));
-
-    // Clear redo stack since we performed a new action
-    m_redoStack.clear();
-
-    // Trim undo stack if it exceeds maximum
-    trimUndoStack();
+        while (!tempStack.empty())
+        {
+            m_undoStack.push(std::move(tempStack.top()));
+            tempStack.pop();
+        }
+    }
 }
 
 bool UndoRedoSystem::canUndo() const
@@ -190,64 +282,57 @@ bool UndoRedoSystem::canRedo() const
 
 void UndoRedoSystem::undo()
 {
-    if (!canUndo())
-        return;
+    if (canUndo())
+    {
+        auto action = std::move(m_undoStack.top());
+        m_undoStack.pop();
 
-    // Get the last action from undo stack
-    auto action = std::move(m_undoStack.back());
-    m_undoStack.pop_back();
+        action->undo();
 
-    // Undo the action
-    action->undo();
-
-    // Move to redo stack
-    m_redoStack.push_back(std::move(action));
+        m_redoStack.push(std::move(action));
+    }
 }
 
 void UndoRedoSystem::redo()
 {
-    if (!canRedo())
-        return;
+    if (canRedo())
+    {
+        auto action = std::move(m_redoStack.top());
+        m_redoStack.pop();
 
-    // Get the last action from redo stack
-    auto action = std::move(m_redoStack.back());
-    m_redoStack.pop_back();
+        action->redo();
 
-    // Execute the action again
-    action->execute();
-
-    // Move back to undo stack
-    m_undoStack.push_back(std::move(action));
+        m_undoStack.push(std::move(action));
+    }
 }
 
 void UndoRedoSystem::clear()
 {
-    m_undoStack.clear();
-    m_redoStack.clear();
+    while (!m_undoStack.empty())
+    {
+        m_undoStack.pop();
+    }
+
+    while (!m_redoStack.empty())
+    {
+        m_redoStack.pop();
+    }
 }
 
 std::string UndoRedoSystem::getUndoDescription() const
 {
     if (canUndo())
     {
-        return "Undo " + m_undoStack.back()->getDescription();
+        return m_undoStack.top()->getDescription();
     }
-    return "Nothing to Undo";
+    return "";
 }
 
 std::string UndoRedoSystem::getRedoDescription() const
 {
     if (canRedo())
     {
-        return "Redo " + m_redoStack.back()->getDescription();
+        return m_redoStack.top()->getDescription();
     }
-    return "Nothing to Redo";
-}
-
-void UndoRedoSystem::trimUndoStack()
-{
-    while (m_undoStack.size() > m_maxActions)
-    {
-        m_undoStack.erase(m_undoStack.begin());
-    }
+    return "";
 }
