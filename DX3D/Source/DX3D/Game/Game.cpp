@@ -743,6 +743,15 @@ void dx3d::Game::saveScene()
                         {"enabled", false}
                     };
                 }
+
+                /*if (go->hasMaterial()) {
+                    auto* materialComp = dx3d::ComponentManager::getInstance().getComponent<MaterialComponent>(go->getEntity().getID());
+                    if (materialComp)
+                }
+                else {
+                    //
+                }*/
+
                 if (auto light = std::dynamic_pointer_cast<LightObject>(go))
                 {
                     const auto& lightData = light->getLightData();
@@ -832,6 +841,9 @@ void dx3d::Game::renderScene(SceneCamera& camera, const Matrix4x4& projMatrix, R
     auto d3dContext = deviceContext.getDeviceContext();
 
     LightConstantBuffer lcb;
+    //new
+    memset(&lcb, 0, sizeof(LightConstantBuffer));
+
     Vector3 camPos = camera.getPosition();
     lcb.camera_position = Vector4(camPos.x, camPos.y, camPos.z, 1.0f);
     lcb.ambient_color = m_ambientColor;
@@ -1123,8 +1135,11 @@ void dx3d::Game::renderShadowMapPass()
 
         lightView = Matrix4x4::CreateLookAtLH(lightPos, target, up);
 
+        float fov_degrees = shadowCastingLight->spot_angle_outer * 2.0f;
+        float fov_radians = DirectX::XMConvertToRadians(fov_degrees);
+
         lightProjection = Matrix4x4::CreatePerspectiveFovLH(
-            shadowCastingLight->spot_angle_outer * 2.0f,
+            fov_radians, // Use the corrected value in radians
             1.0f,
             0.1f,
             shadowCastingLight->radius
