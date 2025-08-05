@@ -1095,6 +1095,43 @@ void dx3d::Game::renderShadowMapPass()
     }
     else if (shadowCastingLight->type == LIGHT_TYPE_SPOT)
     {
+        // Get the world matrix of the light source itself
+        Matrix4x4 world = shadowCastingObject->getWorldMatrix();
+        DirectX::XMMATRIX xmWorld = world.toXMMatrix(); // Convert to DirectX matrix
+
+        // --- Calculate World-Space Direction ---
+        // Define local forward vector (Z-axis) for DirectX
+        DirectX::XMVECTOR localForward = DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+        // Transform and normalize using DirectXMath functions
+        DirectX::XMVECTOR worldForward = DirectX::XMVector3TransformNormal(localForward, xmWorld);
+        worldForward = DirectX::XMVector3Normalize(worldForward);
+        // Convert back to your Vector3 class (assuming a constructor exists)
+        Vector3 lightDir = Vector3(worldForward);
+
+        // --- Calculate World-Space Up Vector ---
+        // Define local up vector (Y-axis) for DirectX
+        DirectX::XMVECTOR localUp = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+        // Transform and normalize using DirectXMath functions
+        DirectX::XMVECTOR worldUp = DirectX::XMVector3TransformNormal(localUp, xmWorld);
+        worldUp = DirectX::XMVector3Normalize(worldUp);
+        // Convert back to your Vector3 class
+        Vector3 up = Vector3(worldUp);
+
+        // Position and Target are calculated as before
+        Vector3 lightPos(world.m[3][0], world.m[3][1], world.m[3][2]);
+        Vector3 target = lightPos + lightDir;
+
+        lightView = Matrix4x4::CreateLookAtLH(lightPos, target, up);
+
+        lightProjection = Matrix4x4::CreatePerspectiveFovLH(
+            shadowCastingLight->spot_angle_outer * 2.0f,
+            1.0f,
+            0.1f,
+            shadowCastingLight->radius
+        );
+    }
+    /*else if (shadowCastingLight->type == LIGHT_TYPE_SPOT)
+    {
         Vector3 lightPos = shadowCastingLight->position;
         Vector3 lightDir = Vector3::Normalize(shadowCastingLight->direction);
         Vector3 target = lightPos + lightDir;
@@ -1105,7 +1142,7 @@ void dx3d::Game::renderShadowMapPass()
 
         lightView = Matrix4x4::CreateLookAtLH(lightPos, target, up);
         lightProjection = Matrix4x4::CreatePerspectiveFovLH(shadowCastingLight->spot_angle_outer * 2.0f, 1.0f, 0.1f, shadowCastingLight->radius);
-    }
+    }*/
 
     // Store the calculated matrices for the main render pass
     m_lightViewMatrix = lightView;

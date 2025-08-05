@@ -19,6 +19,7 @@ namespace dx3d
 
         Vector3() : x(0), y(0), z(0) {}
         Vector3(float x, float y, float z) : x(x), y(y), z(z) {}
+        Vector3(const DirectX::XMVECTOR& vec) : x(DirectX::XMVectorGetX(vec)), y(DirectX::XMVectorGetY(vec)), z(DirectX::XMVectorGetZ(vec)) {}
 
         Vector3 operator+(const Vector3& other) const { return Vector3(x + other.x, y + other.y, z + other.z); }
         Vector3 operator-(const Vector3& other) const { return Vector3(x - other.x, y - other.y, z - other.z); }
@@ -50,6 +51,7 @@ namespace dx3d
                 v1.x * v2.y - v1.y * v2.x
             );
         }
+
     };
 
     struct Vector4
