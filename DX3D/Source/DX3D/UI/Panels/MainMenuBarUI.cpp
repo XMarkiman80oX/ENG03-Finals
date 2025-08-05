@@ -174,7 +174,7 @@ void MainMenuBarUI::render(const Callbacks& callbacks)
                 if (ImGui::MenuItem("Bunny", nullptr, false, isEditMode))
                 {
                     if (callbacks.onSpawnModel)
-                        callbacks.onSpawnModel("bunny.obj");
+                        callbacks.onSpawnModel("bunnynew.obj");
                 }
 
                 if (ImGui::MenuItem("Armadillo", nullptr, false, isEditMode))
@@ -187,6 +187,12 @@ void MainMenuBarUI::render(const Callbacks& callbacks)
                 {
                     if (callbacks.onSpawnModel)
                         callbacks.onSpawnModel("teapot.obj");
+                }
+
+                if (ImGui::MenuItem("Lucy", nullptr, false, isEditMode))
+                {
+                    if (callbacks.onSpawnModel)
+                        callbacks.onSpawnModel("lucy.obj");
                 }
 
                 ImGui::EndMenu();

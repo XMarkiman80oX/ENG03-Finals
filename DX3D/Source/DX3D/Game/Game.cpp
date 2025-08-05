@@ -1401,6 +1401,13 @@ void dx3d::Game::spawnModel(const std::string& filename)
             Vector3 position(0.0f, 5.0f, 0.0f);
             Vector3 scale(1.0f, 1.0f, 1.0f);
 
+            if (filename == "lucy.obj") {
+                scale += Vector3(20.0f, 20.0f, 20.0f);
+            }
+            else if (filename == "bunnynew.obj") {
+                scale += Vector3(10.0f, 10.0f, 10.0f);
+            }
+
             model->setPosition(position);
             model->setScale(scale);
             model->enablePhysics(PhysicsBodyType::Dynamic);
