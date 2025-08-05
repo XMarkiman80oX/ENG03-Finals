@@ -450,65 +450,6 @@ void dx3d::Game::update()
         debugTimer = 0.0f;
     }
 }
-#include <DX3D/Game/Game.h>
-#include <DX3D/Window/Window.h>
-#include <DX3D/Graphics/GraphicsEngine.h>
-#include <DX3D/Core/Logger.h>
-#include <DX3D/Game/Display.h>
-#include <DX3D/Game/SceneCamera.h>
-#include <DX3D/Input/Input.h>
-#include <DX3D/Graphics/RenderSystem.h>
-#include <DX3D/Graphics/SwapChain.h>
-#include <DX3D/Graphics/DeviceContext.h>
-#include <DX3D/Graphics/VertexBuffer.h>
-#include <DX3D/Graphics/IndexBuffer.h>
-#include <DX3D/Graphics/ConstantBuffer.h>
-#include <DX3D/Graphics/DepthBuffer.h>
-#include <DX3D/Graphics/RenderTexture.h>
-
-#include <DX3D/Graphics/Primitives/CameraObject.h>
-#include <DX3D/Graphics/Shaders/Rainbow3DShader.h>
-#include <DX3D/Graphics/Shaders/WhiteShader.h>
-#include <DX3D/Graphics/Shaders/FogShader.h>
-#include <DX3D/Graphics/Shaders/ModelShader.h>
-#include <DX3D/Graphics/Shaders/ModelVertexShader.h>
-#include <DX3D/Math/Math.h>
-#include <DX3D/Game/ViewportManager.h>
-#include <DX3D/Game/SelectionSystem.h>
-#include <DX3D/Scene/SceneStateManager.h>
-#include <DX3D/Game/FPSCameraController.h>
-#include <DX3D/Game/UndoRedoSystem.h>
-
-#include <DX3D/Graphics/Primitives/AGameObject.h>
-#include <DX3D/Graphics/Primitives/Cube.h>
-#include <DX3D/Graphics/Primitives/Plane.h>
-#include <DX3D/Graphics/Primitives/Sphere.h>
-#include <DX3D/Graphics/Primitives/Capsule.h>
-#include <DX3D/Graphics/Primitives/Cylinder.h>
-#include <DX3D/Graphics/Primitives/Model.h>
-#include <DX3D/Assets/ModelLoader.h>
-
-#include <DX3D/ECS/ComponentManager.h>
-#include <DX3D/ECS/Components/TransformComponent.h>
-#include <DX3D/ECS/Components/PhysicsComponent.h>
-#include <DX3D/Physics/PhysicsSystem.h>
-
-#include <DX3D/UI/UIManager.h>
-#include <DX3D/JSON/json.hpp>
-
-#include <chrono>      
-#include <iomanip>  
-#include <sstream>  
-#include <cmath>
-#include <fstream>
-#include <random>
-#include <string>
-#include <cstdio>
-#include <filesystem>
-#include <DirectXMath.h>
-
-using json = nlohmann::json;
-namespace fs = std::filesystem;
 
 void dx3d::Game::loadScene(const std::string& filename)
 {
