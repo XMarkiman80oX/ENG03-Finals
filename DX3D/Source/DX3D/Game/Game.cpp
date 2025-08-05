@@ -450,6 +450,68 @@ void dx3d::Game::update()
         debugTimer = 0.0f;
     }
 }
+#include <DX3D/Game/Game.h>
+#include <DX3D/Window/Window.h>
+#include <DX3D/Graphics/GraphicsEngine.h>
+#include <DX3D/Core/Logger.h>
+#include <DX3D/Game/Display.h>
+#include <DX3D/Game/SceneCamera.h>
+#include <DX3D/Input/Input.h>
+#include <DX3D/Graphics/RenderSystem.h>
+#include <DX3D/Graphics/SwapChain.h>
+#include <DX3D/Graphics/DeviceContext.h>
+#include <DX3D/Graphics/VertexBuffer.h>
+#include <DX3D/Graphics/IndexBuffer.h>
+#include <DX3D/Graphics/ConstantBuffer.h>
+#include <DX3D/Graphics/DepthBuffer.h>
+#include <DX3D/Graphics/RenderTexture.h>
+
+#include <DX3D/Graphics/Primitives/CameraObject.h>
+#include <DX3D/Graphics/Shaders/Rainbow3DShader.h>
+#include <DX3D/Graphics/Shaders/WhiteShader.h>
+#include <DX3D/Graphics/Shaders/FogShader.h>
+#include <DX3D/Graphics/Shaders/ModelShader.h>
+#include <DX3D/Graphics/Shaders/ModelVertexShader.h>
+#include <DX3D/Math/Math.h>
+#include <DX3D/Game/ViewportManager.h>
+#include <DX3D/Game/SelectionSystem.h>
+#include <DX3D/Scene/SceneStateManager.h>
+#include <DX3D/Game/FPSCameraController.h>
+#include <DX3D/Game/UndoRedoSystem.h>
+
+#include <DX3D/Graphics/Primitives/AGameObject.h>
+#include <DX3D/Graphics/Primitives/Cube.h>
+#include <DX3D/Graphics/Primitives/Plane.h>
+#include <DX3D/Graphics/Primitives/Sphere.h>
+#include <DX3D/Graphics/Primitives/Capsule.h>
+#include <DX3D/Graphics/Primitives/Cylinder.h>
+#include <DX3D/Graphics/Primitives/Model.h>
+#include <DX3D/Assets/ModelLoader.h>
+
+#include <DX3D/ECS/ComponentManager.h>
+#include <DX3D/ECS/Components/TransformComponent.h>
+#include <DX3D/ECS/Components/PhysicsComponent.h>
+#include <DX3D/Physics/PhysicsSystem.h>
+
+#include <DX3D/UI/UIManager.h>
+#include <DX3D/JSON/json.hpp>
+
+#include <chrono>      
+#include <iomanip>  
+#include <sstream>  
+#include <cmath>
+#include <fstream>
+#include <random>
+#include <string>
+#include <cstdio>
+#include <filesystem>
+#include <DirectXMath.h>
+
+using json = nlohmann::json;
+namespace fs = std::filesystem;
+
+// ... (rest of the file is unchanged) ...
+
 void dx3d::Game::loadScene(const std::string& filename)
 {
     const std::string saveDir = "Saved Scenes";
@@ -526,13 +588,13 @@ void dx3d::Game::loadScene(const std::string& filename)
             else if (type == "Capsule") {
                 newObject = std::make_shared<Capsule>();
             }
-            else if (type == "Directional Light") {
+            else if (type == "DirectionalLight") {
                 newObject = std::make_shared<DirectionalLight>();
             }
-            else if (type == "Point Light") {
+            else if (type == "PointLight") {
                 newObject = std::make_shared<PointLight>();
             }
-            else if (type == "Spot Light") {
+            else if (type == "SpotLight") {
                 newObject = std::make_shared<SpotLight>();
             }
             else if (type == "Model") {
@@ -572,6 +634,38 @@ void dx3d::Game::loadScene(const std::string& filename)
                 newObject->setPhysicsMass(goJson["physics"].value("mass", 1.0f));
                 newObject->setPhysicsRestitution(goJson["physics"].value("restitution", 0.5f));
                 newObject->setPhysicsFriction(goJson["physics"].value("friction", 0.5f));
+            }
+
+            // Load light properties
+            if (auto light = std::dynamic_pointer_cast<LightObject>(newObject))
+            {
+                auto& lightData = light->getLightData();
+                if (goJson.contains("lightPosition"))
+                {
+                    lightData.position.x = goJson["lightPosition"]["x"];
+                    lightData.position.y = goJson["lightPosition"]["y"];
+                    lightData.position.z = goJson["lightPosition"]["z"];
+                }
+                if (goJson.contains("lightColor"))
+                {
+                    lightData.color.x = goJson["lightColor"]["r"];
+                    lightData.color.y = goJson["lightColor"]["g"];
+                    lightData.color.z = goJson["lightColor"]["b"];
+                }
+                if (goJson.contains("lightDirection"))
+                {
+                    lightData.direction.x = goJson["lightDirection"]["x"];
+                    lightData.direction.y = goJson["lightDirection"]["y"];
+                    lightData.direction.z = goJson["lightDirection"]["z"];
+                }
+                lightData.intensity = goJson.value("lightIntensity", 1.0f);
+                lightData.radius = goJson.value("lightRange", 10.0f);
+                lightData.spot_angle_inner = goJson.value("lightAngle-Inner", 0.785f);
+                lightData.spot_angle_outer = goJson.value("lightAngle-Outer", 0.959f);
+                lightData.spot_falloff = goJson.value("lightSpotFalloff", 1.0f);
+                lightData.padding = goJson.value("lightPadding", 0.0f);
+
+                m_lights.push_back(light);
             }
 
             m_gameObjects.push_back(newObject);
@@ -709,6 +803,19 @@ void dx3d::Game::saveScene()
                     goJson["physics"] = {
                         {"enabled", false}
                     };
+                }
+                if (auto light = std::dynamic_pointer_cast<LightObject>(go))
+                {
+                    const auto& lightData = light->getLightData();
+                    goJson["lightPosition"] = { {"x", lightData.position.x}, {"y", lightData.position.y}, {"z", lightData.position.z} };
+                    goJson["lightColor"] = { {"r", lightData.color.x}, {"g", lightData.color.y}, {"b", lightData.color.z} };
+                    goJson["lightDirection"] = { {"x", lightData.direction.x}, {"y", lightData.direction.y}, {"z", lightData.direction.z} };
+                    goJson["lightIntensity"] = lightData.intensity;
+                    goJson["lightRange"] = lightData.radius;
+                    goJson["lightAngle-Inner"] = lightData.spot_angle_inner;
+                    goJson["lightAngle-Outer"] = lightData.spot_angle_outer;
+                    goJson["lightSpotFalloff"] = lightData.spot_falloff;
+                    goJson["lightPadding"] = lightData.padding;
                 }
                 sceneJson["gameObjects"].push_back(goJson);
             }
