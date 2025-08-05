@@ -746,10 +746,20 @@ void dx3d::Game::saveScene()
 
                 /*if (go->hasMaterial()) {
                     auto* materialComp = dx3d::ComponentManager::getInstance().getComponent<MaterialComponent>(go->getEntity().getID());
-                    if (materialComp)
+                    if (materialComp) {
+
+                        goJson["material"] = {
+                            //
+                        }
+                        std::shared_ptr<Material> material;
+                        std::string textureFileName;
+                        bool hasTexture = false;
+                    }
                 }
                 else {
-                    //
+                    goJson["material"] = {
+                        {"enabled", false}
+                    };
                 }*/
 
                 if (auto light = std::dynamic_pointer_cast<LightObject>(go))
