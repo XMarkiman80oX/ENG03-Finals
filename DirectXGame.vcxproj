@@ -138,6 +138,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="DX3D\Assets\ModelParser.cpp" />
+    <ClCompile Include="DX3D\Core\Core.cpp" />
     <ClCompile Include="DX3D\Game\FPSCameraController.cpp" />
     <ClCompile Include="DX3D\Game\UndoRedoSystem.cpp" />
     <ClCompile Include="DX3D\Graphics\Material.cpp" />
@@ -165,7 +166,6 @@
     <ClCompile Include="DX3D\Graphics\DepthBuffer.cpp" />
     <ClCompile Include="DX3D\Graphics\DeviceContext.cpp" />
     <ClCompile Include="DX3D\Game\Display.cpp" />
-    <ClCompile Include="DX3D\Core\Base.cpp" />
     <ClCompile Include="DX3D\Game\Game.cpp" />
     <ClCompile Include="DX3D\Game\Win32\Win32Game.cpp" />
     <ClCompile Include="DX3D\Graphics\IndexBuffer.cpp" />
@@ -207,8 +207,8 @@
     <ClInclude Include="DX3D\Assets\AssetManager.h" />
     <ClInclude Include="DX3D\Assets\ModelParser.h" />
     <ClInclude Include="DX3D\Assets\tiny_obj_loader.h" />
-    <ClInclude Include="DX3D\Core\Base.h" />
     <ClInclude Include="DX3D\Core\Common.h" />
+    <ClInclude Include="DX3D\Core\Core.h" />
     <ClInclude Include="DX3D\Core\Forward.h" />
     <ClInclude Include="DX3D\Core\Logger.h" />
     <ClInclude Include="DX3D\ECS\ComponentManager.h" />
