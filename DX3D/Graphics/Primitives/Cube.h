@@ -7,7 +7,7 @@
 
 namespace dx3d
 {
-    class Cube : public AGameObject
+    class Cube : public BaseGameObject
     {
     public:
         // Static methods for creating rendering resources

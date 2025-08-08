@@ -5,18 +5,18 @@
 
 using namespace dx3d;
 
-Capsule::Capsule() : AGameObject()
+Capsule::Capsule() : BaseGameObject()
 {
 }
 
 Capsule::Capsule(const Vector3& position, const Vector3& rotation, const Vector3& scale)
-    : AGameObject(position, rotation, scale)
+    : BaseGameObject(position, rotation, scale)
 {
 }
 
 void Capsule::update(float deltaTime)
 {
-    AGameObject::update(deltaTime);
+    BaseGameObject::update(deltaTime);
 }
 
 std::shared_ptr<VertexBuffer> Capsule::CreateVertexBuffer(const GraphicsResourceDesc& resourceDesc,

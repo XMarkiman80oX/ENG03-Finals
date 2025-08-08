@@ -7,7 +7,7 @@
 
 namespace dx3d
 {
-    class Sphere : public AGameObject
+    class Sphere : public BaseGameObject
     {
     public:
         static std::shared_ptr<VertexBuffer> CreateVertexBuffer(const GraphicsResourceDesc& resourceDesc,

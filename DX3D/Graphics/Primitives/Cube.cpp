@@ -6,19 +6,19 @@ using namespace dx3d;
 using namespace DirectX;
 
 // Cube implementation
-Cube::Cube() : AGameObject()
+Cube::Cube() : BaseGameObject()
 {
 }
 
 Cube::Cube(const Vector3& position, const Vector3& rotation, const Vector3& scale)
-    : AGameObject(position, rotation, scale)
+    : BaseGameObject(position, rotation, scale)
 {
     std::cout << this->getObjectType() << std::endl;
 }
 
 void Cube::update(float deltaTime)
 {
-    AGameObject::update(deltaTime);
+    BaseGameObject::update(deltaTime);
 }
 
 std::shared_ptr<VertexBuffer> Cube::CreateVertexBuffer(const GraphicsResourceDesc& resourceDesc)

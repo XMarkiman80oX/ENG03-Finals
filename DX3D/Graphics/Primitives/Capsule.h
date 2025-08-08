@@ -7,7 +7,7 @@
 
 namespace dx3d
 {
-    class Capsule : public AGameObject
+    class Capsule : public BaseGameObject
     {
     public:
         // Static methods for creating rendering resources

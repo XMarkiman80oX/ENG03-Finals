@@ -21,7 +21,7 @@ SceneOutlinerUI::SceneOutlinerUI(
     SelectionSystem& selectionSystem,
     SceneStateManager& sceneStateManager,
     UndoRedoSystem& undoRedoSystem,
-    const std::vector<std::shared_ptr<AGameObject>>& gameObjects)
+    const std::vector<std::shared_ptr<BaseGameObject>>& gameObjects)
     : m_controller(controller)
     , m_selectionSystem(selectionSystem)
     , m_sceneStateManager(sceneStateManager)
@@ -58,7 +58,7 @@ void SceneOutlinerUI::render(float deltaTime)
 
 void SceneOutlinerUI::renderHierarchy()
 {
-    std::vector<std::shared_ptr<AGameObject>> rootObjects;
+    std::vector<std::shared_ptr<BaseGameObject>> rootObjects;
     for (const auto& obj : m_gameObjects)
     {
         if (!obj->hasParent())
@@ -77,7 +77,7 @@ void SceneOutlinerUI::renderHierarchy()
     {
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("GAME_OBJECT"))
         {
-            std::shared_ptr<AGameObject>* droppedObj = (std::shared_ptr<AGameObject>*)payload->Data;
+            std::shared_ptr<BaseGameObject>* droppedObj = (std::shared_ptr<BaseGameObject>*)payload->Data;
             if (*droppedObj && m_draggedObject)
             {
                 m_draggedObject->removeParent();
@@ -100,7 +100,7 @@ void SceneOutlinerUI::renderHierarchyWindow()
     ImGui::End();
 }
 
-void SceneOutlinerUI::renderObjectNode(std::shared_ptr<AGameObject> object, int& nodeIndex)
+void SceneOutlinerUI::renderObjectNode(std::shared_ptr<BaseGameObject> object, int& nodeIndex)
 {
     if (!object)
         return;
@@ -167,7 +167,7 @@ void SceneOutlinerUI::renderObjectNode(std::shared_ptr<AGameObject> object, int&
 
     if (isPrimitive && ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
     {
-        ImGui::SetDragDropPayload("GAME_OBJECT", &object, sizeof(std::shared_ptr<AGameObject>));
+        ImGui::SetDragDropPayload("GAME_OBJECT", &object, sizeof(std::shared_ptr<BaseGameObject>));
         ImGui::Text("Dragging %s", nodeName.c_str());
         m_draggedObject = object;
         ImGui::EndDragDropSource();
@@ -177,12 +177,12 @@ void SceneOutlinerUI::renderObjectNode(std::shared_ptr<AGameObject> object, int&
     {
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("GAME_OBJECT"))
         {
-            std::shared_ptr<AGameObject>* droppedObj = (std::shared_ptr<AGameObject>*)payload->Data;
+            std::shared_ptr<BaseGameObject>* droppedObj = (std::shared_ptr<BaseGameObject>*)payload->Data;
 
             if (*droppedObj && m_draggedObject && m_draggedObject != object)
             {
                 bool canParent = true;
-                std::shared_ptr<AGameObject> checkParent = object;
+                std::shared_ptr<BaseGameObject> checkParent = object;
                 while (checkParent)
                 {
                     if (checkParent == m_draggedObject)
@@ -233,7 +233,7 @@ void SceneOutlinerUI::renderObjectNode(std::shared_ptr<AGameObject> object, int&
 
 }
 
-std::string SceneOutlinerUI::getObjectDisplayName(std::shared_ptr<AGameObject> object, int index)
+std::string SceneOutlinerUI::getObjectDisplayName(std::shared_ptr<BaseGameObject> object, int index)
 {
     std::string objectName = "Object";
     if (std::dynamic_pointer_cast<Cube>(object)) objectName = "Cube";
@@ -255,7 +255,7 @@ std::string SceneOutlinerUI::getObjectDisplayName(std::shared_ptr<AGameObject> o
     return objectName + " " + std::to_string(index);
 }
 
-std::string SceneOutlinerUI::getObjectIcon(std::shared_ptr<AGameObject> object)
+std::string SceneOutlinerUI::getObjectIcon(std::shared_ptr<BaseGameObject> object)
 {
     if (std::dynamic_pointer_cast<Cube>(object)) return "[C]";
     else if (std::dynamic_pointer_cast<Plane>(object)) return "[P]";

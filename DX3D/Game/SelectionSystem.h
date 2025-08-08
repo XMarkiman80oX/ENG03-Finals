@@ -6,7 +6,7 @@
 
 namespace dx3d
 {
-    class AGameObject;
+    class BaseGameObject;
     class SceneCamera;
 
     class SelectionSystem
@@ -15,11 +15,11 @@ namespace dx3d
         SelectionSystem();
         ~SelectionSystem();
 
-        void setSelectedObject(std::shared_ptr<AGameObject> object);
-        std::shared_ptr<AGameObject> getSelectedObject() const { return m_selectedObject; }
+        void setSelectedObject(std::shared_ptr<BaseGameObject> object);
+        std::shared_ptr<BaseGameObject> getSelectedObject() const { return m_selectedObject; }
 
-        std::shared_ptr<AGameObject> pickObject(
-            const std::vector<std::shared_ptr<AGameObject>>& objects,
+        std::shared_ptr<BaseGameObject> pickObject(
+            const std::vector<std::shared_ptr<BaseGameObject>>& objects,
             const SceneCamera& camera,
             float mouseX, float mouseY,
             ui32 viewportWidth, ui32 viewportHeight);
@@ -29,6 +29,6 @@ namespace dx3d
             const Vector3& aabbMin, const Vector3& aabbMax, float& t);
 
     private:
-        std::shared_ptr<AGameObject> m_selectedObject;
+        std::shared_ptr<BaseGameObject> m_selectedObject;
     };
 }

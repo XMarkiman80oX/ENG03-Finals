@@ -5,18 +5,18 @@
 
 using namespace dx3d;
 
-Cylinder::Cylinder() : AGameObject()
+Cylinder::Cylinder() : BaseGameObject()
 {
 }
 
 Cylinder::Cylinder(const Vector3& position, const Vector3& rotation, const Vector3& scale)
-    : AGameObject(position, rotation, scale)
+    : BaseGameObject(position, rotation, scale)
 {
 }
 
 void Cylinder::update(float deltaTime)
 {
-    AGameObject::update(deltaTime);
+    BaseGameObject::update(deltaTime);
 }
 
 std::shared_ptr<VertexBuffer> Cylinder::CreateVertexBuffer(const GraphicsResourceDesc& resourceDesc, ui32 segments)

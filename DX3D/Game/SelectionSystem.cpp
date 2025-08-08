@@ -15,13 +15,13 @@ SelectionSystem::~SelectionSystem()
 {
 }
 
-void SelectionSystem::setSelectedObject(std::shared_ptr<AGameObject> object)
+void SelectionSystem::setSelectedObject(std::shared_ptr<BaseGameObject> object)
 {
     m_selectedObject = object;
 }
 
-std::shared_ptr<AGameObject> SelectionSystem::pickObject(
-    const std::vector<std::shared_ptr<AGameObject>>& objects,
+std::shared_ptr<BaseGameObject> SelectionSystem::pickObject(
+    const std::vector<std::shared_ptr<BaseGameObject>>& objects,
     const SceneCamera& camera,
     float mouseX, float mouseY,
     ui32 viewportWidth, ui32 viewportHeight)
@@ -46,7 +46,7 @@ std::shared_ptr<AGameObject> SelectionSystem::pickObject(
     Vector3 rayDirection;
     XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&rayDirection), rayDir);
 
-    std::shared_ptr<AGameObject> closestObject = nullptr;
+    std::shared_ptr<BaseGameObject> closestObject = nullptr;
     float closestT = std::numeric_limits<float>::max();
 
     for (const auto& object : objects)

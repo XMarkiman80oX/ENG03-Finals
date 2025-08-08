@@ -5,7 +5,7 @@
 
 namespace dx3d
 {
-    class CameraObject : public AGameObject
+    class CameraObject : public BaseGameObject
     {
     public:
         CameraObject();

@@ -8,9 +8,9 @@
 using namespace dx3d;
 using namespace DirectX;
 
-EntityID AGameObject::s_nextEntityID = 1;
+EntityID BaseGameObject::s_nextEntityID = 1;
 
-AGameObject::AGameObject()
+BaseGameObject::BaseGameObject()
 {
     m_entity = Entity(s_nextEntityID++);
 
@@ -22,7 +22,7 @@ AGameObject::AGameObject()
     componentManager.addComponent(m_entity.getID(), transform);
 }
 
-AGameObject::AGameObject(const Vector3& position, const Vector3& rotation, const Vector3& scale)
+BaseGameObject::BaseGameObject(const Vector3& position, const Vector3& rotation, const Vector3& scale)
 {
     m_entity = Entity(s_nextEntityID++);
 
@@ -38,7 +38,7 @@ AGameObject::AGameObject(const Vector3& position, const Vector3& rotation, const
     componentManager.addComponent(m_entity.getID(), transform);
 }
 
-AGameObject::~AGameObject()
+BaseGameObject::~BaseGameObject()
 {
     if (hasParent())
     {
@@ -65,46 +65,46 @@ AGameObject::~AGameObject()
     componentManager.removeEntity(m_entity.getID());
 }
 
-void AGameObject::setPosition(const Vector3& position)
+void BaseGameObject::setPosition(const Vector3& position)
 {
     m_transform.position = position;
     syncTransformToECS();
     updateChildrenTransforms();
 }
 
-void AGameObject::setRotation(const Vector3& rotation)
+void BaseGameObject::setRotation(const Vector3& rotation)
 {
     m_transform.rotation = rotation;
     syncTransformToECS();
     updateChildrenTransforms();
 }
 
-void AGameObject::setScale(const Vector3& scale)
+void BaseGameObject::setScale(const Vector3& scale)
 {
     m_transform.scale = scale;
     syncTransformToECS();
     updateChildrenTransforms();
 }
 
-const Vector3& AGameObject::getPosition() const
+const Vector3& BaseGameObject::getPosition() const
 {
-    const_cast<AGameObject*>(this)->syncTransformFromECS();
+    const_cast<BaseGameObject*>(this)->syncTransformFromECS();
     return m_transform.position;
 }
 
-const Vector3& AGameObject::getRotation() const
+const Vector3& BaseGameObject::getRotation() const
 {
-    const_cast<AGameObject*>(this)->syncTransformFromECS();
+    const_cast<BaseGameObject*>(this)->syncTransformFromECS();
     return m_transform.rotation;
 }
 
-const Vector3& AGameObject::getScale() const
+const Vector3& BaseGameObject::getScale() const
 {
-    const_cast<AGameObject*>(this)->syncTransformFromECS();
+    const_cast<BaseGameObject*>(this)->syncTransformFromECS();
     return m_transform.scale;
 }
 
-Vector3 AGameObject::getWorldPosition() const
+Vector3 BaseGameObject::getWorldPosition() const
 {
     if (!hasParent())
     {
@@ -115,7 +115,7 @@ Vector3 AGameObject::getWorldPosition() const
     return Vector3(worldMatrix.m[3][0], worldMatrix.m[3][1], worldMatrix.m[3][2]);
 }
 
-Vector3 AGameObject::getWorldRotation() const
+Vector3 BaseGameObject::getWorldRotation() const
 {
     if (!hasParent())
     {
@@ -131,7 +131,7 @@ Vector3 AGameObject::getWorldRotation() const
     return worldRot;
 }
 
-Vector3 AGameObject::getWorldScale() const
+Vector3 BaseGameObject::getWorldScale() const
 {
     if (!hasParent())
     {
@@ -149,9 +149,9 @@ Vector3 AGameObject::getWorldScale() const
     return worldScale;
 }
 
-Matrix4x4 AGameObject::getWorldMatrix() const
+Matrix4x4 BaseGameObject::getWorldMatrix() const
 {
-    const_cast<AGameObject*>(this)->syncTransformFromECS();
+    const_cast<BaseGameObject*>(this)->syncTransformFromECS();
 
     Matrix4x4 localMatrix = m_transform.getLocalMatrix();
 
@@ -164,7 +164,7 @@ Matrix4x4 AGameObject::getWorldMatrix() const
     return localMatrix;
 }
 
-Matrix4x4 AGameObject::getParentWorldMatrix() const
+Matrix4x4 BaseGameObject::getParentWorldMatrix() const
 {
     if (auto parent = m_parent.lock())
     {
@@ -173,7 +173,7 @@ Matrix4x4 AGameObject::getParentWorldMatrix() const
     return Matrix4x4();
 }
 
-void AGameObject::rotate(const Vector3& deltaRotation)
+void BaseGameObject::rotate(const Vector3& deltaRotation)
 {
     syncTransformFromECS();
     m_transform.rotation += deltaRotation;
@@ -181,7 +181,7 @@ void AGameObject::rotate(const Vector3& deltaRotation)
     updateChildrenTransforms();
 }
 
-void AGameObject::translate(const Vector3& deltaPosition)
+void BaseGameObject::translate(const Vector3& deltaPosition)
 {
     syncTransformFromECS();
     m_transform.position += deltaPosition;
@@ -189,7 +189,7 @@ void AGameObject::translate(const Vector3& deltaPosition)
     updateChildrenTransforms();
 }
 
-void AGameObject::setParent(std::shared_ptr<AGameObject> parent)
+void BaseGameObject::setParent(std::shared_ptr<BaseGameObject> parent)
 {
     if (parent.get() == this)
         return;
@@ -218,7 +218,7 @@ void AGameObject::setParent(std::shared_ptr<AGameObject> parent)
     }
 }
 
-void AGameObject::removeParent()
+void BaseGameObject::removeParent()
 {
     if (auto parent = m_parent.lock())
     {
@@ -235,13 +235,13 @@ void AGameObject::removeParent()
     }
 }
 
-void AGameObject::addChild(std::shared_ptr<AGameObject> child)
+void BaseGameObject::addChild(std::shared_ptr<BaseGameObject> child)
 {
     if (!child || child.get() == this)
         return;
 
     auto it = std::find_if(m_children.begin(), m_children.end(),
-        [&child](const std::weak_ptr<AGameObject>& wptr) {
+        [&child](const std::weak_ptr<BaseGameObject>& wptr) {
             return !wptr.expired() && wptr.lock() == child;
         });
 
@@ -251,18 +251,18 @@ void AGameObject::addChild(std::shared_ptr<AGameObject> child)
     }
 }
 
-void AGameObject::removeChild(std::shared_ptr<AGameObject> child)
+void BaseGameObject::removeChild(std::shared_ptr<BaseGameObject> child)
 {
     m_children.erase(
         std::remove_if(m_children.begin(), m_children.end(),
-            [&child](const std::weak_ptr<AGameObject>& wptr) {
+            [&child](const std::weak_ptr<BaseGameObject>& wptr) {
                 return wptr.expired() || wptr.lock() == child;
             }),
         m_children.end()
     );
 }
 
-void AGameObject::setWorldPosition(const Vector3& worldPos)
+void BaseGameObject::setWorldPosition(const Vector3& worldPos)
 {
     if (!hasParent())
     {
@@ -286,7 +286,7 @@ void AGameObject::setWorldPosition(const Vector3& worldPos)
     }
 }
 
-void AGameObject::setWorldRotation(const Vector3& worldRot)
+void BaseGameObject::setWorldRotation(const Vector3& worldRot)
 {
     if (!hasParent())
     {
@@ -301,7 +301,7 @@ void AGameObject::setWorldRotation(const Vector3& worldRot)
     }
 }
 
-void AGameObject::setWorldScale(const Vector3& worldScale)
+void BaseGameObject::setWorldScale(const Vector3& worldScale)
 {
     if (!hasParent())
     {
@@ -320,7 +320,7 @@ void AGameObject::setWorldScale(const Vector3& worldScale)
     }
 }
 
-void AGameObject::updateChildrenTransforms()
+void BaseGameObject::updateChildrenTransforms()
 {
     for (auto& weakChild : m_children)
     {
@@ -331,7 +331,7 @@ void AGameObject::updateChildrenTransforms()
     }
 }
 
-void AGameObject::enablePhysics(PhysicsBodyType bodyType)
+void BaseGameObject::enablePhysics(PhysicsBodyType bodyType)
 {
     if (hasPhysics())
     {
@@ -344,7 +344,7 @@ void AGameObject::enablePhysics(PhysicsBodyType bodyType)
     PhysicsSystem::getInstance().addPhysicsComponent(m_entity.getID(), physicsComp);
 }
 
-void AGameObject::disablePhysics()
+void BaseGameObject::disablePhysics()
 {
     if (hasPhysics())
     {
@@ -352,13 +352,13 @@ void AGameObject::disablePhysics()
     }
 }
 
-bool AGameObject::hasPhysics() const
+bool BaseGameObject::hasPhysics() const
 {
     auto& componentManager = ComponentManager::getInstance();
     return componentManager.hasComponent<PhysicsComponent>(m_entity.getID());
 }
 
-void AGameObject::setPhysicsMass(float mass)
+void BaseGameObject::setPhysicsMass(float mass)
 {
     auto& componentManager = ComponentManager::getInstance();
     auto* physicsComp = componentManager.getComponent<PhysicsComponent>(m_entity.getID());
@@ -373,7 +373,7 @@ void AGameObject::setPhysicsMass(float mass)
     }
 }
 
-void AGameObject::setPhysicsRestitution(float restitution)
+void BaseGameObject::setPhysicsRestitution(float restitution)
 {
     auto& componentManager = ComponentManager::getInstance();
     auto* physicsComp = componentManager.getComponent<PhysicsComponent>(m_entity.getID());
@@ -388,7 +388,7 @@ void AGameObject::setPhysicsRestitution(float restitution)
     }
 }
 
-void AGameObject::setPhysicsFriction(float friction)
+void BaseGameObject::setPhysicsFriction(float friction)
 {
     auto& componentManager = ComponentManager::getInstance();
     auto* physicsComp = componentManager.getComponent<PhysicsComponent>(m_entity.getID());
@@ -403,7 +403,7 @@ void AGameObject::setPhysicsFriction(float friction)
     }
 }
 
-void AGameObject::applyForce(const Vector3& force)
+void BaseGameObject::applyForce(const Vector3& force)
 {
     auto& componentManager = ComponentManager::getInstance();
     auto* physicsComp = componentManager.getComponent<PhysicsComponent>(m_entity.getID());
@@ -415,7 +415,7 @@ void AGameObject::applyForce(const Vector3& force)
     }
 }
 
-void AGameObject::applyImpulse(const Vector3& impulse)
+void BaseGameObject::applyImpulse(const Vector3& impulse)
 {
     auto& componentManager = ComponentManager::getInstance();
     auto* physicsComp = componentManager.getComponent<PhysicsComponent>(m_entity.getID());
@@ -434,7 +434,7 @@ void AGameObject::applyImpulse(const Vector3& impulse)
     }
 }
 
-Vector3 AGameObject::getLinearVelocity() const
+Vector3 BaseGameObject::getLinearVelocity() const
 {
     auto& componentManager = ComponentManager::getInstance();
     auto* physicsComp = componentManager.getComponent<PhysicsComponent>(m_entity.getID());
@@ -447,7 +447,7 @@ Vector3 AGameObject::getLinearVelocity() const
     return Vector3(0, 0, 0);
 }
 
-void AGameObject::setLinearVelocity(const Vector3& velocity)
+void BaseGameObject::setLinearVelocity(const Vector3& velocity)
 {
     auto& componentManager = ComponentManager::getInstance();
     auto* physicsComp = componentManager.getComponent<PhysicsComponent>(m_entity.getID());
@@ -459,7 +459,7 @@ void AGameObject::setLinearVelocity(const Vector3& velocity)
     }
 }
 
-std::string AGameObject::getObjectType()
+std::string BaseGameObject::getObjectType()
 {
     const std::type_info& typeInfo = typeid(*this);
     std::string rawName = typeInfo.name();
@@ -475,7 +475,7 @@ std::string AGameObject::getObjectType()
     return rawName;
 }
 
-PhysicsComponent AGameObject::createPhysicsComponent() const
+PhysicsComponent BaseGameObject::createPhysicsComponent() const
 {
     PhysicsComponent component;
     component.shapeType = getCollisionShapeType();
@@ -510,7 +510,7 @@ PhysicsComponent AGameObject::createPhysicsComponent() const
     return component;
 }
 
-void AGameObject::syncTransformFromECS()
+void BaseGameObject::syncTransformFromECS()
 {
     auto& componentManager = ComponentManager::getInstance();
     auto* transformComp = componentManager.getComponent<TransformComponent>(m_entity.getID());
@@ -523,7 +523,7 @@ void AGameObject::syncTransformFromECS()
     }
 }
 
-void AGameObject::syncTransformToECS()
+void BaseGameObject::syncTransformToECS()
 {
     auto& componentManager = ComponentManager::getInstance();
     auto* transformComp = componentManager.getComponent<TransformComponent>(m_entity.getID());
@@ -548,7 +548,7 @@ void AGameObject::syncTransformToECS()
     }
 }
 
-Matrix4x4 AGameObject::Transform::getLocalMatrix() const
+Matrix4x4 BaseGameObject::Transform::getLocalMatrix() const
 {
     Matrix4x4 scaleMatrix = Matrix4x4::CreateScale(scale);
     Matrix4x4 rotationX = Matrix4x4::CreateRotationX(rotation.x);
@@ -560,7 +560,7 @@ Matrix4x4 AGameObject::Transform::getLocalMatrix() const
     return result;
 }
 
-void AGameObject::setEnabled(bool enabled)
+void BaseGameObject::setEnabled(bool enabled)
 {
     if (m_enabled == enabled)
         return;
@@ -596,7 +596,7 @@ void AGameObject::setEnabled(bool enabled)
     }
 }
 
-void AGameObject::attachMaterial(std::shared_ptr<Material> material)
+void BaseGameObject::attachMaterial(std::shared_ptr<Material> material)
 {
     auto& componentManager = ComponentManager::getInstance();
     MaterialComponent matComp;
@@ -604,26 +604,26 @@ void AGameObject::attachMaterial(std::shared_ptr<Material> material)
     componentManager.addComponent(m_entity.getID(), matComp);
 }
 
-void AGameObject::detachMaterial()
+void BaseGameObject::detachMaterial()
 {
     auto& componentManager = ComponentManager::getInstance();
     componentManager.removeComponent<MaterialComponent>(m_entity.getID());
 }
 
-bool AGameObject::hasMaterial() const
+bool BaseGameObject::hasMaterial() const
 {
     auto& componentManager = ComponentManager::getInstance();
     return componentManager.hasComponent<MaterialComponent>(m_entity.getID());
 }
 
-std::shared_ptr<Material> AGameObject::getMaterial() const
+std::shared_ptr<Material> BaseGameObject::getMaterial() const
 {
     auto& componentManager = ComponentManager::getInstance();
     auto* matComp = componentManager.getComponent<MaterialComponent>(m_entity.getID());
     return matComp ? matComp->material : nullptr;
 }
 
-void AGameObject::setTexture(const std::string& textureFileName)
+void BaseGameObject::setTexture(const std::string& textureFileName)
 {
     auto& componentManager = ComponentManager::getInstance();
     auto* matComp = componentManager.getComponent<MaterialComponent>(m_entity.getID());
@@ -657,7 +657,7 @@ void AGameObject::setTexture(const std::string& textureFileName)
     }
 }
 
-std::string AGameObject::getTextureName() const
+std::string BaseGameObject::getTextureName() const
 {
     auto& componentManager = ComponentManager::getInstance();
     auto* matComp = componentManager.getComponent<MaterialComponent>(m_entity.getID());

@@ -5,7 +5,7 @@
 namespace dx3d
 {
     // Game Objects
-    class AGameObject;
+    class BaseGameObject;
     class CameraObject;
     class Cube;
     class Plane;

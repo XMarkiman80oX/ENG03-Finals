@@ -4,7 +4,7 @@
 #include <string>
 namespace dx3d
 {
-    class AGameObject;
+    class BaseGameObject;
     class SelectionSystem;
     class UIController;
     class SceneStateManager;
@@ -18,7 +18,7 @@ namespace dx3d
             SelectionSystem& selectionSystem,
             SceneStateManager& sceneStateManager,
             UndoRedoSystem& undoRedoSystem,
-            const std::vector<std::shared_ptr<AGameObject>>& gameObjects
+            const std::vector<std::shared_ptr<BaseGameObject>>& gameObjects
         );
 
         void render(float deltaTime);
@@ -26,16 +26,16 @@ namespace dx3d
 
     private:
         void renderHierarchy();
-        void renderObjectNode(std::shared_ptr<AGameObject> object, int& nodeIndex);
-        std::string getObjectDisplayName(std::shared_ptr<AGameObject> object, int index);
-        std::string getObjectIcon(std::shared_ptr<AGameObject> object);
+        void renderObjectNode(std::shared_ptr<BaseGameObject> object, int& nodeIndex);
+        std::string getObjectDisplayName(std::shared_ptr<BaseGameObject> object, int index);
+        std::string getObjectIcon(std::shared_ptr<BaseGameObject> object);
 
     private:
         UIController& m_controller;
         SelectionSystem& m_selectionSystem;
         SceneStateManager& m_sceneStateManager;
         UndoRedoSystem& m_undoRedoSystem;
-        const std::vector<std::shared_ptr<AGameObject>>& m_gameObjects;
-        std::shared_ptr<AGameObject> m_draggedObject = nullptr;
+        const std::vector<std::shared_ptr<BaseGameObject>>& m_gameObjects;
+        std::shared_ptr<BaseGameObject> m_draggedObject = nullptr;
     };
 }

@@ -79,7 +79,7 @@ void InspectorUI::render()
     ImGui::End();
 }
 
-void InspectorUI::renderObjectInfo(std::shared_ptr<AGameObject> object)
+void InspectorUI::renderObjectInfo(std::shared_ptr<BaseGameObject> object)
 {
     ImGui::Text("Type: %s", object->getObjectType().c_str());
     ImGui::Text("Entity ID: %u", object->getEntity().getID());
@@ -93,7 +93,7 @@ void InspectorUI::renderObjectInfo(std::shared_ptr<AGameObject> object)
 
 
 
-void InspectorUI::renderMaterialSection(std::shared_ptr<AGameObject> object)
+void InspectorUI::renderMaterialSection(std::shared_ptr<BaseGameObject> object)
 {
     ImGui::Text("Material");
 
@@ -184,7 +184,7 @@ void InspectorUI::renderMaterialSection(std::shared_ptr<AGameObject> object)
 }
 
 
-void InspectorUI::renderTransform(std::shared_ptr<AGameObject> object)
+void InspectorUI::renderTransform(std::shared_ptr<BaseGameObject> object)
 {
     if (!m_sceneStateManager.isEditMode())
     {
@@ -257,7 +257,7 @@ void InspectorUI::renderTransform(std::shared_ptr<AGameObject> object)
     }
 }
 
-void InspectorUI::renderTextureSelector(std::shared_ptr<AGameObject> object)
+void InspectorUI::renderTextureSelector(std::shared_ptr<BaseGameObject> object)
 {
     // Get list of available texture files
     std::vector<std::string> textureFiles;
@@ -328,7 +328,7 @@ void InspectorUI::renderTextureSelector(std::shared_ptr<AGameObject> object)
     }
 }
 
-void InspectorUI::renderPrimitiveSelector(std::shared_ptr<AGameObject> object)
+void InspectorUI::renderPrimitiveSelector(std::shared_ptr<BaseGameObject> object)
 {
     ImGui::Text("Primitive Material Operations");
 
@@ -432,7 +432,7 @@ void InspectorUI::renderPrimitiveSelector(std::shared_ptr<AGameObject> object)
     }
 }
 
-void InspectorUI::renderCamera(std::shared_ptr<AGameObject> object)
+void InspectorUI::renderCamera(std::shared_ptr<BaseGameObject> object)
 {
     auto camera = std::dynamic_pointer_cast<CameraObject>(object);
     if (!camera) return;
@@ -458,7 +458,7 @@ void InspectorUI::renderCamera(std::shared_ptr<AGameObject> object)
     }
 }
 
-void InspectorUI::renderPhysics(std::shared_ptr<AGameObject> object)
+void InspectorUI::renderPhysics(std::shared_ptr<BaseGameObject> object)
 {
     ImGui::Text("Physics");
 

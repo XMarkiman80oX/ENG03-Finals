@@ -5,7 +5,7 @@
 
 namespace dx3d
 {
-    class AGameObject;
+    class BaseGameObject;
     class LightObject;
     class SelectionSystem;
     class UIController;
@@ -17,7 +17,7 @@ namespace dx3d
         Vector3 originalPosition{ 0, 0, 0 };
         Vector3 originalRotation{ 0, 0, 0 };
         Vector3 originalScale{ 1, 1, 1 };
-        std::weak_ptr<AGameObject> trackedObject;
+        std::weak_ptr<BaseGameObject> trackedObject;
     };
 
     class InspectorUI
@@ -32,15 +32,15 @@ namespace dx3d
         void render();
 
     private:
-        void renderTransform(std::shared_ptr<AGameObject> object);
-        void renderCamera(std::shared_ptr<AGameObject> object);
-        void renderPhysics(std::shared_ptr<AGameObject> object);
-        void renderObjectInfo(std::shared_ptr<AGameObject> object);
+        void renderTransform(std::shared_ptr<BaseGameObject> object);
+        void renderCamera(std::shared_ptr<BaseGameObject> object);
+        void renderPhysics(std::shared_ptr<BaseGameObject> object);
+        void renderObjectInfo(std::shared_ptr<BaseGameObject> object);
         void renderLight(std::shared_ptr<LightObject> lightObject);
 
-        void renderMaterialSection(std::shared_ptr<AGameObject> object);
-        void renderTextureSelector(std::shared_ptr<AGameObject> object);
-        void renderPrimitiveSelector(std::shared_ptr<AGameObject> object);
+        void renderMaterialSection(std::shared_ptr<BaseGameObject> object);
+        void renderTextureSelector(std::shared_ptr<BaseGameObject> object);
+        void renderPrimitiveSelector(std::shared_ptr<BaseGameObject> object);
 
     private:
         UIController& m_controller;

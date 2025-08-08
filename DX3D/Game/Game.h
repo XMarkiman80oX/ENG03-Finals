@@ -26,7 +26,7 @@ namespace dx3d
     class PixelShader;
     class Light;
     class ShadowMap;
-    class AGameObject;
+    class BaseGameObject;
     class Cube;
     class Plane;
     class Sphere;
@@ -91,7 +91,7 @@ namespace dx3d {
         Vector3 originalPosition{ 0, 0, 0 };
         Vector3 originalRotation{ 0, 0, 0 };
         Vector3 originalScale{ 1, 1, 1 };
-        std::weak_ptr<AGameObject> trackedObject;
+        std::weak_ptr<BaseGameObject> trackedObject;
     };
 }
 
@@ -105,7 +105,7 @@ namespace dx3d
 
         virtual void run() final;
 
-        void setObjectTexture(std::shared_ptr<AGameObject> object, const std::string& textureFileName);
+        void setObjectTexture(std::shared_ptr<BaseGameObject> object, const std::string& textureFileName);
         std::shared_ptr<Texture2D> loadTexture(const std::string& fileName);
         void clearTextureCache();
         std::vector<std::string> getLoadedTextures() const;
@@ -136,11 +136,11 @@ namespace dx3d
         void onSceneStateChanged(SceneState oldState, SceneState newState);
         void updatePhysics(float deltaTime);
 
-        std::string getObjectDisplayName(std::shared_ptr<AGameObject> object, int index);
+        std::string getObjectDisplayName(std::shared_ptr<BaseGameObject> object, int index);
         std::string getCurrentTimeAndDate();
-        std::string getObjectIcon(std::shared_ptr<AGameObject> object);
-        std::shared_ptr<AGameObject> createObjectCopy(std::shared_ptr<AGameObject> original);
-        void setupMaterialForObject(std::shared_ptr<AGameObject> gameObject, DeviceContext& deviceContext);
+        std::string getObjectIcon(std::shared_ptr<BaseGameObject> object);
+        std::shared_ptr<BaseGameObject> createObjectCopy(std::shared_ptr<BaseGameObject> original);
+        void setupMaterialForObject(std::shared_ptr<BaseGameObject> gameObject, DeviceContext& deviceContext);
 
         void saveScene();
         void loadScene(const std::string& filename);
@@ -173,7 +173,7 @@ namespace dx3d
         float m_mouseSensitivity{ 0.3f };
         float m_cubeRotationSpeed{ 3.0f };
 
-        std::vector<std::shared_ptr<AGameObject>> m_gameObjects;
+        std::vector<std::shared_ptr<BaseGameObject>> m_gameObjects;
         std::vector<Vector3> m_objectRotationDeltas;
 
         std::shared_ptr<VertexBuffer> m_cubeVertexBuffer;

@@ -53,7 +53,7 @@ void SceneStateManager::frameStep()
     m_stateInfo.frameStepRequested = true;
 }
 
-void SceneStateManager::saveObjectStates(const std::vector<std::shared_ptr<AGameObject>>& objects)
+void SceneStateManager::saveObjectStates(const std::vector<std::shared_ptr<BaseGameObject>>& objects)
 {
     m_objectSnapshots.clear();
 
@@ -81,7 +81,7 @@ void SceneStateManager::saveObjectStates(const std::vector<std::shared_ptr<AGame
     }
 }
 
-void SceneStateManager::restoreObjectStates(const std::vector<std::shared_ptr<AGameObject>>& objects)
+void SceneStateManager::restoreObjectStates(const std::vector<std::shared_ptr<BaseGameObject>>& objects)
 {
     for (const auto& object : objects)
     {

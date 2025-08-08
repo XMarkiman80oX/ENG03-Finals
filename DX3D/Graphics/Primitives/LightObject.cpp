@@ -4,7 +4,7 @@ using namespace dx3d;
 
 void LightObject::update(float deltaTime)
 {
-    AGameObject::update(deltaTime);
+    BaseGameObject::update(deltaTime);
 
     m_lightData.position = getPosition();
 

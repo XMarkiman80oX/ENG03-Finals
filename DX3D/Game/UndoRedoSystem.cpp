@@ -5,8 +5,8 @@
 
 using namespace dx3d;
 
-CreateAction::CreateAction(std::shared_ptr<AGameObject> object,
-    std::vector<std::shared_ptr<AGameObject>>& gameObjects)
+CreateAction::CreateAction(std::shared_ptr<BaseGameObject> object,
+    std::vector<std::shared_ptr<BaseGameObject>>& gameObjects)
     : m_object(object)
     , m_gameObjects(gameObjects)
     , m_insertIndex(static_cast<int>(gameObjects.size()))
@@ -40,8 +40,8 @@ std::string CreateAction::getDescription() const
     return "Create " + m_object->getObjectType();
 }
 
-DeleteAction::DeleteAction(std::shared_ptr<AGameObject> object,
-    std::vector<std::shared_ptr<AGameObject>>& gameObjects,
+DeleteAction::DeleteAction(std::shared_ptr<BaseGameObject> object,
+    std::vector<std::shared_ptr<BaseGameObject>>& gameObjects,
     std::vector<std::shared_ptr<LightObject>>& lights)
     : m_object(object)
     , m_gameObjects(gameObjects)
@@ -94,7 +94,7 @@ std::string DeleteAction::getDescription() const
     return "Delete " + m_object->getObjectType();
 }
 
-TransformAction::TransformAction(std::shared_ptr<AGameObject> object,
+TransformAction::TransformAction(std::shared_ptr<BaseGameObject> object,
     const Vector3& oldPos, const Vector3& newPos,
     const Vector3& oldRot, const Vector3& newRot,
     const Vector3& oldScale, const Vector3& newScale)
@@ -133,10 +133,10 @@ std::string TransformAction::getDescription() const
     return "Transform " + m_object->getObjectType();
 }
 
-ParentAction::ParentAction(std::shared_ptr<AGameObject> child,
-    std::shared_ptr<AGameObject> oldParent,
-    std::shared_ptr<AGameObject> newParent,
-    std::vector<std::shared_ptr<AGameObject>>& gameObjects)
+ParentAction::ParentAction(std::shared_ptr<BaseGameObject> child,
+    std::shared_ptr<BaseGameObject> oldParent,
+    std::shared_ptr<BaseGameObject> newParent,
+    std::vector<std::shared_ptr<BaseGameObject>>& gameObjects)
     : m_child(child)
     , m_oldParent(oldParent)
     , m_newParent(newParent)

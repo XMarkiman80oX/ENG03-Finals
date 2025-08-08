@@ -15,7 +15,7 @@
 
 namespace dx3d
 {
-    class AGameObject : public std::enable_shared_from_this<AGameObject>
+    class BaseGameObject : public std::enable_shared_from_this<BaseGameObject>
     {
     public:
         struct Transform
@@ -28,9 +28,9 @@ namespace dx3d
         };
 
     public:
-        AGameObject();
-        AGameObject(const Vector3& position, const Vector3& rotation = Vector3(0, 0, 0), const Vector3& scale = Vector3(1, 1, 1));
-        virtual ~AGameObject();
+        BaseGameObject();
+        BaseGameObject(const Vector3& position, const Vector3& rotation = Vector3(0, 0, 0), const Vector3& scale = Vector3(1, 1, 1));
+        virtual ~BaseGameObject();
 
         void setPosition(const Vector3& position);
         void setRotation(const Vector3& rotation);
@@ -85,14 +85,14 @@ namespace dx3d
         void setTexture(const std::string& textureFileName);
         std::string getTextureName() const;
 
-        void setParent(std::shared_ptr<AGameObject> parent);
+        void setParent(std::shared_ptr<BaseGameObject> parent);
         void removeParent();
-        std::shared_ptr<AGameObject> getParent() const { return m_parent.lock(); }
+        std::shared_ptr<BaseGameObject> getParent() const { return m_parent.lock(); }
         bool hasParent() const { return !m_parent.expired(); }
 
-        void addChild(std::shared_ptr<AGameObject> child);
-        void removeChild(std::shared_ptr<AGameObject> child);
-        const std::vector<std::weak_ptr<AGameObject>>& getChildren() const { return m_children; }
+        void addChild(std::shared_ptr<BaseGameObject> child);
+        void removeChild(std::shared_ptr<BaseGameObject> child);
+        const std::vector<std::weak_ptr<BaseGameObject>>& getChildren() const { return m_children; }
         bool hasChildren() const { return !m_children.empty(); }
 
         void setWorldPosition(const Vector3& worldPos);
@@ -114,8 +114,8 @@ namespace dx3d
         bool m_hadPhysicsBeforeDisable = false;
         PhysicsBodyType m_previousBodyType = PhysicsBodyType::Dynamic;
 
-        std::weak_ptr<AGameObject> m_parent;
-        std::vector<std::weak_ptr<AGameObject>> m_children;
+        std::weak_ptr<BaseGameObject> m_parent;
+        std::vector<std::weak_ptr<BaseGameObject>> m_children;
 
     private:
         static EntityID s_nextEntityID;

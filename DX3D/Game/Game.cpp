@@ -509,7 +509,7 @@ void dx3d::Game::loadScene(const std::string& filename)
         for (const auto& goJson : sceneJson["gameObjects"])
         {
             std::string type = goJson.value("type", "Unknown");
-            std::shared_ptr<AGameObject> newObject = nullptr;
+            std::shared_ptr<BaseGameObject> newObject = nullptr;
 
             // --- Object Creation without Factory ---
             if (type == "Cube") {
@@ -1508,7 +1508,7 @@ void dx3d::Game::spawnSpotLight()
     DX3DLogInfo("Spawned Spot Light");
 }
 
-void dx3d::Game::setObjectTexture(std::shared_ptr<AGameObject> object, const std::string& textureFileName)
+void dx3d::Game::setObjectTexture(std::shared_ptr<BaseGameObject> object, const std::string& textureFileName)
 {
     if (!object)
     {
@@ -1524,7 +1524,7 @@ std::shared_ptr<dx3d::Texture2D> dx3d::Game::loadTexture(const std::string& file
     return ResourceManager::getInstance().loadTexture(fileName);
 }
 
-void dx3d::Game::setupMaterialForObject(std::shared_ptr<AGameObject> gameObject, DeviceContext& deviceContext)
+void dx3d::Game::setupMaterialForObject(std::shared_ptr<BaseGameObject> gameObject, DeviceContext& deviceContext)
 {
     auto& componentManager = ComponentManager::getInstance();
     auto* materialComp = componentManager.getComponent<MaterialComponent>(gameObject->getEntity().getID());

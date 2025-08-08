@@ -5,18 +5,18 @@
 using namespace dx3d;
 
 // Plane implementation
-Plane::Plane() : AGameObject()
+Plane::Plane() : BaseGameObject()
 {
 }
 
 Plane::Plane(const Vector3& position, const Vector3& rotation, const Vector3& scale)
-    : AGameObject(position, rotation, scale)
+    : BaseGameObject(position, rotation, scale)
 {
 }
 
 void Plane::update(float deltaTime)
 {
-    AGameObject::update(deltaTime);
+    BaseGameObject::update(deltaTime);
 }
 
 std::shared_ptr<VertexBuffer> Plane::CreateVertexBuffer(const GraphicsResourceDesc& resourceDesc)

@@ -6,12 +6,12 @@
 
 using namespace dx3d;
 
-Model::Model() : AGameObject(), m_name("Model"), m_filePath("")
+Model::Model() : BaseGameObject(), m_name("Model"), m_filePath("")
 {
 }
 
 Model::Model(const Vector3& position, const Vector3& rotation, const Vector3& scale)
-    : AGameObject(position, rotation, scale), m_name("Model"), m_filePath("")
+    : BaseGameObject(position, rotation, scale), m_name("Model"), m_filePath("")
 {
 }
 
@@ -61,7 +61,7 @@ bool Model::isReadyForRendering() const
 void Model::update(float deltaTime)
 {
     // Call base class update
-    AGameObject::update(deltaTime);
+    BaseGameObject::update(deltaTime);
 
     // Add any model-specific update logic here if needed
 }

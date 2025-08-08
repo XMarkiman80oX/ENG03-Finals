@@ -7,7 +7,7 @@
 
 namespace dx3d
 {
-    class AGameObject;
+    class BaseGameObject;
     class LightObject;
 
     class IUndoableAction
@@ -22,24 +22,24 @@ namespace dx3d
     class CreateAction : public IUndoableAction
     {
     public:
-        CreateAction(std::shared_ptr<AGameObject> object,
-            std::vector<std::shared_ptr<AGameObject>>& gameObjects);
+        CreateAction(std::shared_ptr<BaseGameObject> object,
+            std::vector<std::shared_ptr<BaseGameObject>>& gameObjects);
 
         void undo() override;
         void redo() override;
         std::string getDescription() const override;
 
     private:
-        std::shared_ptr<AGameObject> m_object;
-        std::vector<std::shared_ptr<AGameObject>>& m_gameObjects;
+        std::shared_ptr<BaseGameObject> m_object;
+        std::vector<std::shared_ptr<BaseGameObject>>& m_gameObjects;
         int m_insertIndex;
     };
 
     class DeleteAction : public IUndoableAction
     {
     public:
-        DeleteAction(std::shared_ptr<AGameObject> object,
-            std::vector<std::shared_ptr<AGameObject>>& gameObjects,
+        DeleteAction(std::shared_ptr<BaseGameObject> object,
+            std::vector<std::shared_ptr<BaseGameObject>>& gameObjects,
             std::vector<std::shared_ptr<LightObject>>& lights);
 
         void undo() override;
@@ -47,8 +47,8 @@ namespace dx3d
         std::string getDescription() const override;
 
     private:
-        std::shared_ptr<AGameObject> m_object;
-        std::vector<std::shared_ptr<AGameObject>>& m_gameObjects;
+        std::shared_ptr<BaseGameObject> m_object;
+        std::vector<std::shared_ptr<BaseGameObject>>& m_gameObjects;
         std::vector<std::shared_ptr<LightObject>>& m_lights;
         int m_objectIndex;
         bool m_wasLight;
@@ -57,7 +57,7 @@ namespace dx3d
     class TransformAction : public IUndoableAction
     {
     public:
-        TransformAction(std::shared_ptr<AGameObject> object,
+        TransformAction(std::shared_ptr<BaseGameObject> object,
             const Vector3& oldPos, const Vector3& newPos,
             const Vector3& oldRot, const Vector3& newRot,
             const Vector3& oldScale, const Vector3& newScale);
@@ -67,7 +67,7 @@ namespace dx3d
         std::string getDescription() const override;
 
     private:
-        std::shared_ptr<AGameObject> m_object;
+        std::shared_ptr<BaseGameObject> m_object;
         Vector3 m_oldPosition;
         Vector3 m_newPosition;
         Vector3 m_oldRotation;
@@ -79,23 +79,23 @@ namespace dx3d
     class ParentAction : public IUndoableAction
     {
     public:
-        ParentAction(std::shared_ptr<AGameObject> child,
-            std::shared_ptr<AGameObject> oldParent,
-            std::shared_ptr<AGameObject> newParent,
-            std::vector<std::shared_ptr<AGameObject>>& gameObjects);
+        ParentAction(std::shared_ptr<BaseGameObject> child,
+            std::shared_ptr<BaseGameObject> oldParent,
+            std::shared_ptr<BaseGameObject> newParent,
+            std::vector<std::shared_ptr<BaseGameObject>>& gameObjects);
 
         void undo() override;
         void redo() override;
         std::string getDescription() const override;
 
     private:
-        std::shared_ptr<AGameObject> m_child;
-        std::weak_ptr<AGameObject> m_oldParent;
-        std::weak_ptr<AGameObject> m_newParent;
+        std::shared_ptr<BaseGameObject> m_child;
+        std::weak_ptr<BaseGameObject> m_oldParent;
+        std::weak_ptr<BaseGameObject> m_newParent;
         Vector3 m_oldWorldPos;
         Vector3 m_oldWorldRot;
         Vector3 m_oldWorldScale;
-        std::vector<std::shared_ptr<AGameObject>>& m_gameObjects;
+        std::vector<std::shared_ptr<BaseGameObject>>& m_gameObjects;
     };
 
     class UndoRedoSystem

@@ -4,7 +4,7 @@
 
 namespace dx3d
 {
-    class LightObject : public AGameObject
+    class LightObject : public BaseGameObject
     {
     public:
         LightObject() = default;

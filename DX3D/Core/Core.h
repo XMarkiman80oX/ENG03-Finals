@@ -20,7 +20,7 @@ namespace dx3d
     class RenderTexture;
     class Window;
 
-    class AGameObject;
+    class BaseGameObject;
     class CameraObject;
     class SelectionSystem;
     class ViewportManager;

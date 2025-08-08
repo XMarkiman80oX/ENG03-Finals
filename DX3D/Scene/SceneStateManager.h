@@ -8,7 +8,7 @@
 
 namespace dx3d
 {
-    class AGameObject;
+    class BaseGameObject;
     class SceneCamera;
     class PhysicsSystem;
 
@@ -40,8 +40,8 @@ namespace dx3d
         bool canFrameStep() const { return m_stateInfo.canFrameStep; }
         bool isFrameStepRequested() const { return m_stateInfo.frameStepRequested; }
 
-        void saveObjectStates(const std::vector<std::shared_ptr<AGameObject>>& objects);
-        void restoreObjectStates(const std::vector<std::shared_ptr<AGameObject>>& objects);
+        void saveObjectStates(const std::vector<std::shared_ptr<BaseGameObject>>& objects);
+        void restoreObjectStates(const std::vector<std::shared_ptr<BaseGameObject>>& objects);
 
         void addStateChangeCallback(const StateChangeCallback& callback);
 

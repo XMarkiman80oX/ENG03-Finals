@@ -7,7 +7,7 @@
 
 namespace dx3d
 {
-    class Plane : public AGameObject
+    class Plane : public BaseGameObject
     {
     public:
         // Static methods for creating rendering resources

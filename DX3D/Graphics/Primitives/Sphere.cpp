@@ -5,18 +5,18 @@
 
 using namespace dx3d;
 
-Sphere::Sphere() : AGameObject()
+Sphere::Sphere() : BaseGameObject()
 {
 }
 
 Sphere::Sphere(const Vector3& position, const Vector3& rotation, const Vector3& scale)
-    : AGameObject(position, rotation, scale)
+    : BaseGameObject(position, rotation, scale)
 {
 }
 
 void Sphere::update(float deltaTime)
 {
-    AGameObject::update(deltaTime);
+    BaseGameObject::update(deltaTime);
 }
 
 std::shared_ptr<VertexBuffer> Sphere::CreateVertexBuffer(const GraphicsResourceDesc& resourceDesc,

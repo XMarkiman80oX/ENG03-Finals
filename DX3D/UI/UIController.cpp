@@ -12,7 +12,7 @@ UIController::UIController(
     UndoRedoSystem& undoRedoSystem,
     SelectionSystem& selectionSystem,
     SceneStateManager& sceneStateManager,
-    std::vector<std::shared_ptr<AGameObject>>& gameObjects,
+    std::vector<std::shared_ptr<BaseGameObject>>& gameObjects,
     std::vector<std::shared_ptr<LightObject>>& lights)
     : m_undoRedoSystem(undoRedoSystem)
     , m_selectionSystem(selectionSystem)
@@ -89,12 +89,12 @@ void UIController::onFrameStepClicked()
     }
 }
 
-void UIController::onObjectSelected(std::shared_ptr<AGameObject> object)
+void UIController::onObjectSelected(std::shared_ptr<BaseGameObject> object)
 {
     m_selectionSystem.setSelectedObject(object);
 }
 
-void UIController::onTransformChanged(std::shared_ptr<AGameObject> object,
+void UIController::onTransformChanged(std::shared_ptr<BaseGameObject> object,
     const Vector3& oldPos, const Vector3& newPos,
     const Vector3& oldRot, const Vector3& newRot,
     const Vector3& oldScale, const Vector3& newScale)
@@ -120,9 +120,9 @@ void UIController::onTransformChanged(std::shared_ptr<AGameObject> object,
     }
 }
 
-void UIController::onParentChanged(std::shared_ptr<AGameObject> child,
-    std::shared_ptr<AGameObject> oldParent,
-    std::shared_ptr<AGameObject> newParent)
+void UIController::onParentChanged(std::shared_ptr<BaseGameObject> child,
+    std::shared_ptr<BaseGameObject> oldParent,
+    std::shared_ptr<BaseGameObject> newParent)
 {
     if (!m_sceneStateManager.isEditMode())
         return;

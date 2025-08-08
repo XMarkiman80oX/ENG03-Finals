@@ -10,7 +10,7 @@ namespace dx3d
     class SelectionSystem;
     class SceneStateManager;
     class ViewportManager;
-    class AGameObject;
+    class BaseGameObject;
     class LightObject;
     class UIController;
     class MainMenuBarUI;
@@ -31,7 +31,7 @@ namespace dx3d
             SceneStateManager& sceneStateManager;
             ViewportManager& viewportManager;
 
-            std::vector<std::shared_ptr<AGameObject>>& gameObjects;
+            std::vector<std::shared_ptr<BaseGameObject>>& gameObjects;
             std::function<std::vector<std::string>()> getSavedSceneFiles;
             std::function<void(const std::string&)> onLoadScene;
             std::vector<std::shared_ptr<LightObject>>& lights;

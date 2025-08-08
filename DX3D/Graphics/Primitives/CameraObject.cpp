@@ -3,14 +3,14 @@
 using namespace dx3d;
 
 CameraObject::CameraObject()
-    : AGameObject()
+    : BaseGameObject()
 {
     m_camera = std::make_unique<SceneCamera>();
     syncCameraTransform();
 }
 
 CameraObject::CameraObject(const Vector3& position, const Vector3& rotation)
-    : AGameObject(position, rotation)
+    : BaseGameObject(position, rotation)
 {
     m_camera = std::make_unique<SceneCamera>();
     syncCameraTransform();
@@ -18,7 +18,7 @@ CameraObject::CameraObject(const Vector3& position, const Vector3& rotation)
 
 void CameraObject::update(float deltaTime)
 {
-    AGameObject::update(deltaTime);
+    BaseGameObject::update(deltaTime);
     syncCameraTransform();
 }
 

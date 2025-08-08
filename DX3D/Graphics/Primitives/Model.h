@@ -7,7 +7,7 @@
 
 namespace dx3d
 {
-    class Model : public AGameObject
+    class Model : public BaseGameObject
     {
     public:
         Model();
