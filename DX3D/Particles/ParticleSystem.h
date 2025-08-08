@@ -1,5 +1,5 @@
 #pragma once
-#include <../Core/Core.h>
+#include <../Core/Base.h>
 #include <../Particles/ParticleEmitter.h>
 #include <../Graphics/VertexBuffer.h>
 #include <../Graphics/IndexBuffer.h>

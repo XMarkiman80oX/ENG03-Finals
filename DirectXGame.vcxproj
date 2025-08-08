@@ -209,7 +209,6 @@
     <ClInclude Include="DX3D\Assets\tiny_obj_loader.h" />
     <ClInclude Include="DX3D\Core\Base.h" />
     <ClInclude Include="DX3D\Core\Common.h" />
-    <ClInclude Include="DX3D\Core\Core.h" />
     <ClInclude Include="DX3D\Core\Logger.h" />
     <ClInclude Include="DX3D\ECS\ComponentManager.h" />
     <ClInclude Include="DX3D\ECS\Components\MaterialComponent.h" />
