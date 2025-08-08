@@ -1,6 +1,6 @@
 #pragma once
 #include <../Core/Common.h>
-#include <../Core/Base.h>
+#include <../Core/Core.h>
 #include <../Graphics/GraphicsLogUtils.h>
 
 #include <d3d11.h>

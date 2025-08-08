@@ -1,7 +1,7 @@
 
 #pragma once
 #include <../Core/Forward.h>
-#include <../Core/Base.h>
+#include <../Core/Core.h>
 
 namespace dx3d
 {
