@@ -35,15 +35,13 @@ void SceneOutlinerUI::render(float deltaTime)
     ImGuiIO& io = ImGui::GetIO();
     float windowWidth = io.DisplaySize.x;
     float windowHeight = io.DisplaySize.y;
-    float halfWidth = windowWidth * 0.5f;
-    float halfHeight = windowHeight * 0.5f;
+    float leftPanelWidth = windowWidth / 4.0f;
+    float topBarHeight = 70;
+    float panelHeight = 100; // Give it a fixed height
 
-    ImGui::SetNextWindowPos(ImVec2(halfWidth, 120));
-    ImGui::SetNextWindowSize(ImVec2(halfWidth, halfHeight - 120));
-    ImGui::Begin("Scene Outliner", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
-
-    ImGui::Text("Physics Demo");
-    ImGui::Separator();
+    ImGui::SetNextWindowPos(ImVec2(0, topBarHeight));
+    ImGui::SetNextWindowSize(ImVec2(leftPanelWidth, panelHeight));
+    ImGui::Begin("Scene Stats", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
     ImGui::Text("Objects: %zu", m_gameObjects.size());
     ImGui::Text("Delta Time: %.3f ms", deltaTime * 1000.0f);
@@ -51,17 +49,10 @@ void SceneOutlinerUI::render(float deltaTime)
 
     if (m_sceneStateManager.isEditMode())
     {
-        ImGui::Text("Undo Stack: %d actions", m_undoRedoSystem.getUndoCount());
-        ImGui::Text("Redo Stack: %d actions", m_undoRedoSystem.getRedoCount());
+        ImGui::Text("Undo Stack: %d", m_undoRedoSystem.getUndoCount());
+        ImGui::Text("Redo Stack: %d", m_undoRedoSystem.getRedoCount());
     }
 
-    ImGui::Separator();
-    ImGui::Text("Scene Hierarchy");
-    ImGui::BeginChild("Outliner", ImVec2(0, 0), true);
-
-    renderHierarchy();
-
-    ImGui::EndChild();
     ImGui::End();
 }
 
@@ -95,6 +86,18 @@ void SceneOutlinerUI::renderHierarchy()
         }
         ImGui::EndDragDropTarget();
     }
+}
+
+void SceneOutlinerUI::renderHierarchyWindow()
+{
+    ImGui::Begin("Scene Hierarchy"); // Creates a floating window
+
+    ImGui::BeginChild("Outliner", ImVec2(0, 0), true);
+
+    renderHierarchy();
+
+    ImGui::EndChild();
+    ImGui::End();
 }
 
 void SceneOutlinerUI::renderObjectNode(std::shared_ptr<AGameObject> object, int& nodeIndex)
@@ -166,7 +169,7 @@ void SceneOutlinerUI::renderObjectNode(std::shared_ptr<AGameObject> object, int&
     {
         ImGui::SetDragDropPayload("GAME_OBJECT", &object, sizeof(std::shared_ptr<AGameObject>));
         ImGui::Text("Dragging %s", nodeName.c_str());
-        m_draggedObject = object; 
+        m_draggedObject = object;
         ImGui::EndDragDropSource();
     }
 
@@ -227,7 +230,7 @@ void SceneOutlinerUI::renderObjectNode(std::shared_ptr<AGameObject> object, int&
 
     ImGui::PopID();
 
-    
+
 }
 
 std::string SceneOutlinerUI::getObjectDisplayName(std::shared_ptr<AGameObject> object, int index)

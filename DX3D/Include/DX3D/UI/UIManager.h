@@ -30,8 +30,8 @@ namespace dx3d
             SelectionSystem& selectionSystem;
             SceneStateManager& sceneStateManager;
             ViewportManager& viewportManager;
-            std::vector<std::shared_ptr<AGameObject>>& gameObjects;
 
+            std::vector<std::shared_ptr<AGameObject>>& gameObjects;
             std::function<std::vector<std::string>()> getSavedSceneFiles;
             std::function<void(const std::string&)> onLoadScene;
             std::vector<std::shared_ptr<LightObject>>& lights;

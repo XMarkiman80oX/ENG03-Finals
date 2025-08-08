@@ -19,9 +19,12 @@ SceneControlsUI::SceneControlsUI(
 
 void SceneControlsUI::render()
 {
-    ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x * 0.5f, 20));
-    ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x * 0.5f, 100));
-    ImGui::Begin("Scene Controls", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+    ImGuiIO& io = ImGui::GetIO();
+    float windowWidth = io.DisplaySize.x;
+
+    ImGui::SetNextWindowPos(ImVec2(0, 20)); 
+    ImGui::SetNextWindowSize(ImVec2(windowWidth, 50));
+    ImGui::Begin("Scene Controls", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
     const char* stateText = "";
     switch (m_sceneStateManager.getCurrentState())

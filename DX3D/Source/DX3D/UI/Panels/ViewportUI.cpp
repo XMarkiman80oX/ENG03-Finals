@@ -15,10 +15,13 @@ void ViewportUI::renderGameView()
     ImGuiIO& io = ImGui::GetIO();
     float windowWidth = io.DisplaySize.x;
     float windowHeight = io.DisplaySize.y;
-    float halfWidth = windowWidth * 0.5f;
-    float halfHeight = windowHeight * 0.5f;
+    float leftPanelWidth = windowWidth / 4.0f;
+    float topBarHeight = 70; // Height of the menu and scene controls
+    float viewportWidth = (windowWidth - leftPanelWidth) / 2.0f; // Divide remaining width by 2
 
-    renderViewport(ViewportType::Game, "Game View", Vector2(0, 20), Vector2(halfWidth, halfHeight - 20));
+    renderViewport(ViewportType::Game, "Game View",
+        Vector2(leftPanelWidth, topBarHeight),
+        Vector2(viewportWidth, windowHeight - topBarHeight));
 }
 
 void ViewportUI::renderSceneView()
@@ -26,17 +29,23 @@ void ViewportUI::renderSceneView()
     ImGuiIO& io = ImGui::GetIO();
     float windowWidth = io.DisplaySize.x;
     float windowHeight = io.DisplaySize.y;
-    float halfWidth = windowWidth * 0.5f;
-    float halfHeight = windowHeight * 0.5f;
+    float leftPanelWidth = windowWidth / 4.0f;
+    float topBarHeight = 70; // Height of the menu and scene controls
+    float viewportWidth = (windowWidth - leftPanelWidth) / 2.0f; // Divide remaining width by 2
+    float gameViewX_End = leftPanelWidth + viewportWidth;
 
-    renderViewport(ViewportType::Scene, "Scene View", Vector2(0, halfHeight), Vector2(halfWidth, halfHeight));
+    renderViewport(ViewportType::Scene, "Scene View",
+        Vector2(gameViewX_End, topBarHeight),
+        Vector2(viewportWidth, windowHeight - topBarHeight));
 }
 
 void ViewportUI::renderViewport(ViewportType type, const char* title, const Vector2& position, const Vector2& size)
 {
     ImGui::SetNextWindowPos(ImVec2(position.x, position.y));
     ImGui::SetNextWindowSize(ImVec2(size.x, size.y));
-    ImGui::Begin(title, nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+
+    // Add the ImGuiWindowFlags_NoBringToFrontOnFocus flag here
+    ImGui::Begin(title, nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
 
     ImVec2 viewportSize = ImGui::GetContentRegionAvail();
     if (viewportSize.x > 0 && viewportSize.y > 0)

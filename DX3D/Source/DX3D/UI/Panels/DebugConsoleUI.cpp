@@ -14,14 +14,26 @@ void DebugConsoleUI::render()
     ImGuiIO& io = ImGui::GetIO();
     float windowWidth = io.DisplaySize.x;
     float windowHeight = io.DisplaySize.y;
-    float halfWidth = windowWidth * 0.5f;
-    float halfHeight = windowHeight * 0.5f;
-    float debugHeight = halfHeight * 0.4f;
+    float leftPanelWidth = windowWidth / 4.0f;
+    float topOffset = 170;
+    float spacing = 20.0f;
+    float panelHeight = (windowHeight - topOffset - spacing) / 2.0f;
+    float inspectorEndY = topOffset + panelHeight;
 
-    ImGui::SetNextWindowPos(ImVec2(halfWidth, windowHeight - debugHeight));
-    ImGui::SetNextWindowSize(ImVec2(halfWidth, debugHeight));
+    // Change the condition to ImGuiCond_FirstUseEver.
+    // This sets the default position only if no .ini file exists.
+    ImGui::SetNextWindowPos(ImVec2(0, inspectorEndY + spacing), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(leftPanelWidth, panelHeight), ImGuiCond_FirstUseEver);
 
-    ImGui::Begin("Debug Console", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+    // The rest of the code remains the same...
+    ImGui::Begin("Debug Console", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+
+    ImVec2 currentPos = ImGui::GetWindowPos();
+    if (currentPos.x != 0.0f)
+    {
+        ImGui::SetWindowPos(ImVec2(0.0f, currentPos.y));
+    }
+
 
     auto logEntries = m_logger.getRecentLogs(100);
 

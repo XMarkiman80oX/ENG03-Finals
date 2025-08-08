@@ -33,16 +33,14 @@ void InspectorUI::render()
     ImGuiIO& io = ImGui::GetIO();
     float windowWidth = io.DisplaySize.x;
     float windowHeight = io.DisplaySize.y;
-    float halfWidth = windowWidth * 0.5f;
-    float halfHeight = windowHeight * 0.5f;
+    float leftPanelWidth = windowWidth / 4.0f;
+    float topOffset = 170; // 70 for top bars + 100 for stats panel
+    float panelHeight = (windowHeight - topOffset) / 1.5f;
 
-
-    float inspectorHeight = halfHeight * 0.60f;
-    float inspectorY = halfHeight + (halfHeight * 0.03f);
-
-    ImGui::SetNextWindowPos(ImVec2(halfWidth, inspectorY));
-    ImGui::SetNextWindowSize(ImVec2(halfWidth, inspectorHeight));
+    ImGui::SetNextWindowPos(ImVec2(0, topOffset));
+    ImGui::SetNextWindowSize(ImVec2(leftPanelWidth, panelHeight));
     ImGui::Begin("Inspector", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+
 
     auto selectedObject = m_selectionSystem.getSelectedObject();
     if (!selectedObject)
@@ -83,7 +81,6 @@ void InspectorUI::render()
 
 void InspectorUI::renderObjectInfo(std::shared_ptr<AGameObject> object)
 {
-    ImGui::Text("Object Info");
     ImGui::Text("Type: %s", object->getObjectType().c_str());
     ImGui::Text("Entity ID: %u", object->getEntity().getID());
 
@@ -103,7 +100,7 @@ void InspectorUI::renderMaterialSection(std::shared_ptr<AGameObject> object)
     if (std::dynamic_pointer_cast<LightObject>(object) ||
         std::dynamic_pointer_cast<CameraObject>(object))
     {
-        ImGui::Text("Materials not applicable to this object type");
+        ImGui::Text("Object Type Does Not Support Materials");
         return;
     }
 

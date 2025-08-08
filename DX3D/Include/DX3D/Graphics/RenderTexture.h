@@ -19,6 +19,9 @@ namespace dx3d
         ID3D11RenderTargetView* getRenderTargetView() const { return m_renderTargetView.Get(); }
         ID3D11DepthStencilView* getDepthStencilView() const { return m_depthStencilView.Get(); }
 
+		ui32 getWidth() const { return m_width; }   
+		ui32 getHeight() const { return m_height; }   
+
     private:
         void createResources(ui32 width, ui32 height);
         void releaseResources();

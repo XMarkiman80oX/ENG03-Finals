@@ -22,6 +22,7 @@ namespace dx3d
         );
 
         void render(float deltaTime);
+        void renderHierarchyWindow();
 
     private:
         void renderHierarchy();

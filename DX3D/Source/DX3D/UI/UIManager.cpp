@@ -80,17 +80,18 @@ void UIManager::render(float deltaTime, const SpawnCallbacks& callbacks)
         m_isLoadScenePopupOpen = true; // Set the flag to open the popup
         };
 
-
     m_mainMenuBar->render(menuCallbacks);
+    m_sceneControls->render();
     m_viewport->renderGameView();
     m_viewport->renderSceneView();
-    m_sceneControls->render();
     m_sceneOutliner->render(deltaTime);
     m_inspector->render();
     m_debugConsole->render();
+    m_sceneOutliner->renderHierarchyWindow();
 
-    // Render our new popup if it's supposed to be open
+    // --- Add this line back ---
     renderLoadScenePopup();
+    // -------------------------
 }
 
 void UIManager::applyLayout()

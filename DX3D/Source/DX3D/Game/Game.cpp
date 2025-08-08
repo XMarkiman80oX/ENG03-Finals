@@ -694,20 +694,22 @@ void dx3d::Game::saveScene()
 
         sceneJson["gameObjects"] = json::array();
 
+        sceneJson["gameObjects"] = json::array();
+
         if (!this->m_gameObjects.empty()) {
             for (const auto& go : m_gameObjects)
             {
                 json goJson;
-                // Determine object type
                 if (auto model = std::dynamic_pointer_cast<Model>(go))
                 {
                     goJson["type"] = "Model";
                     goJson["filePath"] = model->getFilePath();
                 }
                 else
+                {
                     goJson["type"] = go->getObjectType();
+                }
 
-                // Save transform
                 goJson["position"] = { {"x", go->getPosition().x}, {"y", go->getPosition().y}, {"z", go->getPosition().z} };
                 goJson["rotation"] = { {"x", go->getRotation().x}, {"y", go->getRotation().y}, {"z", go->getRotation().z} };
                 goJson["scale"] = { {"x", go->getScale().x}, {"y", go->getScale().y}, {"z", go->getScale().z} };
@@ -782,11 +784,11 @@ void dx3d::Game::saveScene()
 
         std::ofstream o(fullPath);
         o << std::setw(4) << sceneJson << std::endl;
-        DX3DLogInfo(("Scene saved to " + filename).c_str());
+        DX3DLogInfo(("Scene exported to " + fullPath.string()).c_str());
     }
     catch (const fs::filesystem_error& e)
     {
-        DX3DLogError(("Filesystem error: " + std::string(e.what())).c_str());
+        DX3DLogError(("Filesystem error during export: " + std::string(e.what())).c_str());
     }
 }
 
@@ -844,7 +846,7 @@ void dx3d::Game::updatePhysics(float deltaTime)
     }
 }
 
-void dx3d::Game::renderScene(SceneCamera& camera, const Matrix4x4& projMatrix, RenderTexture* renderTarget)
+void dx3d::Game::renderScene(SceneCamera& camera, RenderTexture* renderTarget)
 {
     auto& renderSystem = m_graphicsEngine->getRenderSystem();
     auto& deviceContext = renderSystem.getDeviceContext();
@@ -872,19 +874,33 @@ void dx3d::Game::renderScene(SceneCamera& camera, const Matrix4x4& projMatrix, R
 
     if (renderTarget)
     {
-        renderTarget->clear(deviceContext, 0.1f, 0.1f, 0.2f, 1.0f);
+        renderTarget->clear(deviceContext, 0.204f, 0.204f, 0.204f, 1.0f);
         renderTarget->setAsRenderTarget(deviceContext);
     }
     else
     {
         auto& swapChain = m_display->getSwapChain();
-        deviceContext.clearRenderTargetColor(swapChain, 0.1f, 0.1f, 0.2f, 1.0f);
+        deviceContext.clearRenderTargetColor(swapChain, 0.204f, 0.204f, 0.204f, 1.0f);
         deviceContext.clearDepthBuffer(*m_depthBuffer);
         deviceContext.setRenderTargetsWithDepth(swapChain, *m_depthBuffer);
     }
 
-    ui32 viewportWidth = renderTarget ? 640 : m_display->getSize().width;
-    ui32 viewportHeight = renderTarget ? 480 : m_display->getSize().height;
+    ui32 viewportWidth = renderTarget ? renderTarget->getWidth() : m_display->getSize().width;
+    ui32 viewportHeight = renderTarget ? renderTarget->getHeight() : m_display->getSize().height;
+
+    Matrix4x4 projMatrix;
+    if (viewportHeight > 0)
+    {
+        float aspectRatio = static_cast<float>(viewportWidth) / static_cast<float>(viewportHeight);
+        if (&camera == m_sceneCamera.get())
+        {
+            projMatrix = Matrix4x4::CreatePerspectiveFovLH(1.0472f, aspectRatio, 0.1f, 100.0f);
+        }
+        else if (auto gameCamObject = std::dynamic_pointer_cast<CameraObject>(m_gameCamera))
+        {
+            projMatrix = gameCamObject->getProjectionMatrix(aspectRatio);
+        }
+    }
     deviceContext.setViewportSize(viewportWidth, viewportHeight);
 
     ID3D11Buffer* transformCb = m_transformConstantBuffer->getBuffer();
@@ -1051,7 +1067,7 @@ void dx3d::Game::renderScene(SceneCamera& camera, const Matrix4x4& projMatrix, R
             TransformationMatrices transformMatrices;
             transformMatrices.world = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(gameObject->getWorldMatrix().toXMMatrix()));
             transformMatrices.view = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(camera.getViewMatrix().toXMMatrix()));
-            transformMatrices.projection = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(projMatrix.toXMMatrix()));
+            transformMatrices.projection = Matrix4x4::fromXMMatrix(DirectX::XMMatrixTranspose(projMatrix.toXMMatrix())); // Use the new projMatrix
             m_transformConstantBuffer->update(deviceContext, &transformMatrices);
 
             deviceContext.drawIndexed(indexCount, 0, 0);
@@ -1250,15 +1266,12 @@ void dx3d::Game::render()
     auto& sceneViewport = m_viewportManager->getViewport(ViewportType::Scene);
     auto& gameViewport = m_viewportManager->getViewport(ViewportType::Game);
 
-    float aspectRatio = static_cast<float>(sceneViewport.width) / static_cast<float>(sceneViewport.height);
-    Matrix4x4 sceneProjMatrix = Matrix4x4::CreatePerspectiveFovLH(1.0472f, aspectRatio, 0.1f, 100.0f);
-    renderScene(*m_sceneCamera, sceneProjMatrix, sceneViewport.renderTexture.get());
+    // --- REMOVED projection matrix calculation from here ---
+    renderScene(*m_sceneCamera, sceneViewport.renderTexture.get());
+    renderScene(m_gameCamera->getCamera(), gameViewport.renderTexture.get());
+    // -----------------------------------------------------
 
-    aspectRatio = static_cast<float>(gameViewport.width) / static_cast<float>(gameViewport.height);
-    Matrix4x4 gameProjMatrix = m_gameCamera->getProjectionMatrix(aspectRatio);
-    renderScene(m_gameCamera->getCamera(), gameProjMatrix, gameViewport.renderTexture.get());
-
-    deviceContext.clearRenderTargetColor(swapChain, 0.1f, 0.1f, 0.1f, 1.0f);
+    deviceContext.clearRenderTargetColor(swapChain, 0.204f, 0.204f, 0.204f, 1.0f);
     deviceContext.clearDepthBuffer(*m_depthBuffer);
     deviceContext.setRenderTargetsWithDepth(swapChain, *m_depthBuffer);
     deviceContext.setViewportSize(m_display->getSize().width, m_display->getSize().height);
