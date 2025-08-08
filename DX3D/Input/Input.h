@@ -1,5 +1,5 @@
 #pragma once
-#include <../Core/Core.h>
+#include <../Core/Base.h>
 #include <../Math/Math.h>
 #include <Windows.h>
 #include <unordered_set>
