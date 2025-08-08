@@ -1,6 +1,6 @@
 #pragma once
 #include <../Core/Base.h>
-#include <../Core/Core.h>
+#include <../Core/Forward.h>
 #include <../Math/Math.h>
 #include <../Scene/Scene.h>
 #include <chrono>

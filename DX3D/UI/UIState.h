@@ -1,5 +1,5 @@
 #pragma once
-#include <../Core/Core.h>
+#include <../Core/Forward.h>
 #include <imgui.h>
 
 namespace dx3d
