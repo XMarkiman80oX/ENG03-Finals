@@ -1,4 +1,4 @@
-#include <DX3D/All.h>
+#include <../All.h>
 
 
 int main()
