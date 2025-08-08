@@ -5,7 +5,7 @@
 
 namespace dx3d
 {
-    class Logger;
+    class EventLog;
     class Game;
 
     class GraphicsEngine;
@@ -38,7 +38,7 @@ namespace dx3d
     {
     public:
         explicit Core(const BaseDesc& desc);
-        virtual Logger& getLoggerInstance() const noexcept final;
+        virtual EventLog& getLoggerInstance() const noexcept final;
         virtual ~Core();
 
     protected:
@@ -48,6 +48,6 @@ namespace dx3d
         Core& operator=(Core&&) = delete;
 
     protected:
-        Logger& m_loggerInstance;
+        EventLog& m_loggerInstance;
     };
 }

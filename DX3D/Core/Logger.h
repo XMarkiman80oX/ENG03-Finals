@@ -12,45 +12,46 @@ namespace dx3d
 			Error = 0,
 			Warning,
 			Info
-		} level;
-		std::string message;
-		std::string timestamp;
+		} severity;
+		std::string text;
+		std::string time;
 	};
 
-	class Logger final
+	class EventLog final
 	{
 	public:
-		enum class LogLevel
+		enum class LogStatus
 		{
 			Error = 0,
 			Warning,
 			Info
 		};
 
-		explicit Logger(LogLevel logLevel = LogLevel::Error);
-		void log(LogLevel level, const char* message) const;
+	private:
+		LogStatus m_level = LogStatus::Error;
+		mutable std::vector<LogEntry> m_entries;
+		mutable std::mutex m_mutex;
+		static constexpr size_t MAX_ENTRIES = 1000;
 
-		std::vector<LogEntry> getRecentLogs(size_t maxCount = 1000) const;
-		void clearLogs();
+	public:
+		explicit EventLog(LogStatus logLevel = LogStatus::Error);
+
+		void log(LogStatus level, const char* message) const;
+		void purgeLogs();
+		std::vector<LogEntry> fetchRecentLogs(size_t maxCount = 1000) const;
 
 	private:
-		std::string getCurrentTimestamp() const;
-
-	private:
-		LogLevel m_logLevel = LogLevel::Error;
-		mutable std::vector<LogEntry> m_logEntries;
-		mutable std::mutex m_logMutex;
-		static constexpr size_t MAX_LOG_ENTRIES = 1000;
+		std::string generateTimestamp() const;
 	};
 
 #define DX3DLogInfo(message)\
-	getLoggerInstance().log((Logger::LogLevel::Info), message);
+	getLoggerInstance().log((EventLog::LogStatus::Info), message);
 
 #define DX3DLogWarning(message)\
-	getLoggerInstance().log((Logger::LogLevel::Warning), message);
+	getLoggerInstance().log((EventLog::LogStatus::Warning), message);
 
 #define DX3DLogError(message)\
-	getLoggerInstance().log((Logger::LogLevel::Error), message);
+	getLoggerInstance().log((EventLog::LogStatus::Error), message);
 
 #define DX3DLogErrorAndThrow(message)\
 	{\

@@ -93,7 +93,7 @@ class PhysicsCommon {
         Set<HeightField*> mHeightFields;
 
         /// Pointer to the current logger
-        static Logger* mLogger;
+        static EventLog* mLogger;
 
         /// Set of profilers
         Set<Profiler*> mProfilers;
@@ -251,10 +251,10 @@ class PhysicsCommon {
         void destroyDefaultLogger(DefaultLogger* logger);
 
         /// Return the current logger
-        static Logger* getLoggerInstance();
+        static EventLog* getLoggerInstance();
 
         /// Set the logger
-        static void setLogger(Logger* logger);
+        static void setLogger(EventLog* logger);
 
 
         // ---------- Friendship ---------- //
@@ -268,7 +268,7 @@ class PhysicsCommon {
 /**
  * @return A pointer to the current logger
  */
-RP3D_FORCE_INLINE Logger* PhysicsCommon::getLoggerInstance() {
+RP3D_FORCE_INLINE EventLog* PhysicsCommon::getLoggerInstance() {
     return mLogger;
 }
 
@@ -276,7 +276,7 @@ RP3D_FORCE_INLINE Logger* PhysicsCommon::getLoggerInstance() {
 /**
  * @param logger A pointer to the logger to use
  */
-RP3D_FORCE_INLINE void PhysicsCommon::setLogger(Logger* logger) {
+RP3D_FORCE_INLINE void PhysicsCommon::setLogger(EventLog* logger) {
     mLogger = logger;
 }
 

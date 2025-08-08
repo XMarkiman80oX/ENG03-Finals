@@ -2,16 +2,16 @@
 
 namespace dx3d
 {
-    class Logger;
+    class EventLog;
 
     class DebugConsoleUI
     {
     public:
-        explicit DebugConsoleUI(Logger& logger);
+        explicit DebugConsoleUI(EventLog& logger);
 
         void render();
 
     private:
-        Logger& m_loggerInstance;
+        EventLog& m_loggerInstance;
     };
 }

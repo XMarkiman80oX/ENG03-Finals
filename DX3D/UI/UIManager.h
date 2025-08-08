@@ -5,7 +5,7 @@
 
 namespace dx3d
 {
-    class Logger;
+    class EventLog;
     class UndoRedoSystem;
     class SelectionSystem;
     class SceneStateManager;
@@ -25,7 +25,7 @@ namespace dx3d
     public:
         struct Dependencies
         {
-            Logger& logger;
+            EventLog& logger;
             UndoRedoSystem& undoRedoSystem;
             SelectionSystem& selectionSystem;
             SceneStateManager& sceneStateManager;

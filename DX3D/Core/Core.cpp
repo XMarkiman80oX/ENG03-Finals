@@ -5,7 +5,7 @@ dx3d::Core::Core(const BaseDesc& desc) : m_loggerInstance(desc.logger)
 {
 }
 
-Logger& dx3d::Core::getLoggerInstance() const noexcept
+EventLog& dx3d::Core::getLoggerInstance() const noexcept
 {
 	return m_loggerInstance;
 }

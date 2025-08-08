@@ -4,7 +4,7 @@
 
 using namespace dx3d;
 
-DebugConsoleUI::DebugConsoleUI(Logger& logger)
+DebugConsoleUI::DebugConsoleUI(EventLog& logger)
     : m_loggerInstance(logger)
 {
 }
@@ -35,11 +35,11 @@ void DebugConsoleUI::render()
     }
 
 
-    auto logEntries = m_loggerInstance.getRecentLogs(100);
+    auto logEntries = m_loggerInstance.fetchRecentLogs(100);
 
     if (ImGui::Button("Clear Logs"))
     {
-        m_loggerInstance.clearLogs();
+        m_loggerInstance.purgeLogs();
     }
 
     ImGui::SameLine();
@@ -54,7 +54,7 @@ void DebugConsoleUI::render()
         ImVec4 color;
         const char* levelText;
 
-        switch (entry.level)
+        switch (entry.severity)
         {
         case LogEntry::Level::Error:
             color = ImVec4(1.0f, 0.4f, 0.4f, 1.0f);
@@ -75,7 +75,7 @@ void DebugConsoleUI::render()
         }
 
         ImGui::PushStyleColor(ImGuiCol_Text, color);
-        ImGui::Text("%s %s %s", entry.timestamp.c_str(), levelText, entry.message.c_str());
+        ImGui::Text("%s %s %s", entry.time.c_str(), levelText, entry.text.c_str());
         ImGui::PopStyleColor();
     }
 

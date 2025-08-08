@@ -40,7 +40,7 @@ namespace reactphysics3d {
  * This abstract class is the base class used to log information, warnings or errors during the execution of the
  * library code for easier debugging.
  */
-class Logger {
+class EventLog {
 
     public:
 
@@ -83,10 +83,10 @@ class Logger {
         // -------------------- Methods -------------------- //
 
         /// Constructor
-        Logger() = default;
+        EventLog() = default;
 
         /// Destructor
-        virtual ~Logger() = default;
+        virtual ~EventLog() = default;
 
         /// Log something
         virtual void log(Level level, const std::string& physicsWorldName, Category category, const std::string& message, const char* filename, int lineNumber)=0;

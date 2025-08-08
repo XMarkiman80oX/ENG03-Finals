@@ -43,7 +43,7 @@ class PhysicsWorld;
 struct RaycastInfo;
 class DefaultPoolAllocator;
 class Profiler;
-class Logger;
+class EventLog;
 
 // Class Body
 /**

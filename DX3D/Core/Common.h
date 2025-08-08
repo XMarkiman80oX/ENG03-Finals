@@ -7,7 +7,7 @@ namespace dx3d
 {
 	struct BaseDesc
 	{
-		Logger& logger;
+		EventLog& logger;
 	};
 
 	struct WindowDesc
@@ -42,6 +42,6 @@ namespace dx3d
 	struct GameDesc
 	{
 		Rect windowSize{ 2560,720 };
-		Logger::LogLevel logLevel = Logger::LogLevel::Error;
+		EventLog::LogStatus logLevel = EventLog::LogStatus::Error;
 	};
 }

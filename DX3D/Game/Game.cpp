@@ -64,7 +64,7 @@ using json = nlohmann::json;
 namespace fs = std::filesystem;
 
 dx3d::Game::Game(const GameDesc& desc) :
-    Core({ *std::make_unique<Logger>(desc.logLevel).release() }),
+    Core({ *std::make_unique<EventLog>(desc.logLevel).release() }),
     m_loggerPtr(&m_loggerInstance)
 {
     m_graphicsEngine = std::make_unique<GraphicsEngine>(GraphicsEngineDesc{ m_loggerInstance });

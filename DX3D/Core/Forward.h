@@ -13,7 +13,7 @@ namespace dx3d
     // Core Systems
     class Core;
     class Game;
-    class Logger;
+    class EventLog;
     class SelectionSystem;
     class ViewportManager;
 
