@@ -5,25 +5,27 @@
 namespace dx3d
 {
     class Base;
-    class Window;
+    class Logger;
     class Game;
+
     class GraphicsEngine;
     class RenderSystem;
-    class Logger;
     class SwapChain;
     class Display;
+
     class VertexBuffer;
     class IndexBuffer;
     class ConstantBuffer;
     class DepthBuffer;
     class RenderTexture;
+    class Window;
 
     class AGameObject;
+    class CameraObject;
+    class SelectionSystem;
+    class ViewportManager;
     class Cube;
     class Plane;
-    class CameraObject;
-    class ViewportManager;
-    class SelectionSystem;
 
     using i32 = int;
     using ui32 = unsigned int;
