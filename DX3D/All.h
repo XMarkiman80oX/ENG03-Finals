@@ -21,7 +21,7 @@
 #include "Graphics/Mesh.h"
 #include "Graphics/Primitives/Model.h"
 #include "Graphics/ResourceManager.h"
-#include "Assets/ModelLoader.h"
+#include "Assets/ModelParser.h"
 #include "Assets/AssetManager.h"
 
 #include "Graphics/Shaders/ModelShader.h"

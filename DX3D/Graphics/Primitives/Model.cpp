@@ -1,7 +1,7 @@
 // In Model.cpp - Add the missing implementation
 
 #include <../Graphics/Primitives/Model.h>
-#include <../Assets/ModelLoader.h>
+#include <../Assets/ModelParser.h>
 #include <algorithm>
 
 using namespace dx3d;
@@ -76,5 +76,5 @@ std::shared_ptr<Model> Model::LoadFromFile(
     const std::string& filePath,
     const GraphicsResourceDesc& resourceDesc)
 {
-    return ModelLoader::LoadModel(filePath, resourceDesc);
+    return ModelParser::LoadModel(filePath, resourceDesc);
 }

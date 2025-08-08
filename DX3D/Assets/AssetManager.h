@@ -12,53 +12,15 @@ namespace dx3d
     class AssetManager
     {
     public:
-        struct LoadingTask
+        struct AsyncTask
         {
-            std::future<std::shared_ptr<Model>> future;
-            float progress = 0.0f;
-            bool isComplete = false;
-            bool hasError = false;
-            std::string errorMessage;
-            std::string filePath;
+            std::future<std::shared_ptr<Model>> futureResult;
+            float percentComplete = 0.0f;
+            bool isFinished = false;
+            bool hasFailed = false;
+            std::string errorDetails;
+            std::string resourcePath;
         };
-
-        static AssetManager& getInstance()
-        {
-            static AssetManager instance;
-            return instance;
-        }
-
-        // Synchronous loading
-        std::shared_ptr<Model> loadModelSync(
-            const std::string& filePath,
-            const GraphicsResourceDesc& resourceDesc
-        );
-
-        // Asynchronous loading
-        std::string loadModelAsync(
-            const std::string& filePath,
-            const GraphicsResourceDesc& resourceDesc
-        );
-
-        // Check loading progress
-        bool isLoadingComplete(const std::string& taskId);
-        float getLoadingProgress(const std::string& taskId);
-        std::shared_ptr<Model> getLoadedModel(const std::string& taskId);
-        bool hasLoadingError(const std::string& taskId);
-        std::string getLoadingError(const std::string& taskId);
-
-        // Cleanup completed tasks
-        void cleanupTask(const std::string& taskId);
-        void cleanupCompletedTasks();
-
-        // Model caching
-        void cacheModel(const std::string& filePath, std::shared_ptr<Model> model);
-        std::shared_ptr<Model> getCachedModel(const std::string& filePath);
-        bool isModelCached(const std::string& filePath);
-        void clearCache();
-
-        // Update method (call from main thread)
-        void update();
 
     private:
         AssetManager() = default;
@@ -66,21 +28,51 @@ namespace dx3d
         AssetManager(const AssetManager&) = delete;
         AssetManager& operator=(const AssetManager&) = delete;
 
-        // Generate unique task ID
-        std::string generateTaskId();
+        std::string createUniqueTaskId();
 
-        // Async loading worker
-        static std::shared_ptr<Model> loadModelWorker(
-            const std::string& filePath,
-            GraphicsResourceDesc resourceDesc,
-            std::shared_ptr<std::atomic<float>> progressPtr
+        static std::shared_ptr<Model> modelLoadingWorker(
+            const std::string& path,
+            GraphicsResourceDesc resDesc,
+            std::shared_ptr<std::atomic<float>> progress
         );
 
     private:
-        std::unordered_map<std::string, LoadingTask> m_loadingTasks;
-        std::unordered_map<std::string, std::shared_ptr<Model>> m_modelCache;
-        std::mutex m_tasksMutex;
-        std::mutex m_cacheMutex;
-        std::atomic<uint32_t> m_taskCounter{ 0 };
+        std::mutex m_resourceMutex;
+        std::mutex m_taskRegistryMutex;
+        std::unordered_map<std::string, std::shared_ptr<Model>> m_assetRegistry;
+        std::unordered_map<std::string, AsyncTask> m_asyncTaskRegistry;
+        std::atomic<uint32_t> m_taskIdCounter{ 0 };
+
+        static AssetManager& getInstance()
+        {
+            static AssetManager instance;
+            return instance;
+        }
+
+        void update();
+
+        std::shared_ptr<Model> loadModelSync(
+            const std::string& path,
+            const GraphicsResourceDesc& resDesc
+        );
+
+        std::string loadModelAsync(
+            const std::string& path,
+            const GraphicsResourceDesc& resDesc
+        );
+
+        float getLoadingProgress(const std::string& id);
+        bool isLoadingComplete(const std::string& id);
+        std::string getLoadingError(const std::string& id);
+        bool hasLoadingError(const std::string& id);
+        std::shared_ptr<Model> getLoadedModel(const std::string& id);
+
+        void cleanupTask(const std::string& id);
+        void cleanupCompletedTasks();
+
+        void cacheModel(const std::string& path, std::shared_ptr<Model> asset);
+        std::shared_ptr<Model> getCachedModel(const std::string& path);
+        void clearCache();
+        bool isModelCached(const std::string& path);
     };
 }

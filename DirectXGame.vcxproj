@@ -137,6 +137,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DX3D\Assets\ModelParser.cpp" />
     <ClCompile Include="DX3D\Game\FPSCameraController.cpp" />
     <ClCompile Include="DX3D\Game\UndoRedoSystem.cpp" />
     <ClCompile Include="DX3D\Graphics\Material.cpp" />
@@ -145,7 +146,6 @@
     <ClCompile Include="DX3D\Graphics\ShadowMap.cpp" />
     <ClCompile Include="DX3D\Physics\PhysicsSystem.cpp" />
     <ClCompile Include="DX3D\Assets\AssetManager.cpp" />
-    <ClCompile Include="DX3D\Assets\ModelLoader.cpp" />
     <ClCompile Include="DX3D\Game\SceneCamera.cpp" />
     <ClCompile Include="DX3D\Game\SelectionSystem.cpp" />
     <ClCompile Include="DX3D\Game\ViewportManager.cpp" />
@@ -201,11 +201,11 @@
     <ClCompile Include="imgui\imgui_impl_dx11.cpp" />
     <ClCompile Include="imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="imgui\imgui_widgets.cpp" />
-</ItemGroup>
+  </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DX3D\All.h" />
     <ClInclude Include="DX3D\Assets\AssetManager.h" />
-    <ClInclude Include="DX3D\Assets\ModelLoader.h" />
+    <ClInclude Include="DX3D\Assets\ModelParser.h" />
     <ClInclude Include="DX3D\Assets\tiny_obj_loader.h" />
     <ClInclude Include="DX3D\Core\Base.h" />
     <ClInclude Include="DX3D\Core\Common.h" />

@@ -36,7 +36,7 @@
 #include <../Graphics/Primitives/Capsule.h>
 #include <../Graphics/Primitives/Cylinder.h>
 #include <../Graphics/Primitives/Model.h>
-#include <../Assets/ModelLoader.h>
+#include <../Assets/ModelParser.h>
 
 #include <../ECS/ComponentManager.h>
 #include <../ECS/Components/TransformComponent.h>
