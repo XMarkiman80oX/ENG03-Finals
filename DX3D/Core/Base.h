@@ -1,15 +1,14 @@
 #pragma once
 #include "../Core/Common.h"
 
-
 namespace dx3d
 {
 	class Base
 	{
 	public:
 		explicit Base(const BaseDesc& desc);
+		virtual Logger& getLoggerInstance() const noexcept final;
 		virtual ~Base();
-		virtual Logger& getLogger() const noexcept final;
 
 	protected:
 		Base(const Base&) = delete;
@@ -18,7 +17,6 @@ namespace dx3d
 		Base& operator=(Base&&) = delete;
 
 	protected:
-		Logger& m_logger;
+		Logger& m_loggerInstance;
 	};
 }
-

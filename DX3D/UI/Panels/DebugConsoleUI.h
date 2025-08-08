@@ -12,6 +12,6 @@ namespace dx3d
         void render();
 
     private:
-        Logger& m_logger;
+        Logger& m_loggerInstance;
     };
 }

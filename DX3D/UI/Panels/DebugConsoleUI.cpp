@@ -5,7 +5,7 @@
 using namespace dx3d;
 
 DebugConsoleUI::DebugConsoleUI(Logger& logger)
-    : m_logger(logger)
+    : m_loggerInstance(logger)
 {
 }
 
@@ -35,11 +35,11 @@ void DebugConsoleUI::render()
     }
 
 
-    auto logEntries = m_logger.getRecentLogs(100);
+    auto logEntries = m_loggerInstance.getRecentLogs(100);
 
     if (ImGui::Button("Clear Logs"))
     {
-        m_logger.clearLogs();
+        m_loggerInstance.clearLogs();
     }
 
     ImGui::SameLine();

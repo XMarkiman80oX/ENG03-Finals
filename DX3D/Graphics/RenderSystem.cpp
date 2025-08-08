@@ -53,12 +53,12 @@ SwapChainPtr dx3d::RenderSystem::createSwapChain(const SwapChainDesc& desc) cons
 
 GraphicsResourceDesc dx3d::RenderSystem::getGraphicsResourceDescForInit() const noexcept
 {
-    return { {m_logger}, nullptr, *m_d3dDevice.Get(), *m_dxgiFactory.Get() };
+    return { {m_loggerInstance}, nullptr, *m_d3dDevice.Get(), *m_dxgiFactory.Get() };
 }
 
 GraphicsResourceDesc dx3d::RenderSystem::getGraphicsResourceDesc() const noexcept
 {
-    return { {m_logger}, shared_from_this(), *m_d3dDevice.Get(), *m_dxgiFactory.Get() };
+    return { {m_loggerInstance}, shared_from_this(), *m_d3dDevice.Get(), *m_dxgiFactory.Get() };
 }
 
 DeviceContext& dx3d::RenderSystem::getDeviceContext() const noexcept

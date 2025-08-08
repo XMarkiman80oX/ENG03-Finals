@@ -65,10 +65,10 @@ namespace fs = std::filesystem;
 
 dx3d::Game::Game(const GameDesc& desc) :
     Base({ *std::make_unique<Logger>(desc.logLevel).release() }),
-    m_loggerPtr(&m_logger)
+    m_loggerPtr(&m_loggerInstance)
 {
-    m_graphicsEngine = std::make_unique<GraphicsEngine>(GraphicsEngineDesc{ m_logger });
-    m_display = std::make_unique<Display>(DisplayDesc{ {m_logger,desc.windowSize},m_graphicsEngine->getRenderSystem() });
+    m_graphicsEngine = std::make_unique<GraphicsEngine>(GraphicsEngineDesc{ m_loggerInstance });
+    m_display = std::make_unique<Display>(DisplayDesc{ {m_loggerInstance,desc.windowSize},m_graphicsEngine->getRenderSystem() });
 
     m_previousTime = std::chrono::steady_clock::now();
 
@@ -85,7 +85,7 @@ dx3d::Game::Game(const GameDesc& desc) :
         });
 
     UIManager::Dependencies uiDeps{
-     m_logger,
+     m_loggerInstance,
      *m_undoRedoSystem,
      *m_selectionSystem,
      *m_sceneStateManager,

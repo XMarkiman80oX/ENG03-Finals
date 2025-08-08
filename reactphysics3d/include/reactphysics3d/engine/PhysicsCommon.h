@@ -251,7 +251,7 @@ class PhysicsCommon {
         void destroyDefaultLogger(DefaultLogger* logger);
 
         /// Return the current logger
-        static Logger* getLogger();
+        static Logger* getLoggerInstance();
 
         /// Set the logger
         static void setLogger(Logger* logger);
@@ -268,7 +268,7 @@ class PhysicsCommon {
 /**
  * @return A pointer to the current logger
  */
-RP3D_FORCE_INLINE Logger* PhysicsCommon::getLogger() {
+RP3D_FORCE_INLINE Logger* PhysicsCommon::getLoggerInstance() {
     return mLogger;
 }
 
@@ -281,7 +281,7 @@ RP3D_FORCE_INLINE void PhysicsCommon::setLogger(Logger* logger) {
 }
 
 // Use this macro to log something
-#define RP3D_LOG(physicsWorldName, level, category, message, filename, lineNumber) if (reactphysics3d::PhysicsCommon::getLogger() != nullptr) PhysicsCommon::getLogger()->log(level, physicsWorldName, category, message, filename, lineNumber)
+#define RP3D_LOG(physicsWorldName, level, category, message, filename, lineNumber) if (reactphysics3d::PhysicsCommon::getLoggerInstance() != nullptr) PhysicsCommon::getLoggerInstance()->log(level, physicsWorldName, category, message, filename, lineNumber)
 
 }
 
