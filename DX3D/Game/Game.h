@@ -97,7 +97,7 @@ namespace dx3d {
 
 namespace dx3d
 {
-    class Game : public Base
+    class Game : public Core
     {
     public:
         explicit Game(const GameDesc& desc);

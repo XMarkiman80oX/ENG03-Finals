@@ -4,7 +4,7 @@
 
 namespace dx3d
 {
-    class Window : public Base
+    class Window : public Core
     {
     public:
         explicit Window(const WindowDesc& desc);

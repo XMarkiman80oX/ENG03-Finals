@@ -70,7 +70,7 @@ class MemoryManager {
 
         /// Memory allocation types
        enum class AllocationType {
-           Base, 	// Base memory allocator
+           Core, 	// Base memory allocator
            Pool,	// Memory pool allocator
            Heap,	// Memory pool allocator
            Frame,   // Single frame memory allocator
@@ -107,7 +107,7 @@ RP3D_FORCE_INLINE void* MemoryManager::allocate(AllocationType allocationType, s
     void* allocatedMemory = nullptr;
 
     switch (allocationType) {
-       case AllocationType::Base: allocatedMemory = mBaseAllocator->allocate(size); break;
+       case AllocationType::Core: allocatedMemory = mBaseAllocator->allocate(size); break;
        case AllocationType::Pool: allocatedMemory =  mPoolAllocator.allocate(size); break;
        case AllocationType::Heap: allocatedMemory =  mHeapAllocator.allocate(size); break;
        case AllocationType::Frame: allocatedMemory =  mSingleFrameAllocator.allocate(size); break;
@@ -122,7 +122,7 @@ RP3D_FORCE_INLINE void* MemoryManager::allocate(AllocationType allocationType, s
 RP3D_FORCE_INLINE void MemoryManager::release(AllocationType allocationType, void* pointer, size_t size) {
 
     switch (allocationType) {
-       case AllocationType::Base: mBaseAllocator->release(pointer, size); break;
+       case AllocationType::Core: mBaseAllocator->release(pointer, size); break;
        case AllocationType::Pool: mPoolAllocator.release(pointer, size); break;
        case AllocationType::Heap: mHeapAllocator.release(pointer, size); break;
        case AllocationType::Frame: mSingleFrameAllocator.release(pointer, size); break;

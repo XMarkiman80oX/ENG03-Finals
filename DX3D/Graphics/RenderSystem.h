@@ -12,7 +12,7 @@ namespace dx3d
     using SwapChainPtr = std::shared_ptr<SwapChain>;
     using DeviceContextPtr = std::shared_ptr<DeviceContext>;
 
-    class RenderSystem final : public Base, public std::enable_shared_from_this<RenderSystem>
+    class RenderSystem final : public Core, public std::enable_shared_from_this<RenderSystem>
     {
     public:
         explicit RenderSystem(const RenderSystemDesc& desc);

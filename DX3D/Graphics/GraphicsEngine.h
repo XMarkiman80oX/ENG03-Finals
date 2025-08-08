@@ -5,7 +5,7 @@
 
 namespace dx3d
 {
-	class GraphicsEngine final: public Base
+	class GraphicsEngine final: public Core
 	{
 	public:
 		explicit GraphicsEngine(const GraphicsEngineDesc& desc);

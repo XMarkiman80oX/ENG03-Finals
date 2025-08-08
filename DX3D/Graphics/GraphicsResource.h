@@ -16,11 +16,11 @@ namespace dx3d
 		IDXGIFactory& factory;
 	};
 
-	class GraphicsResource : public Base
+	class GraphicsResource : public Core
 	{
 	public:
 		explicit GraphicsResource(const GraphicsResourceDesc& desc) :
-			Base(desc.base),
+			Core(desc.base),
 			m_renderSystem(desc.renderSystem),
 			m_device(desc.device),
 			m_factory(desc.factory) {

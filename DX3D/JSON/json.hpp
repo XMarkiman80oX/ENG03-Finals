@@ -14363,15 +14363,15 @@ create @ref const_reverse_iterator).
 
 @since version 1.0.0
 */
-template<typename Base>
-class json_reverse_iterator : public std::reverse_iterator<Base>
+template<typename Core>
+class json_reverse_iterator : public std::reverse_iterator<Core>
 {
   public:
     using difference_type = std::ptrdiff_t;
     /// shortcut to the reverse iterator adapter
-    using base_iterator = std::reverse_iterator<Base>;
+    using base_iterator = std::reverse_iterator<Core>;
     /// the reference type for the pointed-to element
-    using reference = typename Base::reference;
+    using reference = typename Core::reference;
 
     /// create reverse iterator from iterator
     explicit json_reverse_iterator(const typename base_iterator::iterator_type& it) noexcept
@@ -14435,7 +14435,7 @@ class json_reverse_iterator : public std::reverse_iterator<Base>
     }
 
     /// return the key of an object iterator
-    auto key() const -> decltype(std::declval<Base>().key())
+    auto key() const -> decltype(std::declval<Core>().key())
     {
         auto it = --this->base();
         return it.key();
@@ -20163,7 +20163,7 @@ class basic_json // NOLINT(cppcoreguidelines-special-member-functions,hicpp-spec
     using iter_impl = ::nlohmann::detail::iter_impl<BasicJsonType>;
     template<typename Iterator>
     using iteration_proxy = ::nlohmann::detail::iteration_proxy<Iterator>;
-    template<typename Base> using json_reverse_iterator = ::nlohmann::detail::json_reverse_iterator<Base>;
+    template<typename Core> using json_reverse_iterator = ::nlohmann::detail::json_reverse_iterator<Core>;
 
     template<typename CharType>
     using output_adapter_t = ::nlohmann::detail::output_adapter_t<CharType>;

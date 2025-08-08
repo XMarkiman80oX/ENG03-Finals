@@ -4,7 +4,7 @@
 
 namespace dx3d
 {
-    class Base;
+    class Core;
     class Logger;
     class Game;
 
