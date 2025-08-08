@@ -1,6 +1,6 @@
 #pragma once
 #include "../Core/Forward.h"
-#include "../Core/Logger.h"
+#include "../Core/EventLog.h"
 #include "../Math/Rect.h"
 
 namespace dx3d

@@ -1,5 +1,5 @@
 #pragma once
-#include<../Core/Logger.h>
+#include<../Core/EventLog.h>
 
 
 namespace dx3d

@@ -7,14 +7,14 @@ namespace dx3d
 {
 	struct LogEntry
 	{
+		std::string text;
+		std::string time;
 		enum class Level
 		{
 			Error = 0,
-			Warning,
-			Info
+			Info,
+			Warning
 		} severity;
-		std::string text;
-		std::string time;
 	};
 
 	class EventLog final
@@ -27,21 +27,19 @@ namespace dx3d
 			Info
 		};
 
-	private:
-		LogStatus m_level = LogStatus::Error;
-		mutable std::vector<LogEntry> m_entries;
-		mutable std::mutex m_mutex;
-		static constexpr size_t MAX_ENTRIES = 1000;
-
-	public:
-		explicit EventLog(LogStatus logLevel = LogStatus::Error);
-
-		void log(LogStatus level, const char* message) const;
 		void purgeLogs();
+		explicit EventLog(LogStatus logLevel = LogStatus::Error);
 		std::vector<LogEntry> fetchRecentLogs(size_t maxCount = 1000) const;
+		void log(LogStatus level, const char* message) const;
 
 	private:
 		std::string generateTimestamp() const;
+
+	private:
+		static constexpr size_t MAX_ENTRIES = 1000;
+		mutable std::mutex m_mutex;
+		mutable std::vector<LogEntry> m_entries;
+		LogStatus m_level = LogStatus::Error;
 	};
 
 #define DX3DLogInfo(message)\

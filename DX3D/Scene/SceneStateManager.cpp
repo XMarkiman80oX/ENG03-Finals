@@ -1,7 +1,7 @@
 #include <../Scene/SceneStateManager.h>
 #include <../Graphics/Primitives/AGameObject.h>
 #include <../Physics/PhysicsSystem.h>
-#include <../Core/Logger.h>
+#include <../Core/EventLog.h>
 
 using namespace dx3d;
 

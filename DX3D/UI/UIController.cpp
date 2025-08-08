@@ -1,4 +1,4 @@
-#include <../Core/Logger.h>
+#include <../Core/EventLog.h>
 #include <../Game/SelectionSystem.h>
 #include <../Game/UndoRedoSystem.h>
 #include <../Graphics/Primitives/AGameObject.h>

@@ -189,7 +189,7 @@
     <ClCompile Include="DX3D\Window\Win32\Win32Window.cpp" />
     <ClCompile Include="DX3D\Graphics\GraphicsEngine.cpp" />
     <ClCompile Include="DX3D\Graphics\RenderSystem.cpp" />
-    <ClCompile Include="DX3D\Core\Logger.cpp" />
+    <ClCompile Include="DX3D\Core\EventLog.cpp" />
     <ClCompile Include="DX3D\Graphics\SwapChain.cpp" />
     <ClCompile Include="DX3D\Graphics\VertexBuffer.cpp" />
     <ClCompile Include="DX3D\Graphics\Primitives\Triangle.cpp" />
@@ -210,7 +210,7 @@
     <ClInclude Include="DX3D\Core\Common.h" />
     <ClInclude Include="DX3D\Core\Core.h" />
     <ClInclude Include="DX3D\Core\Forward.h" />
-    <ClInclude Include="DX3D\Core\Logger.h" />
+    <ClInclude Include="DX3D\Core\EventLog.h" />
     <ClInclude Include="DX3D\ECS\ComponentManager.h" />
     <ClInclude Include="DX3D\ECS\Components\MaterialComponent.h" />
     <ClInclude Include="DX3D\ECS\Components\PhysicsComponent.h" />

@@ -1,7 +1,7 @@
 ﻿#include <../Game/Game.h>
 #include <../Window/Window.h>
 #include <../Graphics/GraphicsEngine.h>
-#include <../Core/Logger.h>
+#include <../Core/EventLog.h>
 #include <../Game/Display.h>
 #include <../Game/SceneCamera.h>
 #include <../Input/Input.h>

@@ -3,7 +3,7 @@
 #include <../Game/UndoRedoSystem.h>
 #include <../Game/SelectionSystem.h>
 #include <../Scene/SceneStateManager.h>
-#include <../Core/Logger.h>
+#include <../Core/EventLog.h>
 #include <imgui.h>
 
 using namespace dx3d;

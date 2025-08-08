@@ -2,7 +2,7 @@
 #include <../Graphics/Texture2D.h>
 #include <../Graphics/Material.h>
 #include <../Graphics/GraphicsResource.h>
-#include <../Core/Logger.h>
+#include <../Core/EventLog.h>
 #include <memory>
 #include <unordered_map>
 #include <string>

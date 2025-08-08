@@ -1,5 +1,5 @@
 #include <../UI/Panels/DebugConsoleUI.h>
-#include <../Core/Logger.h>
+#include <../Core/EventLog.h>
 #include <imgui.h>
 
 using namespace dx3d;
@@ -20,12 +20,9 @@ void DebugConsoleUI::render()
     float panelHeight = (windowHeight - topOffset - spacing) / 2.0f;
     float inspectorEndY = topOffset + panelHeight;
 
-    // Change the condition to ImGuiCond_FirstUseEver.
-    // This sets the default position only if no .ini file exists.
     ImGui::SetNextWindowPos(ImVec2(0, inspectorEndY + spacing), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(leftPanelWidth, panelHeight), ImGuiCond_FirstUseEver);
 
-    // The rest of the code remains the same...
     ImGui::Begin("Debug Console", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
     ImVec2 currentPos = ImGui::GetWindowPos();

@@ -1,4 +1,4 @@
-#include "../Core/Logger.h"
+#include "../Core/EventLog.h"
 #include <iostream>
 #include <iomanip>
 #include <sstream>

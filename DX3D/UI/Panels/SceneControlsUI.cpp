@@ -2,7 +2,7 @@
 #include <../UI/UIController.h>
 #include <../Scene/SceneStateManager.h>
 #include <../Game/UndoRedoSystem.h>
-#include <../Core/Logger.h>
+#include <../Core/EventLog.h>
 #include <imgui.h>
 
 using namespace dx3d;
