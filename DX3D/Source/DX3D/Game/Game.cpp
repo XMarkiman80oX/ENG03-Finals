@@ -1283,7 +1283,7 @@ void dx3d::Game::render()
     [this]() { spawnCylinder(); },
     [this]() { spawnPlane(); },
     [this](const std::string& filename) { spawnModel(filename); },
-    [this]() { spawnCubeDemo(); },
+    [this]() { spawnFiftyCubes(); },
 
     [this]() { spawnDirectionalLight(); },
     [this]() { spawnPointLight(); },
@@ -1311,7 +1311,7 @@ void dx3d::Game::alignGameCameraWithView()
     }
 }
 
-void dx3d::Game::spawnCubeDemo()
+void dx3d::Game::spawnFiftyCubes()
 {
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -1319,7 +1319,7 @@ void dx3d::Game::spawnCubeDemo()
     std::uniform_real_distribution<float> posZ(1.0f, 5.0f);
     std::uniform_real_distribution<float> posY(13.0f, 15.0f);
 
-    const int numCubes = 25;
+    const int numCubes = 50;
     for (int i = 0; i < numCubes; ++i)
     {
         Vector3 position(posX(gen), posY(gen), posZ(gen));

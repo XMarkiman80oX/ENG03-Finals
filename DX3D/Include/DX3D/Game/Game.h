@@ -121,7 +121,7 @@ namespace dx3d
         void alignGameCameraWithView();
 
         //Spawners
-        void spawnCubeDemo();
+        void spawnFiftyCubes();
         void spawnCube();
         void spawnSphere();
         void spawnCapsule();

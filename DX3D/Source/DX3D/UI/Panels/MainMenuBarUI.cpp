@@ -200,7 +200,7 @@ void MainMenuBarUI::render(const Callbacks& callbacks)
 
             ImGui::Separator();
 
-            if (ImGui::MenuItem("Cube Demo"))
+            if (ImGui::MenuItem("Physics Demo"))
             {
                 if (callbacks.onSpawnCubeDemo)
                     callbacks.onSpawnCubeDemo();
